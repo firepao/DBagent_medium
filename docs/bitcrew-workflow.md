@@ -89,11 +89,11 @@ flowchart LR
 | URL 查询参数 | 无 |
 | 请求体类型 | JSON |
 | 连接超时 | 建议 `10s` |
-| 总请求超时 | 建议 `70s` |
+| 总请求超时 | 建议 `150s` |
 | 自动重试 | 关闭，由工作流错误分支控制最多重试一次 |
 | 跟随重定向 | 开启，最多 3 次 |
 
-总请求超时需要覆盖两次模型调用和一次 SQLite 查询。不要把 HTTP 节点设置成无限等待。
+总请求超时需要覆盖两次模型调用和一次 SQLite 查询。当前真实联调样例约为 8 秒，但模型接口波动时会更长；不要保留节点默认的 `10s`，也不要设置为无限等待。
 
 #### 3.3 请求头
 
@@ -167,13 +167,13 @@ HTTP 节点至少输出以下工作流变量：
 | 输出变量 | 类型 | 映射来源 | 用途 |
 | --- | --- | --- | --- |
 | `query_http_status` | integer | HTTP 状态码 | 区分接口响应和网关异常 |
-| `query_response` | object | JSON 响应体 | 后续成功、澄清和错误分支的统一输入 |
+| `query_response` | object | `JSON.parse(body)` 的结果 | 后续成功、澄清和错误分支的统一输入 |
 | `query_request_id` | string/null | `query_response.request_id` | 日志关联和故障排查 |
 | `query_success` | boolean | `query_response.success` | 业务成功分支判断 |
 | `query_error_code` | string/null | `query_response.error.code` | 错误分支判断 |
 | `query_retryable` | boolean | `query_response.error.retryable`，为空时取 `false` | 是否允许工作流重试 |
 
-HTTP `200` 只表示服务成功处理请求，不代表查询成功。查询未通过安全校验、需要澄清或超出数据范围时，服务仍可能返回 HTTP `200`，但响应中的 `success=false`。
+Bit-Crew HTTP 节点的原始输出 `body` 类型为 `String`。必须先在代码/变量处理节点执行 `query_response = JSON.parse(body)`，再读取 `query_response.success` 等字段。HTTP `200` 只表示服务成功处理请求，不代表查询成功；查询未通过安全校验、需要澄清或超出数据范围时，服务仍可能返回 HTTP `200`，但响应中的 `success=false`。
 
 成功响应示例：
 
