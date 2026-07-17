@@ -58,6 +58,41 @@ AUDIT_LOG_PATH=./runtime/query_audit.jsonl
 - OpenAPI：`http://127.0.0.1:8030/docs`
 - 查询接口：`POST http://127.0.0.1:8030/api/v1/query-energy-data`
 
+### 3.1 使用 Cloudflare 映射到公网
+
+先保持上述 Uvicorn 服务运行，再打开另一个 PowerShell 窗口。若尚未安装 `cloudflared`，执行：
+
+```powershell
+winget install --id Cloudflare.cloudflared
+cloudflared --version
+```
+
+创建指向本地 `8030` 端口的临时公网隧道：
+
+```powershell
+cloudflared tunnel --url http://127.0.0.1:8030
+```
+
+命令启动后会输出类似下面的临时公网地址：
+
+```text
+https://random-name.trycloudflare.com
+```
+
+验证公网映射：
+
+```powershell
+Invoke-RestMethod https://random-name.trycloudflare.com/health
+```
+
+Bit-Crew 的 HTTP 节点地址相应改为：
+
+```text
+https://random-name.trycloudflare.com/api/v1/query-energy-data
+```
+
+Quick Tunnel 仅适合联调：关闭 `cloudflared` 后隧道立即失效，重新启动时域名通常会变化。当前查询接口未内置公网访问令牌，映射到公网前应通过 Cloudflare Access、API 网关或服务鉴权限制调用方，不应长期公开临时地址。
+
 健康状态说明：
 
 - `healthy`：SQLite 可读且模型配置完整；
@@ -152,4 +187,3 @@ AUDIT_LOG_PATH=./runtime/query_audit.jsonl
 ```
 
 测试使用假模型和临时 SQLite，不访问外部模型，也不会修改原数据库。
-
