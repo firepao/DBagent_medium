@@ -65,12 +65,57 @@ flowchart LR
 
 ### 节点 3：HTTP 查询服务
 
-- 方法：`POST`
-- URL：`http://<medium-service-host>:8030/api/v1/query-energy-data`
-- 请求超时：建议 `70s`，应略大于模型调用和数据库查询超时之和
-- Content-Type：`application/json`
+该节点负责把 BitAgent 的原始问题和可信会话身份发送给 Medium 查询服务。节点本身不解析指标、不选择数据库表，也不生成 SQL。
 
-请求体：
+#### 3.1 节点输入
+
+| 输入变量 | 类型 | 必填 | 来源 | 发送字段 | 约束 |
+| --- | --- | --- | --- | --- | --- |
+| `question` | string | 是 | BitAgent 用户原始问题 | `question` | 去除首尾空格后长度为 1～2000 |
+| `user_id` | string | 是 | BitAgent 认证上下文 | `user_id` | 去除首尾空格后长度为 1～128，不能从用户文本提取 |
+| `session_id` | string | 是 | BitAgent 会话上下文 | `session_id` | 去除首尾空格后长度为 1～128 |
+| `retry_count` | integer | 是 | 工作流内部变量 | 不发送 | 首次调用为 `0`，最多重试一次 |
+
+进入 HTTP 节点前，应先检查三个字符串输入均不为空。缺少任一字段时直接结束工作流，不向查询服务发送请求。
+
+#### 3.2 HTTP 基本配置
+
+| 配置项 | 配置值 |
+| --- | --- |
+| 节点名称 | `调用 Medium 数据查询服务` |
+| 请求方法 | `POST` |
+| 本地 URL | `http://<medium-service-host>:8030/api/v1/query-energy-data` |
+| Cloudflare URL | `https://<分配域名>/api/v1/query-energy-data` |
+| URL 查询参数 | 无 |
+| 请求体类型 | JSON |
+| 连接超时 | 建议 `10s` |
+| 总请求超时 | 建议 `70s` |
+| 自动重试 | 关闭，由工作流错误分支控制最多重试一次 |
+| 跟随重定向 | 开启，最多 3 次 |
+
+总请求超时需要覆盖两次模型调用和一次 SQLite 查询。不要把 HTTP 节点设置成无限等待。
+
+#### 3.3 请求头
+
+本地或普通反向代理场景的必选请求头：
+
+| 请求头 | 值 | 说明 |
+| --- | --- | --- |
+| `Content-Type` | `application/json; charset=utf-8` | 声明请求体为 UTF-8 JSON |
+| `Accept` | `application/json` | 要求服务返回 JSON |
+
+如果使用 Cloudflare Access Service Token，再增加以下请求头：
+
+| 请求头 | 值来源 | 说明 |
+| --- | --- | --- |
+| `CF-Access-Client-Id` | Bit-Crew 密钥变量 | Cloudflare Access 服务令牌 ID |
+| `CF-Access-Client-Secret` | Bit-Crew 密钥变量 | Cloudflare Access 服务令牌密钥 |
+
+Cloudflare Access 请求头由 Cloudflare 校验，当前 Medium 服务本身尚未实现 `Authorization` 鉴权。令牌必须配置在 Bit-Crew 的密钥管理中，不能写死在工作流导出文件、提示词或日志里。若仅使用临时 `trycloudflare.com` Quick Tunnel 且未配置 Access，则只发送两个必选请求头。
+
+#### 3.4 请求参数与请求体
+
+接口不接收 URL Query 参数或表单参数，所有业务输入都放在 JSON 请求体中：
 
 ```json
 {
@@ -80,7 +125,127 @@ flowchart LR
 }
 ```
 
-响应保存到 `query_response`。Bit-Crew 日志只记录 `request_id`、`success`、错误码和耗时，不记录用户身份以外的敏感响应内容。
+字段说明：
+
+| JSON 字段 | 类型 | 必填 | 示例 | 服务端用途 |
+| --- | --- | --- | --- | --- |
+| `question` | string | 是 | `张北县已运行风电项目装机容量合计是多少？` | 生成 QueryPlan、检索相关元数据并生成候选 SQL |
+| `user_id` | string | 是 | `u_10086` | 审计关联，不作为数据库筛选条件 |
+| `session_id` | string | 是 | `s_20260717_001` | 关联 BitAgent、Bit-Crew 和查询服务调用链 |
+
+完整请求示例：
+
+```http
+POST /api/v1/query-energy-data HTTP/1.1
+Host: medium.example.com
+Content-Type: application/json; charset=utf-8
+Accept: application/json
+
+{
+  "question": "张北县已运行风电项目装机容量合计是多少？",
+  "user_id": "u_10086",
+  "session_id": "s_20260717_001"
+}
+```
+
+Bit-Crew 变量表达式示例：
+
+```json
+{
+  "question": "{{question}}",
+  "user_id": "{{user_id}}",
+  "session_id": "{{session_id}}"
+}
+```
+
+变量必须作为 JSON 字符串值传入，不能把整个请求体拼成未经转义的文本，避免用户问题中的引号或换行破坏 JSON。
+
+#### 3.5 响应接收与变量映射
+
+HTTP 节点至少输出以下工作流变量：
+
+| 输出变量 | 类型 | 映射来源 | 用途 |
+| --- | --- | --- | --- |
+| `query_http_status` | integer | HTTP 状态码 | 区分接口响应和网关异常 |
+| `query_response` | object | JSON 响应体 | 后续成功、澄清和错误分支的统一输入 |
+| `query_request_id` | string/null | `query_response.request_id` | 日志关联和故障排查 |
+| `query_success` | boolean | `query_response.success` | 业务成功分支判断 |
+| `query_error_code` | string/null | `query_response.error.code` | 错误分支判断 |
+| `query_retryable` | boolean | `query_response.error.retryable`，为空时取 `false` | 是否允许工作流重试 |
+
+HTTP `200` 只表示服务成功处理请求，不代表查询成功。查询未通过安全校验、需要澄清或超出数据范围时，服务仍可能返回 HTTP `200`，但响应中的 `success=false`。
+
+成功响应示例：
+
+```json
+{
+  "success": true,
+  "data": {
+    "rows": [{"total_capacity_mw": 6000.0}],
+    "summary": {"total_capacity_mw": 6000.0},
+    "schema": [{"name": "total_capacity_mw", "type": "number"}],
+    "data_as_of": "2026-05-31"
+  },
+  "sources": [
+    {
+      "dataset": "已运行新能源集中式电站",
+      "version": "local-sqlite-2026-07",
+      "data_as_of": "2026-05-31"
+    }
+  ],
+  "request_id": "qry_xxx",
+  "warnings": [],
+  "error": null
+}
+```
+
+业务失败响应示例：
+
+```json
+{
+  "success": false,
+  "data": null,
+  "sources": [],
+  "request_id": "qry_xxx",
+  "warnings": [],
+  "error": {
+    "code": "CLARIFICATION_REQUIRED",
+    "message": "请明确需要查询的区县。",
+    "retryable": false
+  }
+}
+```
+
+#### 3.6 HTTP 状态与节点行为
+
+| HTTP 状态/异常 | 响应特征 | Bit-Crew 行为 |
+| --- | --- | --- |
+| `200` | `success=true` | 进入结果结构校验和后置 LLM |
+| `200` | `success=false` | 根据 `error.code` 和 `error.retryable` 分支 |
+| `422` | `error.code=INVALID_ARGUMENT` | 不重试，提示请求参数不合法 |
+| `502/503/504` | 可能没有标准 JSON | 工作流归一化为 `UPSTREAM_UNAVAILABLE`，最多重试一次 |
+| 连接失败/连接超时 | 无响应体 | 工作流归一化为 `UPSTREAM_UNAVAILABLE`，最多重试一次 |
+| 总请求超时 | 无完整响应体 | 工作流归一化为 `QUERY_TIMEOUT`，最多重试一次 |
+| 非 JSON 响应 | 无法解析 `query_response` | 不交给 LLM，返回查询服务响应异常 |
+
+网关或网络异常由 Bit-Crew 在本地构造统一错误对象，便于复用后续错误分支：
+
+```json
+{
+  "success": false,
+  "data": null,
+  "sources": [],
+  "request_id": null,
+  "warnings": [],
+  "error": {
+    "code": "UPSTREAM_UNAVAILABLE",
+    "message": "数据查询服务暂不可用",
+    "retryable": true
+  }
+}
+```
+
+Bit-Crew 日志只记录请求耗时、HTTP 状态码、`request_id`、`success`、错误码和重试次数；不记录请求头密钥、完整用户问题、SQL、DDL 或完整查询结果。
 
 ### 节点 4：成功分支
 
