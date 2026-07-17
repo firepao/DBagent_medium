@@ -1,0 +1,133 @@
+{
+  "datasets": [
+    {
+      "table": "t01_operating_renewable_station",
+      "dataset": "已运行新能源集中式电站",
+      "version": "local-sqlite-2026-07",
+      "data_as_of": "2026-05-31",
+      "description": "已并网集中式风电、光伏等电站的容量、业主、位置和发电数据",
+      "keywords": ["已运行", "并网", "集中式", "风电", "光伏", "装机", "发电量", "业主"],
+      "aliases": {
+        "station_name": "电站名称",
+        "energy_type": "能源类型",
+        "grid_capacity_mw": "并网装机容量MW",
+        "project_location": "项目位置",
+        "project_builder": "建设单位",
+        "parent_group": "上级集团",
+        "grid_connection_date": "并网日期"
+      },
+      "excluded_columns": ["id", "source_file", "source_sheet", "excel_row", "contact"]
+    },
+    {
+      "table": "t02_construction_project_station",
+      "dataset": "在建新能源与储能项目",
+      "version": "local-sqlite-2026-07",
+      "data_as_of": "2026-07-15",
+      "description": "在建项目容量、位置、建设进度、接入批复和预计并网时间",
+      "keywords": ["在建", "项目进度", "预计并网", "接入批复", "建设手续"],
+      "aliases": {
+        "project_name": "项目名称",
+        "project_type": "项目类型",
+        "project_capacity_mw": "项目容量MW",
+        "construction_location": "建设地点",
+        "current_progress": "当前进度",
+        "grid_access_approval": "电力接入批复",
+        "grid_connection_date": "预计并网日期"
+      },
+      "excluded_columns": ["id", "source_file", "source_sheet", "excel_row", "contact"]
+    },
+    {
+      "table": "t03_large_scale_enterprise",
+      "dataset": "规上企业信息",
+      "version": "local-sqlite-2026-07",
+      "data_as_of": "2026-07-15",
+      "description": "规上企业基础信息、用能负荷及配套能源设施",
+      "keywords": ["规上企业", "企业", "用电", "负荷", "配套光伏", "配套储能"],
+      "aliases": {},
+      "excluded_columns": ["id", "source_file", "source_sheet", "excel_row", "contact"]
+    },
+    {
+      "table": "t04_filing_project",
+      "dataset": "入库备案新能源及储能项目",
+      "version": "local-sqlite-2026-07",
+      "data_as_of": "2026-07-15",
+      "description": "拟建项目规模、建设地点、计划开工及投运信息",
+      "keywords": ["备案", "入库", "拟建", "计划开工", "计划投运"],
+      "aliases": {},
+      "excluded_columns": ["id", "source_file", "source_sheet", "excel_row", "contact"]
+    },
+    {
+      "table": "t06_grid_side_storage",
+      "dataset": "电网侧储能",
+      "version": "local-sqlite-2026-07",
+      "data_as_of": "2026-07-15",
+      "description": "电网侧储能容量、接入站、投运及充放电量",
+      "keywords": ["电网侧储能", "储能", "充电量", "放电量", "接入站"],
+      "aliases": {
+        "station_name": "储能电站名称",
+        "grid_capacity_mwh": "储能容量MWh",
+        "operation_date": "投运日期",
+        "parent_station_name": "接入变电站"
+      },
+      "excluded_columns": ["id", "source_file", "source_sheet", "excel_row", "contact"]
+    },
+    {
+      "table": "t07_distributed_pv_wind",
+      "dataset": "分布式光伏与风电",
+      "version": "local-sqlite-2026-07",
+      "data_as_of": "2026-07-15",
+      "description": "分布式光伏与风电项目容量、位置、投运及发电量",
+      "keywords": ["分布式", "分布式光伏", "分散式风电", "投运", "发电量"],
+      "aliases": {
+        "station_name": "电站名称",
+        "station_type": "电站类型",
+        "station_location": "电站位置",
+        "installed_capacity_mw": "装机容量MW",
+        "operation_date": "投运日期"
+      },
+      "excluded_columns": ["id", "source_file", "source_sheet", "excel_row", "contact"]
+    },
+    {
+      "table": "t08_industrial_commercial_storage",
+      "dataset": "工商业储能",
+      "version": "local-sqlite-2026-07",
+      "data_as_of": "2026-07-15",
+      "description": "工商业储能容量、位置、投运及充放电数据",
+      "keywords": ["工商业储能", "用户侧储能", "虚拟电厂", "充放电"],
+      "aliases": {
+        "station_name": "储能项目名称",
+        "station_location": "项目位置",
+        "installed_capacity_mwh": "储能容量MWh",
+        "operation_date": "投运日期"
+      },
+      "excluded_columns": ["id", "source_file", "source_sheet", "excel_row", "contact"]
+    },
+    {
+      "table": "t10_power_grid_material",
+      "dataset": "电网材料",
+      "version": "local-sqlite-2026-07",
+      "data_as_of": "2026-07-15",
+      "description": "变电站容量、间隔、剩余接入容量和扩容计划",
+      "keywords": ["变电站", "电网", "接入容量", "间隔", "扩容"],
+      "aliases": {
+        "station_name_substation": "变电站名称",
+        "voltage_level_kv": "电压等级kV",
+        "remaining_bay_count": "剩余间隔数",
+        "remaining_access_capacity": "剩余接入容量",
+        "expansion_plan": "扩容计划"
+      },
+      "excluded_columns": ["id", "source_file", "source_sheet", "excel_row"]
+    },
+    {
+      "table": "t11_weather_grid_sample",
+      "dataset": "气象格点样本",
+      "version": "local-sqlite-2026-07",
+      "data_as_of": "2026-07-15",
+      "description": "风速、辐射、气温和等效满负荷小时等格点资源样本",
+      "keywords": ["气象", "风速", "辐射", "日照", "等效满负荷小时", "温度"],
+      "aliases": {},
+      "excluded_columns": ["id", "source_file", "source_sheet", "excel_row"]
+    }
+  ]
+}
+

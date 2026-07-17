@@ -1,0 +1,29 @@
+[
+  {
+    "question": "张北县已运行风电项目装机容量合计是多少？",
+    "tables": ["t01_operating_renewable_station"],
+    "query_plan": {
+      "query_type": "aggregation",
+      "table_hints": ["t01_operating_renewable_station"]
+    },
+    "sql": "SELECT SUM(CAST(grid_capacity_mw AS REAL)) AS total_capacity_mw FROM t01_operating_renewable_station WHERE project_location LIKE '%张北县%' AND energy_type = '风电'"
+  },
+  {
+    "question": "未取得电力接入批复的在建项目有哪些？",
+    "tables": ["t02_construction_project_station"],
+    "query_plan": {
+      "query_type": "list",
+      "table_hints": ["t02_construction_project_station"]
+    },
+    "sql": "SELECT project_name, project_capacity_mw, grid_access_approval FROM t02_construction_project_station WHERE grid_access_approval IN ('否', '办理中') LIMIT 100"
+  },
+  {
+    "question": "各变电站剩余接入容量情况",
+    "tables": ["t10_power_grid_material"],
+    "query_plan": {
+      "query_type": "list",
+      "table_hints": ["t10_power_grid_material"]
+    },
+    "sql": "SELECT station_name_substation, voltage_level_kv, remaining_access_capacity FROM t10_power_grid_material LIMIT 100"
+  }
+]

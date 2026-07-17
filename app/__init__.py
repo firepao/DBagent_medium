@@ -1,0 +1,2 @@
+"""Medium data query service."""
+
