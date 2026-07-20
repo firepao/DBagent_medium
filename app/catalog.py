@@ -105,6 +105,19 @@ class MetadataCatalog:
             ]
         )
 
+    def exact_example(self, question: str) -> dict[str, Any] | None:
+        normalized_question = question.strip()
+        for example in self._examples:
+            tables = set(example.get("tables", []))
+            if (
+                example.get("question", "").strip() == normalized_question
+                and tables
+                and tables.issubset(self.allowed_tables)
+                and isinstance(example.get("sql"), str)
+            ):
+                return example
+        return None
+
     def source_info(self, tables: set[str]) -> list[dict[str, Any]]:
         return [
             {
@@ -114,4 +127,3 @@ class MetadataCatalog:
             }
             for table in sorted(tables)
         ]
-

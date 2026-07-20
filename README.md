@@ -388,6 +388,8 @@ HTTP `200` 不代表业务查询成功。`200 + success=false` 是服务已正�
 | `QUERY_TIMEOUT` | SQLite 查询超时 | 最多重试一次或缩小问题范围 |
 | `INTERNAL_ERROR` | 服务内部错误 | 展示 `request_id` 以便排查 |
 
+对于 `config/examples.json` 中精确匹配的已验证问题，若模型规划或 SQL 生成失败，服务会回退执行对应示例 SQL。示例 SQL 仍需经过 SQL 白名单校验和只读执行；响应保持 `success=true`，并在 `warnings` 中标记 `LLM_FALLBACK_EXAMPLE`。近似问法、未收录问题和未通过校验的示例不会触发回退。
+
 ## 9. 常见故障排查
 
 | 现象 | 首先检查 | 处理 |

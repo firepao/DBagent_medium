@@ -5,6 +5,7 @@ import sqlite3
 
 import pytest
 
+from app.llm import LLMResponseError
 from app.models import QueryPlan, QueryRequest
 
 
@@ -39,7 +40,7 @@ class FakeLLM:
         return self.sql_result
 
 
-def build_service(tmp_path, llm):
+def build_service(tmp_path, llm, examples=None):
     audit_module, catalog_module, executor_module, service_module, guard_module = (
         load_service_modules()
     )
@@ -73,7 +74,9 @@ def build_service(tmp_path, llm):
         encoding="utf-8",
     )
     examples_path = tmp_path / "examples.json"
-    examples_path.write_text("[]", encoding="utf-8")
+    examples_path.write_text(
+        json.dumps(examples or [], ensure_ascii=False), encoding="utf-8"
+    )
     catalog = catalog_module.MetadataCatalog(db_path, catalog_path, examples_path)
     executor = executor_module.SQLiteExecutor(db_path, timeout_seconds=2, max_rows=100)
     guard = guard_module.SqlGuard(catalog, max_rows=100)
@@ -160,3 +163,58 @@ def test_service_returns_empty_query_as_success_with_warning(tmp_path) -> None:
     assert response.data.rows == []
     assert "NO_DATA" in response.warnings
 
+
+def test_service_uses_exact_verified_example_when_llm_planning_fails(tmp_path) -> None:
+    class FailingLLM:
+        is_configured = True
+
+        async def plan(self, question, candidate_tables):
+            raise LLMResponseError("无效的规划响应")
+
+        async def generate_sql(self, question, plan, context):
+            raise AssertionError("规划失败时不应调用 SQL 生成")
+
+    question = "张北县电站装机容量是多少？"
+    examples = [
+        {
+            "question": question,
+            "tables": ["stations"],
+            "query_plan": {"query_type": "aggregation"},
+            "sql": "SELECT SUM(capacity_mw) AS total_capacity_mw FROM stations WHERE county = '张北县'",
+        }
+    ]
+    service, audit_path = build_service(tmp_path, FailingLLM(), examples)
+
+    response = asyncio.run(service.query(request(question)))
+
+    assert response.success is True
+    assert response.data.summary == {"total_capacity_mw": 250.0}
+    assert response.warnings == ["LLM_FALLBACK_EXAMPLE"]
+    audit_text = audit_path.read_text(encoding="utf-8")
+    assert '"fallback":"verified_example"' in audit_text
+
+
+def test_service_does_not_fallback_when_question_is_not_exact_example(tmp_path) -> None:
+    class FailingLLM:
+        is_configured = True
+
+        async def plan(self, question, candidate_tables):
+            raise LLMResponseError("无效的规划响应")
+
+        async def generate_sql(self, question, plan, context):
+            raise AssertionError("规划失败时不应调用 SQL 生成")
+
+    examples = [
+        {
+            "question": "张北县电站装机容量是多少？",
+            "tables": ["stations"],
+            "query_plan": {"query_type": "aggregation"},
+            "sql": "SELECT SUM(capacity_mw) AS total_capacity_mw FROM stations WHERE county = '张北县'",
+        }
+    ]
+    service, _ = build_service(tmp_path, FailingLLM(), examples)
+
+    response = asyncio.run(service.query(request("张北县全部电站装机是多少？")))
+
+    assert response.success is False
+    assert response.error.code == "SQL_GENERATION_FAILED"

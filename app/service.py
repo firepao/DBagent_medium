@@ -41,6 +41,7 @@ class QueryService:
             "session_id": request.session_id,
             "question_sha256": question_hash,
         }
+        llm_stage = "planning"
 
         try:
             candidate_tables = self.catalog.match_tables(request.question)
@@ -70,6 +71,7 @@ class QueryService:
                 )
 
             context = self.catalog.build_context(plan.table_hints)
+            llm_stage = "sql_generation"
             candidate_sql = await self.llm.generate_sql(
                 request.question, plan, context
             )
@@ -129,6 +131,11 @@ class QueryService:
                 started,
             )
         except LLMResponseError:
+            fallback = await self._try_exact_example_fallback(
+                request_id, request, audit_base, started
+            )
+            if fallback is not None:
+                return fallback
             return self._failure(
                 request_id,
                 "SQL_GENERATION_FAILED",
@@ -136,6 +143,7 @@ class QueryService:
                 True,
                 audit_base,
                 started,
+                stage=llm_stage,
             )
         except CatalogError:
             return self._failure(
@@ -192,6 +200,7 @@ class QueryService:
         audit_base: dict[str, Any],
         started: float,
         tables: list[str] | None = None,
+        stage: str | None = None,
     ) -> ToolResponse:
         self.audit.record(
             {
@@ -199,6 +208,7 @@ class QueryService:
                 "status": "failed",
                 "error_code": code,
                 "tables": sorted(tables or []),
+                "stage": stage,
                 "duration_ms": int((time.monotonic() - started) * 1000),
             }
         )
@@ -208,6 +218,61 @@ class QueryService:
             message=message,
             retryable=retryable,
         )
+
+    async def _try_exact_example_fallback(
+        self,
+        request_id: str,
+        request: QueryRequest,
+        audit_base: dict[str, Any],
+        started: float,
+    ) -> ToolResponse | None:
+        example = self.catalog.exact_example(request.question)
+        if example is None:
+            return None
+        try:
+            validated = self.guard.validate(example["sql"])
+            result = await self.executor.execute(validated.sql)
+        except (SqlValidationError, QueryExecutionError):
+            return None
+
+        source_dicts = self.catalog.source_info(validated.tables)
+        sources = [SourceInfo(**item) for item in source_dicts]
+        warnings = ["LLM_FALLBACK_EXAMPLE"]
+        if result.truncated:
+            warnings.append("RESULT_TRUNCATED")
+        if not result.rows:
+            warnings.append("NO_DATA")
+        summary = (
+            dict(result.rows[0])
+            if len(result.rows) == 1
+            else {"row_count": result.row_count, "truncated": result.truncated}
+        )
+        data_as_of_values = [
+            source.data_as_of for source in sources if source.data_as_of
+        ]
+        response = ToolResponse(
+            success=True,
+            request_id=request_id,
+            data=QueryData(
+                rows=result.rows,
+                summary=summary,
+                schema_=result.schema,
+                data_as_of=max(data_as_of_values) if data_as_of_values else None,
+            ),
+            sources=sources,
+            warnings=warnings,
+        )
+        self.audit.record(
+            {
+                **audit_base,
+                "status": "success",
+                "fallback": "verified_example",
+                "tables": sorted(validated.tables),
+                "row_count": result.row_count,
+                "duration_ms": int((time.monotonic() - started) * 1000),
+            }
+        )
+        return response
 
     def health(self) -> dict[str, Any]:
         database_state = "unhealthy"
@@ -234,4 +299,3 @@ class QueryService:
         close = getattr(self.llm, "aclose", None)
         if close is not None:
             await close()
-
