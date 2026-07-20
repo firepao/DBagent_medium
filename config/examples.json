@@ -1,12 +1,12 @@
 [
   {
     "question": "张北县已运行风电项目装机容量合计是多少？",
-    "tables": ["t01_operating_renewable_station"],
+    "tables": ["t01_operating_renewable_station_profile"],
     "query_plan": {
       "query_type": "aggregation",
-      "table_hints": ["t01_operating_renewable_station"]
+      "table_hints": ["t01_operating_renewable_station_profile"]
     },
-    "sql": "SELECT SUM(CAST(grid_capacity_mw AS REAL)) AS total_capacity_mw FROM t01_operating_renewable_station WHERE project_location LIKE '%张北县%' AND energy_type = '风电'"
+    "sql": "SELECT SUM(CAST(grid_capacity_mw AS REAL)) AS total_capacity_mw FROM t01_operating_renewable_station_profile WHERE project_location LIKE '%张北县%' AND energy_type = '风电'"
   },
   {
     "question": "未取得电力接入批复的在建项目有哪些？",

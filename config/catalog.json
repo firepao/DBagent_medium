@@ -1,27 +1,63 @@
 {
   "datasets": [
     {
-      "table": "t01_operating_renewable_station",
-      "dataset": "已运行新能源集中式电站",
-      "version": "local-sqlite-2026-07",
-      "data_as_of": "2026-05-31",
-      "description": "已并网集中式风电、光伏等电站的容量、业主、位置和发电数据",
+      "table": "t01_operating_renewable_station_profile",
+      "dataset": "已运行新能源集中式电站项目画像",
+      "version": "data1-v1.0.1-2026-07-17",
+      "data_as_of": "2026-07-17",
+      "description": "已运行集中式风电、光伏等电站的容量、业主、位置、并网日期和配储信息；依据 t01 项目画像 DDL 发布",
       "keywords": ["已运行", "并网", "集中式", "风电", "光伏", "装机", "发电量", "业主"],
       "aliases": {
-        "station_name": "电站名称",
+        "station_name": "场站名称",
         "energy_type": "能源类型",
         "grid_capacity_mw": "并网装机容量MW",
         "project_location": "项目位置",
-        "project_builder": "建设单位",
-        "parent_group": "上级集团",
+        "project_builder": "项目建设方",
+        "parent_group": "归属上级集团",
         "grid_connection_date": "并网日期"
       },
       "excluded_columns": ["id", "source_file", "source_sheet", "excel_row", "contact"]
     },
     {
+      "table": "t01_operating_generation_monthly",
+      "dataset": "已运行新能源集中式电站发电量月度数据",
+      "version": "data1-v1.0.1-2026-07-17",
+      "data_as_of": "2026-07-17",
+      "description": "已运行新能源电站按场站、时间周期和指标名称记录的发电量时间序列；依据 t01 发电量时间序列 DDL 发布",
+      "keywords": ["发电量", "月度发电量", "时间序列", "新能源发电", "利用小时"],
+      "aliases": {
+        "station_name": "场站名称",
+        "project_location": "项目位置",
+        "time_period": "时间周期",
+        "time_granularity": "时间粒度",
+        "metric_name": "指标名称",
+        "metric_unit": "指标单位",
+        "metric_value": "指标值"
+      },
+      "excluded_columns": ["id", "source_file", "source_sheet", "excel_row", "source_row_no", "source_column_no", "source_column_name"]
+    },
+    {
+      "table": "t01_operating_curtailment_monthly",
+      "dataset": "已运行新能源集中式电站限电量月度数据",
+      "version": "data1-v1.0.1-2026-07-17",
+      "data_as_of": "2026-07-17",
+      "description": "已运行新能源电站按场站、时间周期和指标名称记录的限电量时间序列；依据 t01 限电量时间序列 DDL 发布",
+      "keywords": ["限电量", "弃风", "弃光", "限电率", "月度限电"],
+      "aliases": {
+        "station_name": "场站名称",
+        "project_location": "项目位置",
+        "time_period": "时间周期",
+        "time_granularity": "时间粒度",
+        "metric_name": "指标名称",
+        "metric_unit": "指标单位",
+        "metric_value": "指标值"
+      },
+      "excluded_columns": ["id", "source_file", "source_sheet", "excel_row", "source_row_no", "source_column_no", "source_column_name"]
+    },
+    {
       "table": "t02_construction_project_station",
       "dataset": "在建新能源与储能项目",
-      "version": "local-sqlite-2026-07",
+      "version": "data1-v1.0.1-2026-07-17",
       "data_as_of": "2026-07-15",
       "description": "在建项目容量、位置、建设进度、接入批复和预计并网时间",
       "keywords": ["在建", "项目进度", "预计并网", "接入批复", "建设手续"],
@@ -39,7 +75,7 @@
     {
       "table": "t03_large_scale_enterprise",
       "dataset": "规上企业信息",
-      "version": "local-sqlite-2026-07",
+      "version": "data1-v1.0.1-2026-07-17",
       "data_as_of": "2026-07-15",
       "description": "规上企业基础信息、用能负荷及配套能源设施",
       "keywords": ["规上企业", "企业", "用电", "负荷", "配套光伏", "配套储能"],
@@ -49,7 +85,7 @@
     {
       "table": "t04_filing_project",
       "dataset": "入库备案新能源及储能项目",
-      "version": "local-sqlite-2026-07",
+      "version": "data1-v1.0.1-2026-07-17",
       "data_as_of": "2026-07-15",
       "description": "拟建项目规模、建设地点、计划开工及投运信息",
       "keywords": ["备案", "入库", "拟建", "计划开工", "计划投运"],
@@ -59,7 +95,7 @@
     {
       "table": "t06_grid_side_storage",
       "dataset": "电网侧储能",
-      "version": "local-sqlite-2026-07",
+      "version": "data1-v1.0.1-2026-07-17",
       "data_as_of": "2026-07-15",
       "description": "电网侧储能容量、接入站、投运及充放电量",
       "keywords": ["电网侧储能", "储能", "充电量", "放电量", "接入站"],
@@ -74,7 +110,7 @@
     {
       "table": "t07_distributed_pv_wind",
       "dataset": "分布式光伏与风电",
-      "version": "local-sqlite-2026-07",
+      "version": "data1-v1.0.1-2026-07-17",
       "data_as_of": "2026-07-15",
       "description": "分布式光伏与风电项目容量、位置、投运及发电量",
       "keywords": ["分布式", "分布式光伏", "分散式风电", "投运", "发电量"],
@@ -90,7 +126,7 @@
     {
       "table": "t08_industrial_commercial_storage",
       "dataset": "工商业储能",
-      "version": "local-sqlite-2026-07",
+      "version": "data1-v1.0.1-2026-07-17",
       "data_as_of": "2026-07-15",
       "description": "工商业储能容量、位置、投运及充放电数据",
       "keywords": ["工商业储能", "用户侧储能", "虚拟电厂", "充放电"],
@@ -103,9 +139,31 @@
       "excluded_columns": ["id", "source_file", "source_sheet", "excel_row", "contact"]
     },
     {
+      "table": "t09_charging_station",
+      "dataset": "充换电站",
+      "version": "data1-v1.0.1-2026-07-17",
+      "data_as_of": "2026-07-17",
+      "description": "充换电站位置、运营方、充电桩数量、充电功率及光储配置；依据 t09 充电站 DDL 发布",
+      "keywords": ["充电站", "充换电", "充电桩", "直流桩", "交流桩", "充电功率"],
+      "aliases": {
+        "station_name": "站点名称",
+        "station_location": "站点位置",
+        "investor_builder": "投资建设方",
+        "operator": "运营方",
+        "charging_pile_count": "充电桩数量",
+        "dc_charger_count": "直流桩数量",
+        "ac_charger_count": "交流桩数量",
+        "total_charging_power": "总充电功率kW",
+        "charge_power_kwh": "日均充电量kWh",
+        "pv_capacity_mw": "光伏容量MW",
+        "storage_capacity_mwh": "储能容量MWh"
+      },
+      "excluded_columns": ["id", "source_file", "source_sheet", "excel_row", "contact"]
+    },
+    {
       "table": "t10_power_grid_material",
       "dataset": "电网材料",
-      "version": "local-sqlite-2026-07",
+      "version": "data1-v1.0.1-2026-07-17",
       "data_as_of": "2026-07-15",
       "description": "变电站容量、间隔、剩余接入容量和扩容计划",
       "keywords": ["变电站", "电网", "接入容量", "间隔", "扩容"],
@@ -119,9 +177,24 @@
       "excluded_columns": ["id", "source_file", "source_sheet", "excel_row"]
     },
     {
+      "table": "t11_weather_data_element",
+      "dataset": "气象历史数据要素目录",
+      "version": "data1-v1.0.1-2026-07-17",
+      "data_as_of": "2026-07-17",
+      "description": "气象历史数据的可用要素、时间粒度、空间粒度和历史时长；依据 t11 气象数据要素 DDL 发布",
+      "keywords": ["气象数据要素", "气象历史", "时间颗粒度", "空间颗粒度", "历史时长"],
+      "aliases": {
+        "data_element": "数据要素",
+        "time_granularity": "时间颗粒度",
+        "space_granularity": "空间颗粒度",
+        "history_duration": "历史时长"
+      },
+      "excluded_columns": ["id", "source_file", "source_sheet", "excel_row"]
+    },
+    {
       "table": "t11_weather_grid_sample",
       "dataset": "气象格点样本",
-      "version": "local-sqlite-2026-07",
+      "version": "data1-v1.0.1-2026-07-17",
       "data_as_of": "2026-07-15",
       "description": "风速、辐射、气温和等效满负荷小时等格点资源样本",
       "keywords": ["气象", "风速", "辐射", "日照", "等效满负荷小时", "温度"],
@@ -130,4 +203,3 @@
     }
   ]
 }
-

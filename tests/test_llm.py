@@ -108,7 +108,14 @@ def test_generate_sql_cleans_markdown_fence() -> None:
 
 def test_missing_llm_configuration_is_rejected_before_request() -> None:
     module = load_llm_module()
-    client = module.OpenAIQueryLLM(Settings())
+    client = module.OpenAIQueryLLM(
+        Settings(
+            _env_file=None,
+            openai_base_url="",
+            openai_api_key="",
+            openai_model="",
+        )
+    )
 
     with pytest.raises(module.LLMConfigurationError):
         asyncio.run(client.plan("查询装机", ["t01_operating_renewable_station"]))

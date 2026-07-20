@@ -33,8 +33,16 @@ BitAgent
 当前 SQLite 默认路径为：
 
 ```text
-../data/数据库/zhangbei_energy_data.sqlite3
+../data/数据入库_v1.0.1_2026.07.17/data_1_all/zhangbei_energy_data_data1.sqlite3
 ```
+
+同一数据包的 DDL 目录为：
+
+```text
+../data/数据入库_v1.0.1_2026.07.17/data_1_all/vanna_table_ddls
+```
+
+该版本在 `2026-07-17` 导入了 16 张业务表。服务运行时从 SQLite 读取实际字段；目录中的 DDL 用于同步表别名、字段说明和受控发布范围。
 
 服务只允许访问 `catalog.json` 发布的数据表和字段，SQLite 以只读方式打开。
 
@@ -79,7 +87,7 @@ Copy-Item .env.example .env
 OPENAI_BASE_URL=https://你的OpenAI兼容接口/v1
 OPENAI_API_KEY=你的密钥
 OPENAI_MODEL=你的模型名称
-SQLITE_DB_PATH=../data/数据库/zhangbei_energy_data.sqlite3
+SQLITE_DB_PATH=../data/数据入库_v1.0.1_2026.07.17/data_1_all/zhangbei_energy_data_data1.sqlite3
 QUERY_TIMEOUT_SECONDS=10
 MAX_RESULT_ROWS=100
 AUDIT_LOG_PATH=./runtime/query_audit.jsonl

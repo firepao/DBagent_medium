@@ -15,7 +15,9 @@ class Settings(BaseSettings):
     openai_base_url: str = ""
     openai_api_key: str = ""
     openai_model: str = ""
-    sqlite_db_path: Path = Path("../data/数据库/zhangbei_energy_data.sqlite3")
+    sqlite_db_path: Path = Path(
+        "../data/数据入库_v1.0.1_2026.07.17/data_1_all/zhangbei_energy_data_data1.sqlite3"
+    )
     query_timeout_seconds: float = Field(default=10.0, gt=0)
     max_result_rows: int = Field(default=100, ge=1, le=1000)
     audit_log_path: Path = Path("runtime/query_audit.jsonl")
@@ -32,4 +34,3 @@ class Settings(BaseSettings):
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
-
