@@ -29,8 +29,10 @@ class FakeLLM:
         self.plan_result = plan
         self.sql_result = sql
         self.generate_calls = 0
+        self.planning_context = None
 
-    async def plan(self, question: str, candidate_tables: list[str]) -> QueryPlan:
+    async def plan(self, question: str, planning_context: str) -> QueryPlan:
+        self.planning_context = planning_context
         return self.plan_result
 
     async def generate_sql(
@@ -40,7 +42,7 @@ class FakeLLM:
         return self.sql_result
 
 
-def build_service(tmp_path, llm, examples=None):
+def build_service(tmp_path, llm, examples=None, diagnostics_enabled=False):
     audit_module, catalog_module, executor_module, service_module, guard_module = (
         load_service_modules()
     )
@@ -81,12 +83,19 @@ def build_service(tmp_path, llm, examples=None):
     executor = executor_module.SQLiteExecutor(db_path, timeout_seconds=2, max_rows=100)
     guard = guard_module.SqlGuard(catalog, max_rows=100)
     audit = audit_module.AuditRepository(tmp_path / "audit.jsonl")
-    service = service_module.QueryService(catalog, llm, guard, executor, audit)
+    service = service_module.QueryService(
+        catalog,
+        llm,
+        guard,
+        executor,
+        audit,
+        diagnostics_enabled=diagnostics_enabled,
+    )
     return service, tmp_path / "audit.jsonl"
 
 
 def request(question: str = "张北县电站装机容量是多少？") -> QueryRequest:
-    return QueryRequest(question=question, user_id="u_1", session_id="s_1")
+    return QueryRequest(question=question)
 
 
 def test_service_executes_validated_query_and_returns_sources(tmp_path) -> None:
@@ -217,4 +226,112 @@ def test_service_does_not_fallback_when_question_is_not_exact_example(tmp_path) 
     response = asyncio.run(service.query(request("张北县全部电站装机是多少？")))
 
     assert response.success is False
-    assert response.error.code == "SQL_GENERATION_FAILED"
+    assert response.error.code == "PLANNING_FAILED"
+
+
+def test_service_hides_diagnostics_when_disabled(tmp_path) -> None:
+    plan = QueryPlan(query_type="list", table_hints=["stations"])
+    llm = FakeLLM(plan, "SELECT id, county FROM stations")
+    service, _ = build_service(tmp_path, llm)
+
+    response = asyncio.run(service.query(request()))
+
+    assert response.success is True
+    assert response.diagnostics is None
+
+
+def test_service_returns_planning_diagnostics_when_enabled(tmp_path) -> None:
+    class FailingLLM:
+        is_configured = True
+
+        async def plan(self, question, candidate_tables):
+            raise LLMResponseError("invalid planning response")
+
+        async def generate_sql(self, question, plan, context):
+            raise AssertionError("planning failure must not generate SQL")
+
+    service, _ = build_service(
+        tmp_path,
+        FailingLLM(),
+        diagnostics_enabled=True,
+    )
+
+    response = asyncio.run(service.query(request("查询电站装机容量")))
+
+    assert response.success is False
+    assert response.error.code == "PLANNING_FAILED"
+    assert response.diagnostics == {
+        "stage": "planning",
+        "plan": {"status": "failed"},
+        "sql_generation": {"status": "not_started", "sql": None},
+        "sql_validation": {"status": "not_started", "result": None},
+        "fallback": {
+            "attempted": True,
+            "exact_question_match": False,
+            "used": False,
+        },
+    }
+
+
+def test_service_returns_generated_sql_and_validation_when_enabled(tmp_path) -> None:
+    plan = QueryPlan(query_type="list", table_hints=["stations"])
+    sql = "SELECT id, county FROM stations"
+    service, _ = build_service(
+        tmp_path,
+        FakeLLM(plan, sql),
+        diagnostics_enabled=True,
+    )
+
+    response = asyncio.run(service.query(request()))
+
+    assert response.success is True
+    assert response.diagnostics == {
+        "stage": "completed",
+        "plan": {"status": "passed", "table_hints": ["stations"]},
+        "sql_generation": {"status": "generated", "sql": sql},
+        "sql_validation": {
+            "status": "passed",
+            "result": {"tables": ["stations"]},
+        },
+        "fallback": {
+            "attempted": False,
+            "exact_question_match": False,
+            "used": False,
+        },
+    }
+
+
+def test_service_uses_full_table_cards_when_keywords_do_not_match(tmp_path) -> None:
+    plan = QueryPlan(query_type="aggregation", table_hints=["stations"])
+    llm = FakeLLM(plan, "SELECT SUM(capacity_mw) AS total_capacity_mw FROM stations")
+    service, _ = build_service(tmp_path, llm)
+
+    response = asyncio.run(service.query(request("全市新能源资产规模是多少？")))
+
+    assert response.success is True
+    assert "stations" in llm.planning_context
+    assert "已运行电站" in llm.planning_context
+
+
+def test_service_rejects_unknown_table_after_planning(tmp_path) -> None:
+    class InvalidTablePlanLLM:
+        is_configured = True
+
+        def __init__(self) -> None:
+            self.plan_called = False
+
+        async def plan(self, question: str, planning_context: str) -> QueryPlan:
+            self.plan_called = True
+            return QueryPlan(query_type="list", table_hints=["hidden_secret"])
+
+        async def generate_sql(self, question, plan, context):
+            raise AssertionError("未发布表不能进入 SQL 生成")
+
+    llm = InvalidTablePlanLLM()
+    service, _ = build_service(tmp_path, llm)
+
+    response = asyncio.run(service.query(request("测试问题")))
+
+    assert llm.plan_called is True
+    assert response.success is False
+    assert response.error.code == "QUERY_NOT_SUPPORTED"

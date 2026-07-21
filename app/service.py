@@ -24,12 +24,29 @@ class QueryService:
         guard: SqlGuard,
         executor: SQLiteExecutor,
         audit: AuditRepository,
+        diagnostics_enabled: bool = False,
     ) -> None:
         self.catalog = catalog
         self.llm = llm
         self.guard = guard
         self.executor = executor
         self.audit = audit
+        self.diagnostics_enabled = diagnostics_enabled
+
+    def _new_diagnostics(self) -> dict[str, Any] | None:
+        if not self.diagnostics_enabled:
+            return None
+        return {
+            "stage": "candidate_table_matching",
+            "plan": {"status": "not_started"},
+            "sql_generation": {"status": "not_started", "sql": None},
+            "sql_validation": {"status": "not_started", "result": None},
+            "fallback": {
+                "attempted": False,
+                "exact_question_match": False,
+                "used": False,
+            },
+        }
 
     async def query(self, request: QueryRequest) -> ToolResponse:
         request_id = f"qry_{uuid.uuid4().hex}"
@@ -37,27 +54,25 @@ class QueryService:
         question_hash = hashlib.sha256(request.question.encode("utf-8")).hexdigest()
         audit_base = {
             "request_id": request_id,
-            "user_id": request.user_id,
-            "session_id": request.session_id,
             "question_sha256": question_hash,
         }
         llm_stage = "planning"
+        diagnostics = self._new_diagnostics()
 
         try:
-            candidate_tables = self.catalog.match_tables(request.question)
-            if not candidate_tables:
-                return self._failure(
-                    request_id,
-                    "QUERY_NOT_SUPPORTED",
-                    "当前已发布数据无法支撑该问题",
-                    False,
-                    audit_base,
-                    started,
-                )
-
-            plan = await self.llm.plan(request.question, candidate_tables)
-            if not set(plan.table_hints).issubset(set(candidate_tables)):
-                raise CatalogError("查询规划引用了候选范围外的数据表")
+            if diagnostics is not None:
+                diagnostics["stage"] = "planning"
+                diagnostics["plan"] = {"status": "started"}
+            plan = await self.llm.plan(
+                request.question, self.catalog.build_planning_context()
+            )
+            if not set(plan.table_hints).issubset(self.catalog.allowed_tables):
+                raise CatalogError("查询规划引用了未发布的数据表")
+            if diagnostics is not None:
+                diagnostics["plan"] = {
+                    "status": "passed",
+                    "table_hints": plan.table_hints,
+                }
             if plan.requires_clarification:
                 message = plan.clarification_question or "请补充查询所需条件"
                 return self._failure(
@@ -68,17 +83,35 @@ class QueryService:
                     audit_base,
                     started,
                     tables=plan.table_hints,
+                    stage="planning",
+                    diagnostics=diagnostics,
                 )
 
-            context = self.catalog.build_context(plan.table_hints)
+            context = self.catalog.build_sql_context(request.question, plan.table_hints)
             llm_stage = "sql_generation"
+            if diagnostics is not None:
+                diagnostics["stage"] = "sql_generation"
+                diagnostics["sql_generation"] = {"status": "started", "sql": None}
             candidate_sql = await self.llm.generate_sql(
                 request.question, plan, context
             )
+            if diagnostics is not None:
+                diagnostics["sql_generation"] = {
+                    "status": "generated",
+                    "sql": candidate_sql,
+                }
+                diagnostics["stage"] = "sql_validation"
+                diagnostics["sql_validation"] = {"status": "started", "result": None}
             validated = self.guard.validate(candidate_sql)
             if not validated.tables.issubset(set(plan.table_hints)):
                 raise SqlValidationError("SQL 引用了规划范围外的数据表")
 
+            if diagnostics is not None:
+                diagnostics["sql_validation"] = {
+                    "status": "passed",
+                    "result": {"tables": sorted(validated.tables)},
+                }
+                diagnostics["stage"] = "execution"
             result = await self.executor.execute(validated.sql)
             source_dicts = self.catalog.source_info(validated.tables)
             sources = [SourceInfo(**item) for item in source_dicts]
@@ -98,6 +131,8 @@ class QueryService:
             data_as_of_values = [
                 source.data_as_of for source in sources if source.data_as_of
             ]
+            if diagnostics is not None:
+                diagnostics["stage"] = "completed"
             response = ToolResponse(
                 success=True,
                 request_id=request_id,
@@ -109,6 +144,7 @@ class QueryService:
                 ),
                 sources=sources,
                 warnings=warnings,
+                diagnostics=diagnostics,
             )
             self.audit.record(
                 {
@@ -131,19 +167,33 @@ class QueryService:
                 started,
             )
         except LLMResponseError:
+            if diagnostics is not None:
+                diagnostics["stage"] = llm_stage
+                if llm_stage == "planning":
+                    diagnostics["plan"] = {"status": "failed"}
+                else:
+                    diagnostics["sql_generation"] = {
+                        "status": "failed",
+                        "sql": None,
+                    }
+                diagnostics["fallback"]["attempted"] = True
+                diagnostics["fallback"]["exact_question_match"] = (
+                    self.catalog.exact_example(request.question) is not None
+                )
             fallback = await self._try_exact_example_fallback(
-                request_id, request, audit_base, started
+                request_id, request, audit_base, started, diagnostics
             )
             if fallback is not None:
                 return fallback
             return self._failure(
                 request_id,
-                "SQL_GENERATION_FAILED",
+                "PLANNING_FAILED" if llm_stage == "planning" else "SQL_GENERATION_FAILED",
                 "查询规划或 SQL 生成失败",
                 True,
                 audit_base,
                 started,
                 stage=llm_stage,
+                diagnostics=diagnostics,
             )
         except CatalogError:
             return self._failure(
@@ -155,6 +205,12 @@ class QueryService:
                 started,
             )
         except SqlValidationError:
+            if diagnostics is not None:
+                diagnostics["stage"] = "sql_validation"
+                diagnostics["sql_validation"] = {
+                    "status": "failed",
+                    "result": "rejected",
+                }
             return self._failure(
                 request_id,
                 "SQL_VALIDATION_FAILED",
@@ -162,8 +218,12 @@ class QueryService:
                 False,
                 audit_base,
                 started,
+                stage="sql_validation",
+                diagnostics=diagnostics,
             )
         except QueryTimeoutError:
+            if diagnostics is not None:
+                diagnostics["stage"] = "execution"
             return self._failure(
                 request_id,
                 "QUERY_TIMEOUT",
@@ -171,8 +231,12 @@ class QueryService:
                 True,
                 audit_base,
                 started,
+                stage="execution",
+                diagnostics=diagnostics,
             )
         except QueryExecutionError:
+            if diagnostics is not None:
+                diagnostics["stage"] = "execution"
             return self._failure(
                 request_id,
                 "INTERNAL_ERROR",
@@ -180,6 +244,8 @@ class QueryService:
                 False,
                 audit_base,
                 started,
+                stage="execution",
+                diagnostics=diagnostics,
             )
         except Exception:
             return self._failure(
@@ -201,6 +267,7 @@ class QueryService:
         started: float,
         tables: list[str] | None = None,
         stage: str | None = None,
+        diagnostics: dict[str, Any] | None = None,
     ) -> ToolResponse:
         self.audit.record(
             {
@@ -217,6 +284,7 @@ class QueryService:
             code=code,
             message=message,
             retryable=retryable,
+            diagnostics=diagnostics,
         )
 
     async def _try_exact_example_fallback(
@@ -225,15 +293,41 @@ class QueryService:
         request: QueryRequest,
         audit_base: dict[str, Any],
         started: float,
+        diagnostics: dict[str, Any] | None,
     ) -> ToolResponse | None:
         example = self.catalog.exact_example(request.question)
         if example is None:
             return None
+        if diagnostics is not None:
+            diagnostics["stage"] = "fallback"
+            diagnostics["fallback"] = {
+                "attempted": True,
+                "exact_question_match": True,
+                "used": False,
+            }
+            diagnostics["sql_generation"] = {
+                "status": "fallback_example",
+                "sql": example["sql"],
+            }
+            diagnostics["sql_validation"] = {"status": "started", "result": None}
         try:
             validated = self.guard.validate(example["sql"])
             result = await self.executor.execute(validated.sql)
         except (SqlValidationError, QueryExecutionError):
+            if diagnostics is not None:
+                diagnostics["sql_validation"] = {
+                    "status": "failed",
+                    "result": "fallback_rejected",
+                }
             return None
+
+        if diagnostics is not None:
+            diagnostics["sql_validation"] = {
+                "status": "passed",
+                "result": {"tables": sorted(validated.tables)},
+            }
+            diagnostics["fallback"]["used"] = True
+            diagnostics["stage"] = "completed"
 
         source_dicts = self.catalog.source_info(validated.tables)
         sources = [SourceInfo(**item) for item in source_dicts]
@@ -261,6 +355,7 @@ class QueryService:
             ),
             sources=sources,
             warnings=warnings,
+            diagnostics=diagnostics,
         )
         self.audit.record(
             {

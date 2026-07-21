@@ -7,7 +7,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from app.audit import AuditRepository
-from app.catalog import MetadataCatalog
+from app.catalog import CatalogError, MetadataCatalog
 from app.config import get_settings
 from app.executor import SQLiteExecutor
 from app.llm import OpenAIQueryLLM
@@ -23,6 +23,12 @@ def _resolve_from_base(path: Path) -> Path:
     return path if path.is_absolute() else (BASE_DIR / path).resolve()
 
 
+def ensure_valid_table_cards(catalog: MetadataCatalog) -> None:
+    issues = catalog.table_card_issues() + catalog.runtime_rule_issues()
+    if issues:
+        raise CatalogError("TableCard 配置无效: " + "; ".join(issues))
+
+
 def build_default_service() -> QueryService:
     settings = get_settings()
     db_path = _resolve_from_base(settings.sqlite_db_path)
@@ -30,7 +36,13 @@ def build_default_service() -> QueryService:
         db_path,
         BASE_DIR / "config" / "catalog.json",
         BASE_DIR / "config" / "examples.json",
+        table_cards_path=_resolve_from_base(settings.table_cards_path),
+        ddl_registry_path=_resolve_from_base(settings.ddl_registry_path),
+        query_knowledge_path=_resolve_from_base(settings.query_knowledge_path),
+        validation_cases_path=_resolve_from_base(settings.validation_cases_path),
+        ddl_directory=_resolve_from_base(settings.ddl_directory),
     )
+    ensure_valid_table_cards(catalog)
     llm = OpenAIQueryLLM(settings)
     guard = SqlGuard(catalog, max_rows=settings.max_result_rows)
     executor = SQLiteExecutor(
@@ -39,7 +51,14 @@ def build_default_service() -> QueryService:
         max_rows=settings.max_result_rows,
     )
     audit = AuditRepository(_resolve_from_base(settings.audit_log_path))
-    return QueryService(catalog, llm, guard, executor, audit)
+    return QueryService(
+        catalog,
+        llm,
+        guard,
+        executor,
+        audit,
+        diagnostics_enabled=settings.query_diagnostics_enabled,
+    )
 
 
 def create_app(service: QueryService | None = None) -> FastAPI:
@@ -81,6 +100,7 @@ def create_app(service: QueryService | None = None) -> FastAPI:
         "/api/v1/query-energy-data",
         response_model=ToolResponse,
         response_model_by_alias=True,
+        response_model_exclude_none=True,
     )
     async def query_energy_data(payload: QueryRequest) -> ToolResponse:
         return await query_service.query(payload)

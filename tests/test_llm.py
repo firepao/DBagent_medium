@@ -64,7 +64,7 @@ def test_plan_sends_openai_compatible_request_and_parses_strict_json() -> None:
     plan = asyncio.run(
         client.plan(
             "张北县风电装机容量是多少？",
-            ["t01_operating_renewable_station"],
+            "全部轻量表卡: t01_operating_renewable_station",
         )
     )
     asyncio.run(async_client.aclose())
@@ -73,6 +73,13 @@ def test_plan_sends_openai_compatible_request_and_parses_strict_json() -> None:
     assert captured["authorization"] == "Bearer test-key"
     assert captured["payload"]["model"] == "test-model"
     assert captured["payload"]["temperature"] == 0
+    assert captured["payload"]["messages"][1]["content"] == json.dumps(
+        {
+            "question": "张北县风电装机容量是多少？",
+            "planning_context": "全部轻量表卡: t01_operating_renewable_station",
+        },
+        ensure_ascii=False,
+    )
     assert plan.query_type == "aggregation"
     assert plan.table_hints == ["t01_operating_renewable_station"]
 

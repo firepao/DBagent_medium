@@ -15,22 +15,16 @@ def test_query_request_trims_required_identifiers() -> None:
     models = load_models()
     request = models.QueryRequest(
         question="  张北县已运行风电项目有多少个？  ",
-        user_id="  u_1  ",
-        session_id="  s_1  ",
     )
 
     assert request.question == "张北县已运行风电项目有多少个？"
-    assert request.user_id == "u_1"
-    assert request.session_id == "s_1"
 
 
-@pytest.mark.parametrize("field", ["question", "user_id", "session_id"])
+@pytest.mark.parametrize("field", ["question"])
 def test_query_request_rejects_blank_required_fields(field: str) -> None:
     models = load_models()
     payload = {
         "question": "查询已运行项目",
-        "user_id": "u_1",
-        "session_id": "s_1",
     }
     payload[field] = "   "
 

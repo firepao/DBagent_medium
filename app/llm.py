@@ -17,7 +17,7 @@ class LLMResponseError(RuntimeError):
 
 
 class QueryLLM(Protocol):
-    async def plan(self, question: str, candidate_tables: list[str]) -> QueryPlan: ...
+    async def plan(self, question: str, planning_context: str) -> QueryPlan: ...
 
     async def generate_sql(
         self, question: str, plan: QueryPlan, context: str
@@ -70,16 +70,16 @@ class OpenAIQueryLLM:
             raise LLMResponseError("模型接口返回空内容")
         return content.strip()
 
-    async def plan(self, question: str, candidate_tables: list[str]) -> QueryPlan:
+    async def plan(self, question: str, planning_context: str) -> QueryPlan:
         system = (
             "你是数据查询规划器。只返回一个 JSON 对象，不要返回 Markdown。"
             "query_type 只能是 aggregation、list、ranking、detail、comparison、time_series；"
-            "table_hints 只能选候选表；limit 范围为 1 到 100。"
+            "table_hints 只能从轻量表卡中选择 1 到 4 张已发布表；limit 范围为 1 到 100。"
             "若问题无法确定必要条件，设置 requires_clarification=true 并给出"
-            "clarification_question，但仍需选择最相关候选表。"
+            "clarification_question，但仍需选择最相关的已发布表。"
         )
         user = json.dumps(
-            {"question": question, "candidate_tables": candidate_tables},
+            {"question": question, "planning_context": planning_context},
             ensure_ascii=False,
         )
         content = self._strip_json_fence(await self._chat(system, user))

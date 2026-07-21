@@ -8,7 +8,8 @@
 BitAgent
 -> Bit-Crew HTTP 节点
 -> Medium POST /api/v1/query-energy-data
--> LLM 生成 QueryPlan
+-> LLM 基于全部轻量表卡生成 QueryPlan
+-> 按选表加载已发布字段 DDL、业务规则和验证示例
 -> LLM 生成 SQL
 -> SQL 白名单校验
 -> SQLite 只读查询
@@ -25,6 +26,10 @@ BitAgent
 | --- | --- |
 | `app/` | FastAPI 服务、LLM 客户端、SQL 校验和 SQLite 执行器 |
 | `config/catalog.json` | 已发布表、字段别名、敏感字段排除和来源信息 |
+| `config/table_cards.json` | 全量轻量表索引，供规划模型按业务范围选择表，不含物理字段名 |
+| `config/ddl_registry.json` | 发布表到源 DDL 文件、SHA-256 的受控映射 |
+| `config/query_knowledge.json` | 业务口径、计算规则的发布状态和适用表范围 |
+| `config/validation_cases.json` | 客户验证题 Q1-Q40 的支持状态、范围和数据缺口 |
 | `config/examples.json` | 已验证问答-SQL 示例，仅用于上下文增强 |
 | `.env` | 本机模型配置，不纳入 Git |
 | `runtime/query_audit.jsonl` | 查询审计日志，不记录 SQL |
@@ -42,9 +47,28 @@ BitAgent
 ../data/数据入库_v1.0.1_2026.07.17/data_1_all/vanna_table_ddls
 ```
 
-该版本在 `2026-07-17` 导入了 16 张业务表。服务运行时从 SQLite 读取实际字段；目录中的 DDL 用于同步表别名、字段说明和受控发布范围。
+该版本在 `2026-07-17` 导入了 16 张业务表。服务运行时先校验 DDL 文件的 SHA-256、`CREATE TABLE` 名称和 SQLite 实际字段集；SQL 阶段仅注入模型已选表的已发布字段 DDL，敏感或内部字段不会进入提示词。
 
 服务只允许访问 `catalog.json` 发布的数据表和字段，SQLite 以只读方式打开。
+
+### 2.1 渐进加载与规则发布
+
+服务不再以关键词命中作为是否查询的前置条件。第一次模型调用会得到全部轻量表卡，选择 1 至 4 张已发布表；第二次调用才加载所选表的 DDL、已发布规则和最相关的已验证示例。未确认的计算口径会保留在配置中，但 `runtime_enabled=false`，不会参与 SQL 生成。
+
+当前已发布的一期口径是：集中式新能源问题中的“装机容量”使用 `t01_operating_renewable_station_profile.grid_capacity_mw`（并网容量）统计。限电率、营收、变电站饱和等候选计算规则需要客户确认单位、阈值和适用范围后才能发布。
+
+### 2.2 源数据事实核查
+
+每次更新 `data`、`data_1`、SQLite、DDL 或 `config/` 后，先运行只读核查：
+
+```powershell
+& 'C:\Users\nine\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe' `
+  tools\audit_source_truth.py `
+  --json-output config\source_truth_audit_2026-07-20.json `
+  --markdown-output docs\source-truth-audit-2026-07-20.md
+```
+
+核查以原始 `data` 的业务语义、`data_1` 的运行源工作簿、SQLite 的运行字段为事实层级，逐表验证来源文件、处理后工作表、DDL 的列顺序/类型/主键属性、TableCard 和已发布规则字段。命令退出码非 `0` 时不得重启服务或发布配置。原始工作表经预处理拆分后如未登记显式映射，报告会标为 `not_mapped`，不会误判为缺失。
 
 ## 3. Python 环境与依赖
 
@@ -91,6 +115,7 @@ SQLITE_DB_PATH=../data/数据入库_v1.0.1_2026.07.17/data_1_all/zhangbei_energy
 QUERY_TIMEOUT_SECONDS=10
 MAX_RESULT_ROWS=100
 AUDIT_LOG_PATH=./runtime/query_audit.jsonl
+ENABLE_QUERY_DIAGNOSTICS=false
 ```
 
 配置说明：
@@ -166,8 +191,6 @@ Invoke-RestMethod http://127.0.0.1:8030/health
 ```powershell
 $body = @{
   question = '张北县已运行风电项目装机容量合计是多少？'
-  user_id = 'u_local_test'
-  session_id = 's_local_test'
 } | ConvertTo-Json -Compress
 
 Invoke-RestMethod `
@@ -223,8 +246,6 @@ Invoke-RestMethod "$publicUrl/health"
 ```powershell
 $body = @{
   question = '张北县已运行风电项目装机容量合计是多少？'
-  user_id = 'u_public_test'
-  session_id = 's_public_test'
 } | ConvertTo-Json -Compress
 
 Measure-Command {
@@ -286,9 +307,7 @@ Resolve-DnsName region1.v2.argotunnel.com -Server 8.8.8.8
 
 ```json
 {
-  "question": "{{question}}",
-  "user_id": "{{user_id}}",
-  "session_id": "{{session_id}}"
+  "question": "{{question}}"
 }
 ```
 
@@ -297,8 +316,6 @@ Resolve-DnsName region1.v2.argotunnel.com -Server 8.8.8.8
 | 字段 | 类型 | 约束 |
 | --- | --- | --- |
 | `question` | string | 去除首尾空格后 1～2000 字符 |
-| `user_id` | string | 去除首尾空格后 1～128 字符，来自平台认证上下文 |
-| `session_id` | string | 去除首尾空格后 1～128 字符，来自平台会话上下文 |
 
 截图所示的 HTTP 节点输出中，`body` 是 `String`，不是对象。HTTP 节点后必须先通过代码/变量处理节点解析：
 
@@ -326,13 +343,20 @@ HTTP `200` 不代表业务查询成功。`200 + success=false` 是服务已正�
 
 ```json
 {
-  "question": "张北县已运行风电项目装机容量合计是多少？",
-  "user_id": "u_10086",
-  "session_id": "s_20260717_001"
+  "question": "张北县已运行风电项目装机容量合计是多少？"
 }
 ```
 
-服务不接收 `operation`、`metric`、`filters`、`group_by`、`limit`、SQL、表名或字段名。它们属于旧 `min` 服务的查询计划协议。
+{
+  "inputParameters": {
+    "question": "张北县已运行风电项目装机容量合计是多少？"
+  }
+}
+https://shoes-greensboro-module-alexander.trycloudflare.com/api/v1/query-energy-data
+https://inspired-dayton-technological-cedar.trycloudflare.com/api/v1/query-energy-data
+https://viruses-everywhere-fighter-arab.trycloudflare.com/api/v1/query-energy-data
+https://achievement-release-ref-academic.trycloudflare.com/api/v1/query-energy-data
+服务不接收 `operation`、`metric`、`filters`、`group_by`、`limit`、SQL、表名、字段名、DDL 或 RAG 原始 chunk。它们属于旧 `min` 服务的查询计划协议，或应在 Medium 服务内部受控处理。
 
 ### 8.2 成功响应
 
@@ -420,5 +444,15 @@ cd D:\bitagent_workspace\resources_agent\medium
 & 'C:\Users\nine\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe' `
   -m pytest tests -v
 ```
+
+## 12. 联调诊断
+
+联调期间可在 `.env` 中设置：
+
+```dotenv
+ENABLE_QUERY_DIAGNOSTICS=true
+```
+
+重启 Uvicorn 后，`POST /api/v1/query-energy-data` 的响应会额外包含 `diagnostics`：查询规划状态、候选 SQL、SQL Guard 校验结果以及示例回退状态。此开关默认关闭；正式环境必须保持 `false`，并且 Bit-Crew 的最终回答节点不得向最终用户展示 `diagnostics`。
 
 测试使用假模型和临时 SQLite，不调用外部模型，不修改原始数据库。

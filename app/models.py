@@ -5,10 +5,8 @@ from pydantic import BaseModel, Field, field_validator
 
 class QueryRequest(BaseModel):
     question: str = Field(min_length=1, max_length=2000)
-    user_id: str = Field(min_length=1, max_length=128)
-    session_id: str = Field(min_length=1, max_length=128)
 
-    @field_validator("question", "user_id", "session_id", mode="before")
+    @field_validator("question", mode="before")
     @classmethod
     def strip_required_text(cls, value: Any) -> Any:
         return value.strip() if isinstance(value, str) else value
@@ -58,6 +56,7 @@ class ToolResponse(BaseModel):
     request_id: str
     warnings: list[str] = Field(default_factory=list)
     error: ErrorInfo | None = None
+    diagnostics: dict[str, Any] | None = None
 
     @classmethod
     def failure(
@@ -67,9 +66,11 @@ class ToolResponse(BaseModel):
         code: str,
         message: str,
         retryable: bool,
+        diagnostics: dict[str, Any] | None = None,
     ) -> "ToolResponse":
         return cls(
             success=False,
             request_id=request_id,
             error=ErrorInfo(code=code, message=message, retryable=retryable),
+            diagnostics=diagnostics,
         )

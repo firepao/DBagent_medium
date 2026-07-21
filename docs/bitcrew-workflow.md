@@ -29,8 +29,6 @@ flowchart LR
 | 变量 | 类型 | 来源 | 必填 |
 | --- | --- | --- | --- |
 | `question` | string | BitAgent 用户原始问题 | 是 |
-| `user_id` | string | BitAgent 认证上下文 | 是 |
-| `session_id` | string | BitAgent 当前会话 | 是 |
 
 工作流内部变量：
 
@@ -39,8 +37,6 @@ flowchart LR
 | `retry_count` | integer | `0` |
 | `query_response` | object | `null` |
 | `final_answer` | string | `""` |
-
-`user_id` 必须来自平台认证上下文，不能直接信任用户在问题中提供的身份。
 
 ## 3. 节点配置
 
@@ -51,32 +47,30 @@ flowchart LR
 ```json
 {
   "question": "{{bitagent.input}}",
-  "user_id": "{{bitagent.user_id}}",
-  "session_id": "{{bitagent.session_id}}",
   "retry_count": 0
 }
 ```
 
 ### 节点 2：数据查询意图确认
 
-如果总路由已经确认当前分支为 `data_query`，该节点只做空值检查，不再调用 LLM。`question`、`user_id` 或 `session_id` 为空时直接结束并返回参数缺失提示。
+如果总路由已经确认当前分支为 `data_query`，该节点只做 `question` 空值检查，不再调用 LLM。`question` 为空时直接结束并返回参数缺失提示。
 
-当前工作流不负责解析指标、筛选条件、数据库表或 SQL，这些内容全部由查询服务处理。
+当前工作流不负责解析指标、筛选条件、数据库表或 SQL，这些内容全部由查询服务处理。即使上游工作流另有 RAG 分支，也不得将原始 chunk、DDL、表名或字段名拼接进此节点的 `question`。
 
 ### 节点 3：HTTP 查询服务
 
-该节点负责把 BitAgent 的原始问题和可信会话身份发送给 Medium 查询服务。节点本身不解析指标、不选择数据库表，也不生成 SQL。
+该节点负责把 BitAgent 的原始问题发送给 Medium 查询服务。节点本身不解析指标、不选择数据库表，也不生成 SQL。Medium 内部按以下顺序处理：全量轻量表卡规划选表 -> 加载所选表的已发布字段 DDL、已发布规则和验证示例 -> 生成 SQL -> 安全校验与只读执行。
+
+表卡中标记的 `data_limitations` 会同时进入规划与 SQL 生成上下文。Bit-Crew 不得绕过该限制改写问题，例如不得将“计划开工时间”当作“备案日期”，也不得要求服务对明确标记为非结构化的容量文本进行可靠汇总。
 
 #### 3.1 节点输入
 
 | 输入变量 | 类型 | 必填 | 来源 | 发送字段 | 约束 |
 | --- | --- | --- | --- | --- | --- |
 | `question` | string | 是 | BitAgent 用户原始问题 | `question` | 去除首尾空格后长度为 1～2000 |
-| `user_id` | string | 是 | BitAgent 认证上下文 | `user_id` | 去除首尾空格后长度为 1～128，不能从用户文本提取 |
-| `session_id` | string | 是 | BitAgent 会话上下文 | `session_id` | 去除首尾空格后长度为 1～128 |
 | `retry_count` | integer | 是 | 工作流内部变量 | 不发送 | 首次调用为 `0`，最多重试一次 |
 
-进入 HTTP 节点前，应先检查三个字符串输入均不为空。缺少任一字段时直接结束工作流，不向查询服务发送请求。
+进入查询节点前，应检查 `question` 非空。缺少该字段时直接结束工作流，不向查询服务发送请求。
 
 #### 3.2 HTTP 基本配置
 
@@ -119,9 +113,7 @@ Cloudflare Access 请求头由 Cloudflare 校验，当前 Medium 服务本身尚
 
 ```json
 {
-  "question": "{{question}}",
-  "user_id": "{{user_id}}",
-  "session_id": "{{session_id}}"
+  "question": "{{question}}"
 }
 ```
 
@@ -130,8 +122,6 @@ Cloudflare Access 请求头由 Cloudflare 校验，当前 Medium 服务本身尚
 | JSON 字段 | 类型 | 必填 | 示例 | 服务端用途 |
 | --- | --- | --- | --- | --- |
 | `question` | string | 是 | `张北县已运行风电项目装机容量合计是多少？` | 生成 QueryPlan、检索相关元数据并生成候选 SQL |
-| `user_id` | string | 是 | `u_10086` | 审计关联，不作为数据库筛选条件 |
-| `session_id` | string | 是 | `s_20260717_001` | 关联 BitAgent、Bit-Crew 和查询服务调用链 |
 
 完整请求示例：
 
@@ -142,9 +132,7 @@ Content-Type: application/json; charset=utf-8
 Accept: application/json
 
 {
-  "question": "张北县已运行风电项目装机容量合计是多少？",
-  "user_id": "u_10086",
-  "session_id": "s_20260717_001"
+  "question": "张北县已运行风电项目装机容量合计是多少？"
 }
 ```
 
@@ -152,9 +140,7 @@ Bit-Crew 变量表达式示例：
 
 ```json
 {
-  "question": "{{question}}",
-  "user_id": "{{user_id}}",
-  "session_id": "{{session_id}}"
+  "question": "{{question}}"
 }
 ```
 

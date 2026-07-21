@@ -1,0 +1,10 @@
+{
+  "version": "2026-07-20",
+  "rules": [
+    {"id": "installed_capacity_from_grid_capacity", "status": "published", "runtime_enabled": true, "source_question_ids": ["Q1", "Q7", "Q27"], "scope_tables": ["t01_operating_renewable_station_profile"], "required_fields": {"t01_operating_renewable_station_profile": ["grid_capacity_mw"]}, "terms": ["装机容量", "总装机", "新能源装机", "并网容量"], "content": "一期已运行集中式新能源电站统计中，用户所称“装机容量”使用 t01_operating_renewable_station_profile.grid_capacity_mw（并网容量）计算；输出时应说明该一期口径。"},
+    {"id": "curtailment_rate_candidate", "status": "needs_customer_confirmation", "runtime_enabled": false, "source_question_ids": ["Q15", "Q34"], "scope_tables": ["t01_operating_generation_monthly", "t01_operating_curtailment_monthly"], "terms": ["限电率", "弃风率", "弃光率"], "formula": "限电率 = 限电量 / (发电量 + 限电量) × 100%", "content": "候选口径，需确认 metric_name、metric_unit、时间粒度和场站关联键后才能发布。"},
+    {"id": "revenue_candidate", "status": "needs_customer_confirmation", "runtime_enabled": false, "source_question_ids": ["Q6"], "scope_tables": ["t01_operating_generation_monthly"], "terms": ["营收", "收入", "3720"], "formula": "年度发电量 × 3720", "content": "候选口径，须确认发电量单位、上网电价单位和适用范围后才能发布。"},
+    {"id": "substation_saturation_candidate", "status": "needs_customer_confirmation", "runtime_enabled": false, "source_question_ids": ["Q17", "Q33"], "scope_tables": ["t10_power_grid_material"], "terms": ["接近饱和", "剩余接入容量", "剩余间隔"], "content": "题集备注的分子分母与“接近饱和”语义存在冲突，需确认判定阈值后才能发布。"},
+    {"id": "project_delay_candidate", "status": "needs_customer_confirmation", "runtime_enabled": false, "source_question_ids": ["Q9"], "scope_tables": ["t02_construction_project_station"], "terms": ["滞后", "延期", "项目进度"], "content": "候选规则：当前进展阶段非已完成且晚于计划并网日期。需确认状态枚举和日期字段口径。"}
+  ]
+}
