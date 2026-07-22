@@ -1,0 +1,35 @@
+{
+  "version": "zhangjiakou-county-v1-2026-07-21",
+  "city": "张家口市",
+  "derived_dimension": "county",
+  "default_scope": "当前已发布数据仅覆盖张家口市域；县区问题以项目/站点地址中的行政区名称派生，不向用户追问是否接受地址汇总。",
+  "unmatched_policy": "未命中或命中多个行政区名称的记录标记为待核实；不得进入县区排名、占比或增速分母，回答中必须说明数量。",
+  "areas": [
+    {"name": "桥东区", "aliases": ["桥东区"]},
+    {"name": "桥西区", "aliases": ["桥西区"]},
+    {"name": "崇礼区", "aliases": ["崇礼区"]},
+    {"name": "宣化区", "aliases": ["宣化区"]},
+    {"name": "下花园区", "aliases": ["下花园区"]},
+    {"name": "万全区", "aliases": ["万全区"]},
+    {"name": "张北县", "aliases": ["张北县"]},
+    {"name": "康保县", "aliases": ["康保县"]},
+    {"name": "沽源县", "aliases": ["沽源县"]},
+    {"name": "尚义县", "aliases": ["尚义县"]},
+    {"name": "蔚县", "aliases": ["蔚县"]},
+    {"name": "阳原县", "aliases": ["阳原县"]},
+    {"name": "怀安县", "aliases": ["怀安县"]},
+    {"name": "怀来县", "aliases": ["怀来县"]},
+    {"name": "涿鹿县", "aliases": ["涿鹿县"]},
+    {"name": "赤城县", "aliases": ["赤城县"]},
+    {"name": "察北管理区", "aliases": ["察北管理区"]},
+    {"name": "塞北管理区", "aliases": ["塞北管理区"]}
+  ],
+  "table_location_fields": {
+    "t01_operating_renewable_station_profile": "project_location",
+    "t02_construction_project_station": "construction_location",
+    "t04_filing_project": "construction_location",
+    "t07_distributed_pv_wind": "station_location",
+    "t08_industrial_commercial_storage": "station_location",
+    "t09_charging_station": "station_location"
+  }
+}

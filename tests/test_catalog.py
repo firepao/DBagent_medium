@@ -70,6 +70,9 @@ def build_query_knowledge_files(tmp_path):
     ddl_dir = tmp_path / "ddls"
     ddl_dir.mkdir()
     ddl = (
+        "-- 字段：id | 别名：主键 | 类型：INTEGER | 说明：测试主键。\n"
+        "-- 字段：county | 别名：区县 | 类型：TEXT | 说明：项目所属区县。\n"
+        "-- 字段：capacity_mw | 别名：装机容量（MW） | 类型：REAL | 说明：已运行电站装机容量，单位为 MW。\n"
         'CREATE TABLE "published_station" '
         '(id INTEGER, county TEXT, capacity_mw REAL);\n'
     )
@@ -84,9 +87,11 @@ def build_query_knowledge_files(tmp_path):
                         "table": "published_station",
                         "dataset": "已发布电站",
                         "description": "电站装机容量和区县。",
+                        "coverage": "覆盖已发布的测试电站容量和区县信息。",
                         "aliases": {"装机容量": "capacity_mw"},
                         "metrics": ["装机容量"],
                         "dimensions": ["区县"],
+                        "supported_queries": ["已运行电站的容量汇总、区县排行"],
                         "important_fields": ["county", "capacity_mw"],
                         "data_limitations": ["容量字段仅可作为测试样例。"],
                     }
@@ -127,11 +132,34 @@ def build_query_knowledge_files(tmp_path):
                         "id": "candidate_rule",
                         "status": "needs_customer_confirmation",
                         "runtime_enabled": False,
+                        "reference_enabled": True,
                         "scope_tables": ["published_station"],
                         "terms": ["限电率"],
                         "content": "候选规则，不得进入运行期。",
                     },
-                ]
+                ],
+                "answer_guidance": {
+                    "default": {"required_sections": ["结论", "来源"]},
+                    "profiles": [
+                        {
+                            "id": "capacity_answer",
+                            "terms": ["装机容量"],
+                            "scope_tables": ["published_station"],
+                            "guidance": {"template": "容量回答模板"},
+                        }
+                    ],
+                },
+                "routing_rules": [
+                    {
+                        "id": "unsupported_metric",
+                        "status": "published",
+                        "runtime_enabled": True,
+                        "terms": ["无法计算指标"],
+                        "action": "reject_capability",
+                        "required_tables": ["published_station"],
+                        "message": "当前数据不支持该指标。",
+                    }
+                ],
             },
             ensure_ascii=False,
         ),
@@ -146,6 +174,8 @@ def build_query_knowledge_files(tmp_path):
                         "id": "Q1",
                         "question": "各区县装机容量排行",
                         "status": "supported",
+                        "routing_enabled": True,
+                        "customer_note": "并网容量就是装机容量",
                     }
                 ]
             },
@@ -221,13 +251,113 @@ def test_planning_context_has_all_table_cards_and_sql_context_is_scoped(tmp_path
     )
 
     assert "published_station" in planning_context
-    assert "capacity_mw" not in planning_context
+    assert "capacity_mw" in planning_context
     assert "容量字段仅可作为测试样例" in planning_context
     assert 'CREATE TABLE "published_station"' in sql_context
     assert "装机容量使用 capacity_mw 聚合" in sql_context
     assert "候选规则，不得进入运行期" not in sql_context
     assert "容量字段仅可作为测试样例" in sql_context
     assert catalog.validation_case("各区县装机容量排行")["id"] == "Q1"
+
+
+def test_context_exposes_table_scope_and_full_published_field_semantics(tmp_path) -> None:
+    module = load_catalog_module()
+    db_path, catalog_path, examples_path = build_catalog_files(tmp_path)
+    ddl_dir, cards, registry, knowledge, cases = build_query_knowledge_files(tmp_path)
+    catalog = module.MetadataCatalog(
+        db_path,
+        catalog_path,
+        examples_path,
+        table_cards_path=cards,
+        ddl_registry_path=registry,
+        query_knowledge_path=knowledge,
+        validation_cases_path=cases,
+        ddl_directory=ddl_dir,
+    )
+
+    planning_context = catalog.build_planning_context()
+    sql_context = catalog.build_sql_context("查询各区县装机容量", ["published_station"])
+
+    assert "supported_queries" in planning_context
+    assert "已运行电站的容量汇总、区县排行" in planning_context
+    assert "字段语义" in sql_context
+    assert "装机容量（MW）" in sql_context
+    assert "已运行电站装机容量，单位为 MW" in sql_context
+
+
+def test_routing_prefers_exact_validation_intent_then_uses_published_terms(tmp_path) -> None:
+    module = load_catalog_module()
+    db_path, catalog_path, examples_path = build_catalog_files(tmp_path)
+    ddl_dir, cards, registry, knowledge, cases = build_query_knowledge_files(tmp_path)
+    catalog = module.MetadataCatalog(
+        db_path,
+        catalog_path,
+        examples_path,
+        table_cards_path=cards,
+        ddl_registry_path=registry,
+        query_knowledge_path=knowledge,
+        validation_cases_path=cases,
+        ddl_directory=ddl_dir,
+    )
+
+    exact = catalog.routing_decision("各区县装机容量排行")
+    terms = catalog.routing_decision("请查询无法计算指标")
+
+    assert exact.intent_id == "Q1"
+    assert exact.action == "allow"
+    assert exact.customer_context["customer_note"] == "并网容量就是装机容量"
+    assert terms.intent_id == "unsupported_metric"
+    assert terms.action == "reject_capability"
+    assert terms.match_type == "lightweight_terms"
+
+
+def test_context_keeps_candidate_formula_as_non_executable_reference_and_returns_answer_guidance(
+    tmp_path,
+) -> None:
+    module = load_catalog_module()
+    db_path, catalog_path, examples_path = build_catalog_files(tmp_path)
+    ddl_dir, cards, registry, knowledge, cases = build_query_knowledge_files(tmp_path)
+    catalog = module.MetadataCatalog(
+        db_path,
+        catalog_path,
+        examples_path,
+        table_cards_path=cards,
+        ddl_registry_path=registry,
+        query_knowledge_path=knowledge,
+        validation_cases_path=cases,
+        ddl_directory=ddl_dir,
+    )
+
+    context = catalog.build_sql_context("限电率如何计算", ["published_station"])
+    guidance = catalog.answer_guidance(
+        "各区县装机容量排行", {"published_station"}, None
+    )
+
+    assert "待确认辅助规则" in context
+    assert "候选规则，不得进入运行期" in context
+    assert guidance["profile_id"] == "capacity_answer"
+    assert guidance["profile_guidance"]["template"] == "容量回答模板"
+
+
+def test_source_info_falls_back_to_table_card_dataset_name(tmp_path) -> None:
+    module = load_catalog_module()
+    db_path, catalog_path, examples_path = build_catalog_files(tmp_path)
+    ddl_dir, cards, registry, knowledge, cases = build_query_knowledge_files(tmp_path)
+    payload = json.loads(catalog_path.read_text(encoding="utf-8"))
+    payload["datasets"][0].pop("dataset")
+    catalog_path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+    catalog = module.MetadataCatalog(
+        db_path,
+        catalog_path,
+        examples_path,
+        table_cards_path=cards,
+        ddl_registry_path=registry,
+        query_knowledge_path=knowledge,
+        validation_cases_path=cases,
+        ddl_directory=ddl_dir,
+    )
+
+    assert catalog.source_info({"published_station"})[0]["dataset"] == "已发布电站"
 
 
 def test_explicit_missing_query_knowledge_config_is_a_startup_error(tmp_path) -> None:

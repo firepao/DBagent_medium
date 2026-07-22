@@ -69,6 +69,21 @@ def test_guard_accepts_read_only_cte(tmp_path) -> None:
     assert "LIMIT 50" in validated.sql.upper()
 
 
+def test_guard_accepts_read_only_cte_union_all(tmp_path) -> None:
+    _, guard_module = load_modules()
+    guard = guard_module.SqlGuard(build_catalog(tmp_path), max_rows=50)
+
+    validated = guard.validate(
+        "WITH total AS (SELECT SUM(capacity_mw) AS value FROM stations), "
+        "by_county AS (SELECT SUM(capacity_mw) AS value FROM stations GROUP BY county) "
+        "SELECT value FROM total UNION ALL SELECT value FROM by_county"
+    )
+
+    assert validated.tables == {"stations"}
+    assert "UNION ALL" in validated.sql.upper()
+    assert "LIMIT 50" in validated.sql.upper()
+
+
 def test_guard_accepts_boolean_filter_operators(tmp_path) -> None:
     _, guard_module = load_modules()
     guard = guard_module.SqlGuard(build_catalog(tmp_path), max_rows=100)

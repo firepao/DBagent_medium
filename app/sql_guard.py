@@ -59,11 +59,36 @@ class SqlGuard:
             raise SqlValidationError("只允许单条 SQL")
 
         statement = statements[0]
-        if not isinstance(statement, exp.Select):
-            raise SqlValidationError("只允许 SELECT 或 WITH...SELECT")
+        compound_query_types = tuple(
+            node_type
+            for node_type in (
+                exp.Select,
+                getattr(exp, "Union", None),
+                getattr(exp, "Intersect", None),
+                getattr(exp, "Except", None),
+            )
+            if node_type is not None
+        )
+        if not isinstance(statement, compound_query_types):
+            raise SqlValidationError("只允许 SELECT、WITH...SELECT 或只读集合查询")
         self._reject_forbidden_nodes(statement)
 
         cte_names = {cte.alias_or_name for cte in statement.find_all(exp.CTE)}
+        cte_columns = {
+            cte.alias_or_name: {
+                expression.alias_or_name
+                for expression in getattr(cte.this, "selects", [])
+                if expression.alias_or_name
+            }
+            for cte in statement.find_all(exp.CTE)
+        }
+        all_cte_columns = set().union(*cte_columns.values()) if cte_columns else set()
+        select_aliases = {
+            expression.alias
+            for select in statement.find_all(exp.Select)
+            for expression in select.selects
+            if expression.alias
+        }
         base_tables: set[str] = set()
         alias_to_table: dict[str, str] = {}
         for table in statement.find_all(exp.Table):
@@ -89,7 +114,14 @@ class SqlGuard:
             if qualifier and qualifier in alias_to_table:
                 if name not in allowed_by_table[alias_to_table[qualifier]]:
                     raise SqlValidationError(f"未发布的字段: {qualifier}.{name}")
-            elif name not in all_allowed_columns:
+            elif qualifier and qualifier in cte_columns:
+                if name not in cte_columns[qualifier]:
+                    raise SqlValidationError(f"CTE 未输出字段: {qualifier}.{name}")
+            elif (
+                name not in all_allowed_columns
+                and name not in all_cte_columns
+                and name not in select_aliases
+            ):
                 raise SqlValidationError(f"未发布的字段: {name}")
             columns.add(name)
 
@@ -129,7 +161,7 @@ class SqlGuard:
         if any(isinstance(node, forbidden_types) for node in statement.walk()):
             raise SqlValidationError("SQL 包含禁止操作")
 
-    def _enforce_limit(self, statement: exp.Select) -> exp.Select:
+    def _enforce_limit(self, statement: exp.Expression) -> exp.Expression:
         limit = statement.args.get("limit")
         if limit is not None:
             expression = limit.expression

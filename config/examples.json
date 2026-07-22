@@ -1,29 +1,142 @@
 [
   {
-    "question": "张北县已运行风电项目装机容量合计是多少？",
-    "tables": ["t01_operating_renewable_station_profile"],
+    "question": "全市新能源总装机现在是多少？分类型多少？",
+    "terms": [
+      "全市新能源总装机",
+      "分类型多少"
+    ],
+    "tables": [
+      "t01_operating_renewable_station_profile",
+      "t07_distributed_pv_wind"
+    ],
     "query_plan": {
       "query_type": "aggregation",
-      "table_hints": ["t01_operating_renewable_station_profile"]
+      "table_hints": [
+        "t01_operating_renewable_station_profile",
+        "t07_distributed_pv_wind"
+      ]
+    },
+    "sql": "WITH capacity_components AS (SELECT CASE WHEN energy_type = '风电' THEN '风电' WHEN energy_type = '光伏' THEN '光伏' ELSE energy_type END AS capacity_type, CAST(TRIM(grid_capacity_mw) AS REAL) AS capacity_mw FROM t01_operating_renewable_station_profile WHERE grid_capacity_mw IS NOT NULL UNION ALL SELECT CASE WHEN station_type = '分散式风电' THEN '风电' WHEN station_type = '分布式光伏' THEN '光伏' ELSE station_type END AS capacity_type, CAST(REPLACE(UPPER(TRIM(installed_capacity_mw)), 'MW', '') AS REAL) AS capacity_mw FROM t07_distributed_pv_wind WHERE installed_capacity_mw IS NOT NULL), result_rows AS (SELECT '总计' AS result_level, '全市新能源' AS capacity_type, ROUND(SUM(capacity_mw), 3) AS capacity_mw FROM capacity_components UNION ALL SELECT '分类型' AS result_level, capacity_type, ROUND(SUM(capacity_mw), 3) AS capacity_mw FROM capacity_components GROUP BY capacity_type) SELECT result_level, capacity_type, capacity_mw FROM result_rows ORDER BY CASE WHEN result_level = '总计' THEN 0 ELSE 1 END, capacity_type",
+    "verification": "基于当前SQLite与源表格式核验；标准答案仅为示意值。"
+  },
+  {
+    "question": "哪个县区新能源装机最多？",
+    "terms": [
+      "哪个县区新能源装机最多",
+      "县区新能源装机"
+    ],
+    "tables": [
+      "t01_operating_renewable_station_profile"
+    ],
+    "query_plan": {
+      "query_type": "ranking",
+      "table_hints": [
+        "t01_operating_renewable_station_profile"
+      ]
+    },
+    "sql": "WITH normalized AS (SELECT CASE WHEN project_location LIKE '%桥东区%' THEN '桥东区' WHEN project_location LIKE '%桥西区%' THEN '桥西区' WHEN project_location LIKE '%崇礼区%' THEN '崇礼区' WHEN project_location LIKE '%宣化区%' THEN '宣化区' WHEN project_location LIKE '%下花园区%' THEN '下花园区' WHEN project_location LIKE '%万全区%' THEN '万全区' WHEN project_location LIKE '%张北县%' THEN '张北县' WHEN project_location LIKE '%康保县%' THEN '康保县' WHEN project_location LIKE '%沽源县%' THEN '沽源县' WHEN project_location LIKE '%尚义县%' THEN '尚义县' WHEN project_location LIKE '%蔚县%' THEN '蔚县' WHEN project_location LIKE '%阳原县%' THEN '阳原县' WHEN project_location LIKE '%怀安县%' THEN '怀安县' WHEN project_location LIKE '%怀来县%' THEN '怀来县' WHEN project_location LIKE '%涿鹿县%' THEN '涿鹿县' WHEN project_location LIKE '%赤城县%' THEN '赤城县' WHEN project_location LIKE '%察北管理区%' THEN '察北管理区' WHEN project_location LIKE '%塞北管理区%' THEN '塞北管理区' ELSE '待核实' END AS county, CAST(TRIM(grid_capacity_mw) AS REAL) AS capacity_mw FROM t01_operating_renewable_station_profile WHERE grid_capacity_mw IS NOT NULL) SELECT county, ROUND(SUM(capacity_mw), 3) AS total_capacity_mw FROM normalized WHERE county <> '待核实' GROUP BY county ORDER BY SUM(capacity_mw) DESC, county LIMIT 1",
+    "verification": "项目位置字段218条均可唯一匹配完整县区名称；仅统计已运行集中式并网容量。"
+  },
+  {
+    "question": "哪个县区分布式光伏装机量最高？",
+    "terms": [
+      "哪个县区分布式光伏装机量最高",
+      "分布式光伏县区装机"
+    ],
+    "tables": [
+      "t07_distributed_pv_wind"
+    ],
+    "query_plan": {
+      "query_type": "ranking",
+      "table_hints": [
+        "t07_distributed_pv_wind"
+      ]
+    },
+    "sql": "WITH normalized AS (SELECT CASE WHEN station_location LIKE '%桥东区%' THEN '桥东区' WHEN station_location LIKE '%桥西区%' THEN '桥西区' WHEN station_location LIKE '%崇礼区%' THEN '崇礼区' WHEN station_location LIKE '%宣化区%' THEN '宣化区' WHEN station_location LIKE '%下花园区%' THEN '下花园区' WHEN station_location LIKE '%万全区%' THEN '万全区' WHEN station_location LIKE '%张北县%' THEN '张北县' WHEN station_location LIKE '%康保县%' THEN '康保县' WHEN station_location LIKE '%沽源县%' THEN '沽源县' WHEN station_location LIKE '%尚义县%' THEN '尚义县' WHEN station_location LIKE '%蔚县%' THEN '蔚县' WHEN station_location LIKE '%阳原县%' THEN '阳原县' WHEN station_location LIKE '%怀安县%' THEN '怀安县' WHEN station_location LIKE '%怀来县%' THEN '怀来县' WHEN station_location LIKE '%涿鹿县%' THEN '涿鹿县' WHEN station_location LIKE '%赤城县%' THEN '赤城县' WHEN station_location LIKE '%察北管理区%' THEN '察北管理区' WHEN station_location LIKE '%塞北管理区%' THEN '塞北管理区' ELSE '待核实' END AS county, CAST(REPLACE(UPPER(TRIM(installed_capacity_mw)), 'MW', '') AS REAL) AS capacity_mw FROM t07_distributed_pv_wind WHERE station_type = '分布式光伏' AND installed_capacity_mw IS NOT NULL) SELECT county, ROUND(SUM(capacity_mw), 3) AS total_capacity_mw FROM normalized WHERE county <> '待核实' GROUP BY county ORDER BY SUM(capacity_mw) DESC, county LIMIT 1",
+    "verification": "电站位置字段218条均可唯一匹配完整县区名称；装机容量字段均符合数值+MW。"
+  },
+  {
+    "question": "哪些县区新能源开发滞后，需要督导？",
+    "terms": [
+      "新能源开发滞后",
+      "计划逾期",
+      "需要督导"
+    ],
+    "tables": [
+      "t02_construction_project_station"
+    ],
+    "query_plan": {
+      "query_type": "ranking",
+      "table_hints": [
+        "t02_construction_project_station"
+      ]
+    },
+    "sql": "WITH overdue_projects AS (SELECT CASE WHEN construction_location LIKE '%桥东区%' THEN '桥东区' WHEN construction_location LIKE '%桥西区%' THEN '桥西区' WHEN construction_location LIKE '%崇礼区%' THEN '崇礼区' WHEN construction_location LIKE '%宣化区%' THEN '宣化区' WHEN construction_location LIKE '%下花园区%' THEN '下花园区' WHEN construction_location LIKE '%万全区%' THEN '万全区' WHEN construction_location LIKE '%张北县%' THEN '张北县' WHEN construction_location LIKE '%康保县%' THEN '康保县' WHEN construction_location LIKE '%沽源县%' THEN '沽源县' WHEN construction_location LIKE '%尚义县%' THEN '尚义县' WHEN construction_location LIKE '%蔚县%' THEN '蔚县' WHEN construction_location LIKE '%阳原县%' THEN '阳原县' WHEN construction_location LIKE '%怀安县%' THEN '怀安县' WHEN construction_location LIKE '%怀来县%' THEN '怀来县' WHEN construction_location LIKE '%涿鹿县%' THEN '涿鹿县' WHEN construction_location LIKE '%赤城县%' THEN '赤城县' WHEN construction_location LIKE '%察北管理区%' THEN '察北管理区' WHEN construction_location LIKE '%塞北管理区%' THEN '塞北管理区' ELSE '待核实' END AS county FROM t02_construction_project_station WHERE current_progress <> '已完成' AND grid_connection_date IS NOT NULL AND date(grid_connection_date) < date('2026-07-15')) SELECT county, COUNT(*) AS overdue_project_count FROM overdue_projects WHERE county <> '待核实' GROUP BY county ORDER BY overdue_project_count DESC, county",
+    "verification": "基于客户确认的计划逾期口径和表02数据截至日2026-07-15核验。结果仅代表计划节点逾期筛查，不代表停工、违规或备案后未开工。"
+  },
+  {
+    "question": "在建项目开工时间",
+    "terms": [
+      "在建项目开工时间",
+      "开工时间",
+      "项目开工日期"
+    ],
+    "tables": [
+      "t02_construction_project_station"
+    ],
+    "query_plan": {
+      "query_type": "list",
+      "table_hints": [
+        "t02_construction_project_station"
+      ]
+    },
+    "sql": "SELECT project_name, start_date, current_progress, grid_connection_date FROM t02_construction_project_station WHERE start_date IS NOT NULL AND TRIM(start_date) <> '' ORDER BY date(start_date) DESC, project_name",
+    "verification": "源 Excel 日期单元格已在入库时规范化为 YYYY-MM-DD 文本；本查询仅展示表内项目开工时间及关联进度、预计并网时间。"
+  },
+  {
+    "question": "张北县已运行风电项目装机容量合计是多少？",
+    "tables": [
+      "t01_operating_renewable_station_profile"
+    ],
+    "query_plan": {
+      "query_type": "aggregation",
+      "table_hints": [
+        "t01_operating_renewable_station_profile"
+      ]
     },
     "sql": "SELECT SUM(CAST(grid_capacity_mw AS REAL)) AS total_capacity_mw FROM t01_operating_renewable_station_profile WHERE project_location LIKE '%张北县%' AND energy_type = '风电'"
   },
   {
     "question": "未取得电力接入批复的在建项目有哪些？",
-    "tables": ["t02_construction_project_station"],
+    "tables": [
+      "t02_construction_project_station"
+    ],
     "query_plan": {
       "query_type": "list",
-      "table_hints": ["t02_construction_project_station"]
+      "table_hints": [
+        "t02_construction_project_station"
+      ]
     },
     "sql": "SELECT project_name, project_capacity_mw, grid_access_approval FROM t02_construction_project_station WHERE grid_access_approval IN ('否', '办理中') LIMIT 100"
   },
   {
     "question": "各变电站剩余接入容量情况",
-    "tables": ["t10_power_grid_material"],
+    "tables": [
+      "t10_power_grid_material"
+    ],
     "query_plan": {
       "query_type": "list",
-      "table_hints": ["t10_power_grid_material"]
+      "table_hints": [
+        "t10_power_grid_material"
+      ]
     },
-    "sql": "SELECT station_name_substation, voltage_level_kv, remaining_access_capacity FROM t10_power_grid_material LIMIT 100"
+    "sql": "SELECT station_name_substation, voltage_level_kv, remaining_access_capacity_mw FROM t10_power_grid_material LIMIT 100"
+  },
+  {
+    "question": "哪些变电站已接近饱和（剩余间隔≤1 或剩余可接入容量≤10 MW）？是否已有扩容计划？",
+    "tables": [
+      "t10_power_grid_material"
+    ],
+    "sql": "SELECT station_name_substation, voltage_level_kv, remaining_bay_count, remaining_access_capacity_mw, expansion_plan FROM t10_power_grid_material WHERE remaining_bay_count <= 1 OR remaining_access_capacity_mw <= 10 ORDER BY voltage_level_kv DESC, station_name_substation"
   }
 ]

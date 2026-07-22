@@ -16,15 +16,25 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     openai_model: str = ""
     sqlite_db_path: Path = Path(
-        "../data/数据入库_v1.0.1_2026.07.17/data_1_all/zhangbei_energy_data_data1.sqlite3"
+        "../data/数据入库v_1.1_0722/query_ready_v2/zhangbei_energy_query_ready_v2.sqlite3"
     )
     ddl_directory: Path = Path(
-        "../data/数据入库_v1.0.1_2026.07.17/data_1_all/vanna_table_ddls"
+        "../data/数据入库v_1.1_0722/query_ready_v2/ddl"
     )
+    catalog_path: Path = Path("config/catalog.json")
+    examples_path: Path = Path("config/examples.json")
     table_cards_path: Path = Path("config/table_cards.json")
     ddl_registry_path: Path = Path("config/ddl_registry.json")
     query_knowledge_path: Path = Path("config/query_knowledge.json")
     validation_cases_path: Path = Path("config/validation_cases.json")
+    administrative_regions_path: Path = Path("config/administrative_regions.json")
+    prompts_path: Path = Path("config/prompts.json")
+    llm_timeout_seconds: float = Field(default=120.0, gt=0)
+    llm_trace_log_path: Path = Path("runtime/llm_trace.jsonl")
+    enable_llm_trace: bool = Field(
+        default=False,
+        validation_alias="ENABLE_LLM_TRACE",
+    )
     query_timeout_seconds: float = Field(default=10.0, gt=0)
     max_result_rows: int = Field(default=100, ge=1, le=1000)
     audit_log_path: Path = Path("runtime/query_audit.jsonl")

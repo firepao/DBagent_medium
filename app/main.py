@@ -12,6 +12,8 @@ from app.config import get_settings
 from app.executor import SQLiteExecutor
 from app.llm import OpenAIQueryLLM
 from app.models import QueryRequest, ToolResponse
+from app.prompts import PromptRegistry
+from app.llm_trace import LLMTraceRepository
 from app.service import QueryService
 from app.sql_guard import SqlGuard
 
@@ -24,7 +26,12 @@ def _resolve_from_base(path: Path) -> Path:
 
 
 def ensure_valid_table_cards(catalog: MetadataCatalog) -> None:
-    issues = catalog.table_card_issues() + catalog.runtime_rule_issues()
+    region_issues = getattr(catalog, "region_rule_issues", lambda: [])()
+    issues = (
+        catalog.table_card_issues()
+        + catalog.runtime_rule_issues()
+        + region_issues
+    )
     if issues:
         raise CatalogError("TableCard 配置无效: " + "; ".join(issues))
 
@@ -34,16 +41,25 @@ def build_default_service() -> QueryService:
     db_path = _resolve_from_base(settings.sqlite_db_path)
     catalog = MetadataCatalog(
         db_path,
-        BASE_DIR / "config" / "catalog.json",
-        BASE_DIR / "config" / "examples.json",
+        _resolve_from_base(settings.catalog_path),
+        _resolve_from_base(settings.examples_path),
         table_cards_path=_resolve_from_base(settings.table_cards_path),
         ddl_registry_path=_resolve_from_base(settings.ddl_registry_path),
         query_knowledge_path=_resolve_from_base(settings.query_knowledge_path),
         validation_cases_path=_resolve_from_base(settings.validation_cases_path),
+        administrative_regions_path=_resolve_from_base(
+            settings.administrative_regions_path
+        ),
         ddl_directory=_resolve_from_base(settings.ddl_directory),
     )
     ensure_valid_table_cards(catalog)
-    llm = OpenAIQueryLLM(settings)
+    prompts = PromptRegistry.from_file(_resolve_from_base(settings.prompts_path))
+    trace = (
+        LLMTraceRepository(_resolve_from_base(settings.llm_trace_log_path))
+        if settings.enable_llm_trace
+        else None
+    )
+    llm = OpenAIQueryLLM(settings, prompts=prompts, trace_repository=trace)
     guard = SqlGuard(catalog, max_rows=settings.max_result_rows)
     executor = SQLiteExecutor(
         db_path,

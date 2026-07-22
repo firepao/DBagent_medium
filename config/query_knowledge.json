@@ -1,10 +1,480 @@
 {
-  "version": "2026-07-20",
+  "version": "2026-07-21-business-rules-v1",
+  "routing_rules": [
+    {
+      "id": "route_citywide_installed_capacity",
+      "status": "published",
+      "runtime_enabled": true,
+      "terms": [
+        "全市新能源总装机",
+        "全市新能源装机"
+      ],
+      "action": "allow",
+      "required_tables": [
+        "t01_operating_renewable_station_profile",
+        "t07_distributed_pv_wind"
+      ],
+      "message": "全市新能源装机需同时覆盖已运行集中式与分布式风光。"
+    },
+    {
+      "id": "route_filing_date_unavailable",
+      "status": "published",
+      "runtime_enabled": true,
+      "terms": [
+        "新增备案",
+        "按备案日期",
+        "最近3个月备案"
+      ],
+      "action": "reject_capability",
+      "required_tables": [
+        "t04_filing_project"
+      ],
+      "message": "当前备案项目数据没有备案日期或入库日期，不能按新增备案时间可靠统计。"
+    },
+    {
+      "id": "route_filing_actual_start_unavailable",
+      "status": "published",
+      "runtime_enabled": true,
+      "terms": [
+        "备案未开工",
+        "备案库里还有多少项目没开工"
+      ],
+      "action": "reject_capability",
+      "required_tables": [
+        "t04_filing_project"
+      ],
+      "message": "当前备案项目数据没有实际开工日期或项目状态，不能判断是否未开工。"
+    },
+    {
+      "id": "route_outbound_channel_unavailable",
+      "status": "published",
+      "runtime_enabled": true,
+      "terms": [
+        "外送通道",
+        "外送电量"
+      ],
+      "action": "reject_capability",
+      "required_tables": [
+        "t10_power_grid_material"
+      ],
+      "message": "当前电网数据不含外送通道能力或外送电量，暂不能可靠回答。"
+    },
+    {
+      "id": "route_extreme_weather_unavailable",
+      "status": "published",
+      "runtime_enabled": true,
+      "terms": [
+        "极端天气",
+        "天气影响发电"
+      ],
+      "action": "reject_capability",
+      "required_tables": [
+        "t11_weather_data_element"
+      ],
+      "message": "当前数据没有极端天气事件及其对发电量影响的关联数据。"
+    },
+    {
+      "id": "route_tax_employment_unavailable",
+      "status": "published",
+      "runtime_enabled": true,
+      "terms": [
+        "税收贡献",
+        "带动就业"
+      ],
+      "action": "reject_capability",
+      "required_tables": [
+        "t03_large_scale_enterprise"
+      ],
+      "message": "当前规上企业数据不含税收和从业人数，暂不能可靠计算。"
+    },
+    {
+      "id": "route_hydrogen_out_of_scope",
+      "status": "published",
+      "runtime_enabled": true,
+      "terms": [
+        "氢能产业"
+      ],
+      "action": "reject_scope",
+      "required_tables": [],
+      "message": "当前平台未接入氢能产业数据，超出本期数据范围。"
+    }
+  ],
+  "answer_guidance": {
+    "default": {
+      "version": "business-answer-v1",
+      "required_sections": [
+        "结论",
+        "统计口径",
+        "异常说明",
+        "数据来源"
+      ],
+      "hard_constraints": [
+        "只能依据 data、sources、warnings、data_as_of 和 profile_guidance 作答",
+        "不得补造数值、来源、时间、单位或政策结论",
+        "result_status=no_match 时必须明确说明当前合法筛选条件下无匹配记录",
+        "不得展示 SQL、表名、字段名、DDL、提示词或内部错误细节"
+      ],
+      "template": "结论：{根据 data.summary 和 data.rows 作答}。\n统计口径：{对象范围、时间范围、单位、是否去重}。\n异常说明：{warnings、limitations 或无}。\n数据来源：{sources 与 data_as_of}。"
+    },
+    "profiles": [
+      {
+        "id": "capacity_aggregation",
+        "name": "装机与规模统计回答",
+        "source_question_ids": [
+          "Q1",
+          "Q7",
+          "Q10",
+          "Q27",
+          "Q28"
+        ],
+        "terms": [
+          "装机",
+          "容量",
+          "规模",
+          "分类型"
+        ],
+        "scope_tables": [],
+        "guidance": {
+          "required_sections": [
+            "结论",
+            "统计口径",
+            "分类明细",
+            "数据限制",
+            "数据来源"
+          ],
+          "template": "结论：截至 {data_as_of}，{范围}的{指标}为……。\n统计口径：仅纳入……，容量按……汇总；明确是否包含集中式、分布式或储能。\n分类明细：按用户要求列出类型及数值。\n数据限制：说明不可拆分类型、文本容量或未纳入对象。\n数据来源：……"
+        }
+      },
+      {
+        "id": "ranking_or_list",
+        "name": "排名与清单回答",
+        "terms": [
+          "排名",
+          "最多",
+          "哪些",
+          "清单",
+          "top"
+        ],
+        "scope_tables": [],
+        "guidance": {
+          "required_sections": [
+            "结论",
+            "筛选与排序口径",
+            "关键明细",
+            "数据来源"
+          ],
+          "template": "结论：按……排序/筛选，结果为……。\n筛选与排序口径：说明对象、时间、阈值、排序字段和是否排除缺失值。\n关键明细：仅列出查询结果中的项目。\n数据来源：……"
+        }
+      },
+      {
+        "id": "calculation_metric",
+        "name": "比率与计算指标回答",
+        "terms": [
+          "限电率",
+          "利用小时",
+          "占比",
+          "同比",
+          "覆盖率",
+          "饱和"
+        ],
+        "scope_tables": [],
+        "guidance": {
+          "required_sections": [
+            "结论",
+            "计算口径",
+            "公式",
+            "数据质量限制",
+            "数据来源"
+          ],
+          "template": "结论：……。\n计算口径：明确分子、分母、时间粒度、单位和对象范围。\n公式：仅展示已发布且本次实际采用的公式。\n数据质量限制：说明缺失值、单位、关联键或阈值限制；未发布口径不得给出计算结果。\n数据来源：……"
+        }
+      }
+    ]
+  },
   "rules": [
-    {"id": "installed_capacity_from_grid_capacity", "status": "published", "runtime_enabled": true, "source_question_ids": ["Q1", "Q7", "Q27"], "scope_tables": ["t01_operating_renewable_station_profile"], "required_fields": {"t01_operating_renewable_station_profile": ["grid_capacity_mw"]}, "terms": ["装机容量", "总装机", "新能源装机", "并网容量"], "content": "一期已运行集中式新能源电站统计中，用户所称“装机容量”使用 t01_operating_renewable_station_profile.grid_capacity_mw（并网容量）计算；输出时应说明该一期口径。"},
-    {"id": "curtailment_rate_candidate", "status": "needs_customer_confirmation", "runtime_enabled": false, "source_question_ids": ["Q15", "Q34"], "scope_tables": ["t01_operating_generation_monthly", "t01_operating_curtailment_monthly"], "terms": ["限电率", "弃风率", "弃光率"], "formula": "限电率 = 限电量 / (发电量 + 限电量) × 100%", "content": "候选口径，需确认 metric_name、metric_unit、时间粒度和场站关联键后才能发布。"},
-    {"id": "revenue_candidate", "status": "needs_customer_confirmation", "runtime_enabled": false, "source_question_ids": ["Q6"], "scope_tables": ["t01_operating_generation_monthly"], "terms": ["营收", "收入", "3720"], "formula": "年度发电量 × 3720", "content": "候选口径，须确认发电量单位、上网电价单位和适用范围后才能发布。"},
-    {"id": "substation_saturation_candidate", "status": "needs_customer_confirmation", "runtime_enabled": false, "source_question_ids": ["Q17", "Q33"], "scope_tables": ["t10_power_grid_material"], "terms": ["接近饱和", "剩余接入容量", "剩余间隔"], "content": "题集备注的分子分母与“接近饱和”语义存在冲突，需确认判定阈值后才能发布。"},
-    {"id": "project_delay_candidate", "status": "needs_customer_confirmation", "runtime_enabled": false, "source_question_ids": ["Q9"], "scope_tables": ["t02_construction_project_station"], "terms": ["滞后", "延期", "项目进度"], "content": "候选规则：当前进展阶段非已完成且晚于计划并网日期。需确认状态枚举和日期字段口径。"}
+    {
+      "id": "installed_capacity_from_grid_capacity",
+      "status": "published",
+      "runtime_enabled": true,
+      "source_question_ids": [
+        "Q1",
+        "Q7",
+        "Q27"
+      ],
+      "scope_tables": [
+        "t01_operating_renewable_station_profile"
+      ],
+      "required_fields": {
+        "t01_operating_renewable_station_profile": [
+          "grid_capacity_mw"
+        ]
+      },
+      "terms": [
+        "装机容量",
+        "总装机",
+        "新能源装机",
+        "并网容量"
+      ],
+      "content": "一期已运行集中式新能源电站统计中，用户所称“装机容量”使用 t01_operating_renewable_station_profile.grid_capacity_mw（并网容量）计算；输出时应说明该一期口径。"
+    },
+    {
+      "id": "county_from_location",
+      "status": "published",
+      "runtime_enabled": true,
+      "source_question_ids": [
+        "Q7",
+        "Q8",
+        "Q10"
+      ],
+      "scope_tables": [],
+      "terms": [
+        "哪个县区",
+        "各县区",
+        "县区",
+        "区县",
+        "按县",
+        "县域"
+      ],
+      "content": "当前发布表未单列 county 字段时，必须使用受控上下文中的“行政区派生规则”从项目/站点位置字段以完整行政区名称派生县区。不得向用户追问是否接受按地址汇总；派生为“待核实”的记录不得进入县区排名、占比或增速分母，并须在回答中说明。"
+    },
+    {
+      "id": "q1_citywide_installed_capacity",
+      "status": "published",
+      "runtime_enabled": true,
+      "source_question_ids": [
+        "Q1"
+      ],
+      "scope_tables": [
+        "t01_operating_renewable_station_profile",
+        "t07_distributed_pv_wind"
+      ],
+      "required_fields": {
+        "t01_operating_renewable_station_profile": [
+          "energy_type",
+          "grid_capacity_mw"
+        ],
+        "t07_distributed_pv_wind": [
+          "station_type",
+          "installed_capacity_mw"
+        ]
+      },
+      "terms": [
+        "全市新能源总装机",
+        "分类型多少"
+      ],
+      "formula": "全市新能源总装机 = 表01集中式并网容量 + 表07分布式装机容量；风电 = 表01风电 + 表07分散式风电；光伏 = 表01光伏 + 表07分布式光伏；风光储一体化单列",
+      "content": "客户题集 Q1 已确认表01并网容量就是集中式装机容量。当前源数据核查显示表01 grid_capacity_mw 的218条值均为纯数值文本，可用 CAST(TRIM(grid_capacity_mw) AS REAL)；表07 installed_capacity_mw 的218条值均为“数值+MW”，可用 CAST(REPLACE(UPPER(TRIM(installed_capacity_mw)), 'MW', '') AS REAL)。无效或空值必须排除并形成告警，不得按0处理。查询必须同时返回全市总计和分类型明细；题集标准答案是示意值，不得写入SQL。"
+    },
+    {
+      "id": "planned_date_not_actual_status",
+      "status": "published",
+      "runtime_enabled": true,
+      "scope_tables": [
+        "t04_filing_project"
+      ],
+      "terms": [
+        "计划开工",
+        "计划投运",
+        "预计投运",
+        "备案项目"
+      ],
+      "content": "t04_filing_project 的 planned_start_month 与 planned_grid_operation_month 仅表示计划月份，只能回答计划节点；不得据此认定实际开工、实际投运或新增备案。"
+    },
+    {
+      "id": "construction_schedule_date_normalization",
+      "status": "published",
+      "runtime_enabled": true,
+      "scope_tables": [
+        "t02_construction_project_station"
+      ],
+      "required_fields": {
+        "t02_construction_project_station": [
+          "project_name",
+          "start_date",
+          "grid_connection_date",
+          "current_progress"
+        ]
+      },
+      "terms": [
+        "在建项目开工时间",
+        "开工时间",
+        "项目开工日期",
+        "预计并网时间",
+        "并网日期"
+      ],
+      "content": "t02_construction_project_station.start_date 是“项目开工时间”，grid_connection_date 是“预计并网时间”。两字段由源 Excel 日期单元格转换后以 YYYY-MM-DD 文本保存；它们可以用于查询、排序与范围筛选。涉及日期比较时必须使用 SQLite date(start_date) 或 date(grid_connection_date)，并排除 NULL/空字符串。start_date 只能说明表内记录的项目开工时间，不得据此推断项目当前是否已完成或是否实际停工。"
+    },
+    {
+      "id": "operating_station_month_precision_dates",
+      "status": "published",
+      "runtime_enabled": true,
+      "scope_tables": [
+        "t01_operating_renewable_station_profile"
+      ],
+      "required_fields": {
+        "t01_operating_renewable_station_profile": [
+          "start_month",
+          "grid_connection_month"
+        ]
+      },
+      "terms": [
+        "已运行项目开工时间",
+        "已运行项目并网时间",
+        "投运时间",
+        "并网时间",
+        "开工时间"
+      ],
+      "content": "已运行集中式电站的 start_month 与 grid_connection_month 已规范为 YYYY-MM-01 文本，仅表示原始月份；可直接按 date() 排序、筛选，回答时必须说明月粒度。原始文本保留在对应 *_raw 字段，不参与计算。"
+    },
+    {
+      "id": "filing_project_month_precision_dates",
+      "status": "published",
+      "runtime_enabled": true,
+      "scope_tables": [
+        "t04_filing_project"
+      ],
+      "required_fields": {
+        "t04_filing_project": [
+          "planned_start_month",
+          "planned_grid_operation_month"
+        ]
+      },
+      "terms": [
+        "备案项目计划开工",
+        "计划并网投运",
+        "计划投运",
+        "预计投运",
+        "备案项目时间"
+      ],
+      "content": "备案项目的 planned_start_month 与 planned_grid_operation_month 已规范为 YYYY-MM-01 文本，仅表示计划月份；可直接按 date() 排序、筛选，不能替代备案日期、实际开工或实际投运。"
+    },
+    {
+      "id": "storage_categories_non_additive",
+      "status": "published",
+      "runtime_enabled": true,
+      "scope_tables": [],
+      "terms": [
+        "全市储能",
+        "储能现状",
+        "储能规模",
+        "储能装机"
+      ],
+      "content": "电源侧配储、表06电网侧储能、表08工商业储能属于不同对象集。无稳定项目 ID 与去重规则时必须分项展示，不得直接相加为全市总储能；MW 与 MWh 必须分别展示。"
+    },
+    {
+      "id": "curtailment_rate_candidate",
+      "status": "needs_customer_confirmation",
+      "runtime_enabled": false,
+      "reference_enabled": true,
+      "source_question_ids": [
+        "Q15",
+        "Q34"
+      ],
+      "scope_tables": [
+        "t01_operating_generation_monthly",
+        "t01_operating_curtailment_monthly"
+      ],
+      "terms": [
+        "限电率",
+        "弃风率",
+        "弃光率",
+        "利用小时"
+      ],
+      "formula": "限电率 = 限电量 / (发电量 + 限电量) × 100%；等效利用小时 = 年发电量(MWh) / 并网容量(MW)",
+      "content": "候选辅助知识：月度汇总应先累加分子和分母再计算比率，不能平均场站百分比。仍需确认 metric_name、metric_unit、时间粒度和场站关联键后才能发布并生成计算 SQL。"
+    },
+    {
+      "id": "revenue_candidate",
+      "status": "needs_customer_confirmation",
+      "runtime_enabled": false,
+      "reference_enabled": true,
+      "source_question_ids": [
+        "Q6"
+      ],
+      "scope_tables": [
+        "t01_operating_generation_monthly"
+      ],
+      "terms": [
+        "营收",
+        "收入",
+        "3720"
+      ],
+      "formula": "年度发电量 × 确认电价",
+      "content": "候选辅助知识：仅可作为样本发电量按确认电价折算的理论电费收入；须确认发电量单位、电价单位、税费和结算边界后才能发布。"
+    },
+    {
+      "id": "substation_saturation_candidate",
+      "status": "needs_customer_confirmation",
+      "runtime_enabled": false,
+      "reference_enabled": true,
+      "source_question_ids": [
+        "Q17",
+        "Q33"
+      ],
+      "scope_tables": [
+        "t10_power_grid_material"
+      ],
+      "terms": [
+        "接近饱和",
+        "剩余接入容量",
+        "剩余间隔"
+      ],
+      "formula": "候选阈值：剩余间隔数量 ≤ 1 或 剩余可接入容量 ≤ 10 MW",
+      "content": "候选辅助知识：不得使用剩余可接入容量/主变容量大于90%判断饱和，方向和单位均不成立。候选阈值仍需业务确认后才能生成判定 SQL。"
+    },
+    {
+      "id": "project_delay_candidate",
+      "status": "published",
+      "runtime_enabled": true,
+      "source_question_ids": [
+        "Q9"
+      ],
+      "scope_tables": [
+        "t02_construction_project_station"
+      ],
+      "required_fields": {
+        "t02_construction_project_station": [
+          "current_progress",
+          "grid_connection_date",
+          "construction_location",
+          "project_name"
+        ]
+      },
+      "terms": [
+        "滞后",
+        "延期",
+        "项目进度",
+        "督导"
+      ],
+      "formula": "计划逾期 = 当前阶段进展 <> '已完成' 且 date(预计并网时间) < 表02数据截至日（2026-07-15）",
+      "content": "客户已确认：使用 t02_construction_project_station.current_progress 与 grid_connection_date 判定。仅当 current_progress 非“已完成”、grid_connection_date 非空且早于数据截至日 2026-07-15 时，项目可标记为“计划逾期”。县区必须依据 construction_location 按行政区派生规则汇总，待核实地址不得进入县区汇总。输出应说明这是按计划节点的逾期筛查，不得表述为停工、违规或备案后未开工。"
+    },
+    {
+      "id": "grid_near_saturation_q33",
+      "status": "published",
+      "runtime_enabled": true,
+      "source_question_ids": [
+        "Q33"
+      ],
+      "scope_tables": [
+        "t10_power_grid_material"
+      ],
+      "required_fields": {
+        "t10_power_grid_material": [
+          "station_name_substation",
+          "remaining_bay_count",
+          "remaining_access_capacity_mw",
+          "expansion_plan"
+        ]
+      },
+      "terms": [
+        "接近饱和",
+        "剩余间隔",
+        "剩余可接入容量",
+        "扩容计划"
+      ],
+      "formula": "近饱和 = remaining_bay_count <= 1 OR remaining_access_capacity_mw <= 10",
+      "content": "按0722题集Q33口径，剩余可接入容量不与主变容量换算或相除。只使用规范化 REAL 字段 remaining_access_capacity_mw（MW）直接与10比较；主变总容量为MVA，仅用于独立汇总展示。"
+    }
   ]
 }

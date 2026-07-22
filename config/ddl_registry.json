@@ -1,18 +1,68 @@
 {
-  "version": "data1-v1.0.1-2026-07-17",
   "tables": {
-    "t01_operating_renewable_station_profile": {"file": "t01_operating_renewable_station_profile.txt", "sha256": "c507725221b31e6e3e17a161f048efbb38eb0e1f255e5657c9da5acf57f33522"},
-    "t01_operating_generation_monthly": {"file": "t01_operating_generation_monthly.txt", "sha256": "ea6472693d5f1dabe6b08577a4aae420076866e2ce37f305eb5ce706e2bf7fd7"},
-    "t01_operating_curtailment_monthly": {"file": "t01_operating_curtailment_monthly.txt", "sha256": "030f5393470fc483266fafda75a49dcc0b55e882d11a18de9052c33d0095f5ec"},
-    "t02_construction_project_station": {"file": "t02_construction_project_station.txt", "sha256": "6bd3eef12ccb285ebb753c5afc270d4214efdb8110e659388de5fe8e87bb2f85"},
-    "t03_large_scale_enterprise": {"file": "t03_large_scale_enterprise.txt", "sha256": "054934cbfd1cf055b9510128270e5837a3d4d4c60b09b51a11066ab04055d0bd"},
-    "t04_filing_project": {"file": "t04_filing_project.txt", "sha256": "cb042f0722aa5d56bf5225c06c7f9a8c26ff9e8be53f4e61dc854b27c91394b7"},
-    "t06_grid_side_storage": {"file": "t06_grid_side_storage.txt", "sha256": "8e532ae10fda7b1966a57e064de990dbeee64c27fdc61445d53e3648da9396c2"},
-    "t07_distributed_pv_wind": {"file": "t07_distributed_pv_wind.txt", "sha256": "9f646dd515b2dc7347e79f138190200a4c44d34b982c4a1b5c43489aebd65fc5"},
-    "t08_industrial_commercial_storage": {"file": "t08_industrial_commercial_storage.txt", "sha256": "f90734fccbcd86495fb9a943ae4430e4221cdcb93f9d6ae3fcd1ad0db8c7b316"},
-    "t09_charging_station": {"file": "t09_charging_station.txt", "sha256": "980f4184300bf20e72344afa4ec36fdffd56860f6cb1b4b253c86964d26bf4fd"},
-    "t10_power_grid_material": {"file": "t10_power_grid_material.txt", "sha256": "6942eb7d3180d81a314a803b83ed43cb4ab22dee8b794790e1c408d5cc4ce819"},
-    "t11_weather_data_element": {"file": "t11_weather_data_element.txt", "sha256": "daf361a6a197064ab8d1e85adb5f3afc93dcb82567cfabf4cbd62e46d74eb24d"},
-    "t11_weather_grid_sample": {"file": "t11_weather_grid_sample.txt", "sha256": "6c418ade1b1379c418447bc9881e90faf27b62c82c8249031588ccb13724b843"}
+    "t01_operating_curtailment_monthly": {
+      "file": "t01_operating_curtailment_monthly.sql",
+      "sha256": "b1f733c3f12c0c8efc64dd6fd95ca80a3e5099e68a0b8a18a3c2eb25497f20ff"
+    },
+    "t01_operating_generation_monthly": {
+      "file": "t01_operating_generation_monthly.sql",
+      "sha256": "2d737bb91e67bff4509819c3eb610cb4e9243054826685c27d363d1bcdf6f178"
+    },
+    "t01_operating_renewable_station_profile": {
+      "file": "t01_operating_renewable_station_profile.sql",
+      "sha256": "681a05734de579e15a346eb6edb09f043dac693eef95b577176ce3f636893e4e"
+    },
+    "t02_construction_project_station": {
+      "file": "t02_construction_project_station.sql",
+      "sha256": "88768a160f7761bbcdc26932830b4d237a82cf662cfe1aa8161a8adc71055de8"
+    },
+    "t03_large_scale_enterprise": {
+      "file": "t03_large_scale_enterprise.sql",
+      "sha256": "6f96a1e6c5ca8ddc6634a3e237621cfa19b5eb9e298183218acaee586f36cb25"
+    },
+    "t04_filing_project": {
+      "file": "t04_filing_project.sql",
+      "sha256": "8a1ceea9354a26f8cf5eb174da2556ed8ee27e3eaa2a13682def958c5acefc38"
+    },
+    "t05_land_planning_detail": {
+      "file": "t05_land_planning_detail.sql",
+      "sha256": "818635793a8550bc3e1e809b8150265677b16ed1bd608c33aa70f817b329c57c"
+    },
+    "t05_land_planning_merged_catalog": {
+      "file": "t05_land_planning_merged_catalog.sql",
+      "sha256": "bb5f65962fde31cd63b8182156afcb5a96d999ab7a15ef4deb1bcbd441106f9f"
+    },
+    "t05_land_polygon_point": {
+      "file": "t05_land_polygon_point.sql",
+      "sha256": "331a2542f985bab5f2d10b4ca69ec87e7061aaf22cba5616524e8c2152bcea7a"
+    },
+    "t06_grid_side_storage": {
+      "file": "t06_grid_side_storage.sql",
+      "sha256": "b41d4b05da8d11f7c4b405ffa95c318d0b116b398fd3cd3a7310ec5fc212874d"
+    },
+    "t07_distributed_pv_wind": {
+      "file": "t07_distributed_pv_wind.sql",
+      "sha256": "1ea17344d5b823a5f9d4e72f563d00226bbd338fb16a7a0f9eeee8693d202aab"
+    },
+    "t08_industrial_commercial_storage": {
+      "file": "t08_industrial_commercial_storage.sql",
+      "sha256": "08427089cd257174790bc44324d1530a59dbb1872fcb7f478cb8370cb8e29738"
+    },
+    "t09_charging_station": {
+      "file": "t09_charging_station.sql",
+      "sha256": "39af769b6c6598707374e412303662a244283be309cd38a24819f526b790085f"
+    },
+    "t10_power_grid_material": {
+      "file": "t10_power_grid_material.sql",
+      "sha256": "81090ac48084c3b9882db5f39d86deaf7caa17848da95064d601444f7891690e"
+    },
+    "t11_weather_data_element": {
+      "file": "t11_weather_data_element.sql",
+      "sha256": "00a5f66b5e9b30c7808e0c114a2d1f6119e4904b5a3d46cfe77879238a5a9971"
+    },
+    "t11_weather_grid_sample": {
+      "file": "t11_weather_grid_sample.sql",
+      "sha256": "42ca21e638fecada9edae9463e84752d278266a37e157dbcc9759c5073503342"
+    }
   }
 }

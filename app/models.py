@@ -28,6 +28,17 @@ class QueryPlan(BaseModel):
     clarification_question: str | None = None
 
 
+class SqlSemanticReview(BaseModel):
+    """受控 SQL 语义审核结果；SQL 本身仍须由服务端独立校验。"""
+
+    model_config = {"extra": "forbid"}
+
+    decision: Literal["pass", "rewrite", "clarification", "unsupported"]
+    semantic_issues: list[str] = Field(default_factory=list, max_length=20)
+    clarification_question: str | None = None
+    corrected_sql: str | None = None
+
+
 class ErrorInfo(BaseModel):
     code: str
     message: str
@@ -39,6 +50,8 @@ class QueryData(BaseModel):
     summary: dict[str, Any] = Field(default_factory=dict)
     schema_: list[dict[str, Any]] = Field(default_factory=list, alias="schema")
     data_as_of: str | None = None
+    result_status: Literal["data_found", "no_match"] = "data_found"
+    result_reason: str | None = None
 
     model_config = {"populate_by_name": True}
 
@@ -55,6 +68,7 @@ class ToolResponse(BaseModel):
     sources: list[SourceInfo] = Field(default_factory=list)
     request_id: str
     warnings: list[str] = Field(default_factory=list)
+    answer_guidance: dict[str, Any] | None = None
     error: ErrorInfo | None = None
     diagnostics: dict[str, Any] | None = None
 

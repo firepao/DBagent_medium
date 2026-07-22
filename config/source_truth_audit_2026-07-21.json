@@ -1,0 +1,2071 @@
+{
+  "generated_at": "2026-07-21T07:40:08.723905+00:00",
+  "source_data_dir": "D:\\bitagent_workspace\\resources_agent\\data\\数据入库_v1.0.1_2026.07.17\\data_1_all\\data",
+  "processed_data_dir": "D:\\bitagent_workspace\\resources_agent\\data\\数据入库_v1.0.1_2026.07.17\\data_1_all\\data_1",
+  "sqlite_db_path": "D:\\bitagent_workspace\\resources_agent\\data\\数据入库_v1.0.1_2026.07.17\\data_1_all\\zhangbei_energy_data_data1.sqlite3",
+  "summary": {
+    "table_count": 13,
+    "passed_tables": 13,
+    "warning_tables": 0,
+    "failed_tables": 0
+  },
+  "tables": [
+    {
+      "table": "t01_operating_curtailment_monthly",
+      "status": "pass",
+      "source": {
+        "source_file": "01_已运行新能源集中式电站_张家口全域.xlsx",
+        "source_sheet": "新能源电站收资信息表_限电量_时间序列",
+        "raw_exists": true,
+        "processed_exists": true,
+        "raw_sheet_mapping": null,
+        "raw_sheet_exists": null,
+        "raw_sheet_status": "not_mapped",
+        "processed_sheet_exists": true,
+        "raw_sheet_summary": null,
+        "processed_sheet_summary": {
+          "headers": [
+            "源行号",
+            "序号",
+            "场站名称",
+            "电站类型",
+            "接入上级站名称",
+            "项目位置",
+            "时间周期",
+            "时间粒度",
+            "指标名称",
+            "指标单位",
+            "指标值",
+            "来源列号",
+            "来源列名"
+          ],
+          "sample_row_count": 1,
+          "sample_non_empty_cell_count": 13
+        }
+      },
+      "sqlite": {
+        "exists": true,
+        "columns": [
+          "id",
+          "source_file",
+          "source_sheet",
+          "excel_row",
+          "source_row_no",
+          "serial_no",
+          "station_name",
+          "station_type",
+          "parent_station_name",
+          "project_location",
+          "time_period",
+          "time_granularity",
+          "metric_name",
+          "metric_unit",
+          "metric_value",
+          "source_column_no",
+          "source_column_name"
+        ],
+        "published_columns": [
+          "metric_name",
+          "metric_unit",
+          "metric_value",
+          "parent_station_name",
+          "project_location",
+          "serial_no",
+          "station_name",
+          "station_type",
+          "time_granularity",
+          "time_period"
+        ],
+        "row_count": 3706,
+        "vanna_table": {
+          "source_file": "01_已运行新能源集中式电站_张家口全域.xlsx",
+          "source_sheet": "新能源电站收资信息表_限电量_时间序列",
+          "row_count": 3706
+        },
+        "vanna_fields": [
+          "id",
+          "source_file",
+          "source_sheet",
+          "excel_row",
+          "source_row_no",
+          "serial_no",
+          "station_name",
+          "station_type",
+          "parent_station_name",
+          "project_location",
+          "time_period",
+          "time_granularity",
+          "metric_name",
+          "metric_unit",
+          "metric_value",
+          "source_column_no",
+          "source_column_name"
+        ],
+        "import_audit": [
+          {
+            "source_file": "01_已运行新能源集中式电站_张家口全域.xlsx",
+            "source_sheet": "新能源电站收资信息表_限电量_时间序列",
+            "row_count": 3706
+          }
+        ]
+      },
+      "ddl": {
+        "registered": true,
+        "file": "D:\\bitagent_workspace\\resources_agent\\data\\数据入库_v1.0.1_2026.07.17\\data_1_all\\vanna_table_ddls\\t01_operating_curtailment_monthly.txt",
+        "exists": true,
+        "sha256": "030f5393470fc483266fafda75a49dcc0b55e882d11a18de9052c33d0095f5ec",
+        "columns": [
+          "id",
+          "source_file",
+          "source_sheet",
+          "excel_row",
+          "source_row_no",
+          "serial_no",
+          "station_name",
+          "station_type",
+          "parent_station_name",
+          "project_location",
+          "time_period",
+          "time_granularity",
+          "metric_name",
+          "metric_unit",
+          "metric_value",
+          "source_column_no",
+          "source_column_name"
+        ]
+      },
+      "table_card": {
+        "exists": true,
+        "aliases": {
+          "限电量": "metric_value",
+          "弃风": "metric_value",
+          "弃光": "metric_value",
+          "月份": "time_period",
+          "场站": "station_name"
+        },
+        "important_fields": [
+          "station_name",
+          "station_type",
+          "project_location",
+          "time_period",
+          "time_granularity",
+          "metric_name",
+          "metric_unit",
+          "metric_value"
+        ]
+      },
+      "issues": []
+    },
+    {
+      "table": "t01_operating_generation_monthly",
+      "status": "pass",
+      "source": {
+        "source_file": "01_已运行新能源集中式电站_张家口全域.xlsx",
+        "source_sheet": "新能源电站收资信息表_发电量_时间序列",
+        "raw_exists": true,
+        "processed_exists": true,
+        "raw_sheet_mapping": null,
+        "raw_sheet_exists": null,
+        "raw_sheet_status": "not_mapped",
+        "processed_sheet_exists": true,
+        "raw_sheet_summary": null,
+        "processed_sheet_summary": {
+          "headers": [
+            "源行号",
+            "序号",
+            "场站名称",
+            "电站类型",
+            "接入上级站名称",
+            "项目位置",
+            "时间周期",
+            "时间粒度",
+            "指标名称",
+            "指标单位",
+            "指标值",
+            "来源列号",
+            "来源列名"
+          ],
+          "sample_row_count": 1,
+          "sample_non_empty_cell_count": 13
+        }
+      },
+      "sqlite": {
+        "exists": true,
+        "columns": [
+          "id",
+          "source_file",
+          "source_sheet",
+          "excel_row",
+          "source_row_no",
+          "serial_no",
+          "station_name",
+          "station_type",
+          "parent_station_name",
+          "project_location",
+          "time_period",
+          "time_granularity",
+          "metric_name",
+          "metric_unit",
+          "metric_value",
+          "source_column_no",
+          "source_column_name"
+        ],
+        "published_columns": [
+          "metric_name",
+          "metric_unit",
+          "metric_value",
+          "parent_station_name",
+          "project_location",
+          "serial_no",
+          "station_name",
+          "station_type",
+          "time_granularity",
+          "time_period"
+        ],
+        "row_count": 3706,
+        "vanna_table": {
+          "source_file": "01_已运行新能源集中式电站_张家口全域.xlsx",
+          "source_sheet": "新能源电站收资信息表_发电量_时间序列",
+          "row_count": 3706
+        },
+        "vanna_fields": [
+          "id",
+          "source_file",
+          "source_sheet",
+          "excel_row",
+          "source_row_no",
+          "serial_no",
+          "station_name",
+          "station_type",
+          "parent_station_name",
+          "project_location",
+          "time_period",
+          "time_granularity",
+          "metric_name",
+          "metric_unit",
+          "metric_value",
+          "source_column_no",
+          "source_column_name"
+        ],
+        "import_audit": [
+          {
+            "source_file": "01_已运行新能源集中式电站_张家口全域.xlsx",
+            "source_sheet": "新能源电站收资信息表_发电量_时间序列",
+            "row_count": 3706
+          }
+        ]
+      },
+      "ddl": {
+        "registered": true,
+        "file": "D:\\bitagent_workspace\\resources_agent\\data\\数据入库_v1.0.1_2026.07.17\\data_1_all\\vanna_table_ddls\\t01_operating_generation_monthly.txt",
+        "exists": true,
+        "sha256": "ea6472693d5f1dabe6b08577a4aae420076866e2ce37f305eb5ce706e2bf7fd7",
+        "columns": [
+          "id",
+          "source_file",
+          "source_sheet",
+          "excel_row",
+          "source_row_no",
+          "serial_no",
+          "station_name",
+          "station_type",
+          "parent_station_name",
+          "project_location",
+          "time_period",
+          "time_granularity",
+          "metric_name",
+          "metric_unit",
+          "metric_value",
+          "source_column_no",
+          "source_column_name"
+        ]
+      },
+      "table_card": {
+        "exists": true,
+        "aliases": {
+          "发电量": "metric_value",
+          "月份": "time_period",
+          "场站": "station_name",
+          "指标": "metric_name"
+        },
+        "important_fields": [
+          "station_name",
+          "station_type",
+          "project_location",
+          "time_period",
+          "time_granularity",
+          "metric_name",
+          "metric_unit",
+          "metric_value"
+        ]
+      },
+      "issues": []
+    },
+    {
+      "table": "t01_operating_renewable_station_profile",
+      "status": "pass",
+      "source": {
+        "source_file": "01_已运行新能源集中式电站_张家口全域.xlsx",
+        "source_sheet": "新能源电站收资信息表_指标体系",
+        "raw_exists": true,
+        "processed_exists": true,
+        "raw_sheet_mapping": null,
+        "raw_sheet_exists": null,
+        "raw_sheet_status": "not_mapped",
+        "processed_sheet_exists": true,
+        "raw_sheet_summary": null,
+        "processed_sheet_summary": {
+          "headers": [
+            "序号",
+            "场站名称",
+            "能源类型",
+            "电站类型",
+            "并网容量（MW)",
+            "是否配储",
+            "配储容量（MW/MWH)",
+            "电压等级(kV)",
+            "接入上级站名称",
+            "总投资额（万元）",
+            "机制电量容量（百分比）",
+            "机制价格（元/MW)",
+            "开工时间",
+            "并网时间",
+            "项目位置",
+            "升压站坐标(经纬度）",
+            "光伏区及风机坐标 （光伏区/储能提供拐点坐标，风场提供风机机位点坐标）",
+            "项目建设方",
+            "归属上级集团",
+            "项目联系人及联系方式"
+          ],
+          "sample_row_count": 1,
+          "sample_non_empty_cell_count": 19
+        }
+      },
+      "sqlite": {
+        "exists": true,
+        "columns": [
+          "id",
+          "source_file",
+          "source_sheet",
+          "excel_row",
+          "serial_no",
+          "station_name",
+          "energy_type",
+          "station_type",
+          "grid_capacity_mw",
+          "has_storage",
+          "storage_capacity_mwh",
+          "voltage_level_kv",
+          "parent_station_name",
+          "total_investment_tenk_yuan",
+          "mechanism_energy_capacity_pct",
+          "mechanism_price_mw",
+          "start_date",
+          "grid_connection_date",
+          "project_location",
+          "booster_station_coordinate_degree",
+          "pv_wind_coordinate_turbine",
+          "project_builder",
+          "parent_group",
+          "contact"
+        ],
+        "published_columns": [
+          "booster_station_coordinate_degree",
+          "energy_type",
+          "grid_capacity_mw",
+          "grid_connection_date",
+          "has_storage",
+          "mechanism_energy_capacity_pct",
+          "mechanism_price_mw",
+          "parent_group",
+          "parent_station_name",
+          "project_builder",
+          "project_location",
+          "pv_wind_coordinate_turbine",
+          "serial_no",
+          "start_date",
+          "station_name",
+          "station_type",
+          "storage_capacity_mwh",
+          "total_investment_tenk_yuan",
+          "voltage_level_kv"
+        ],
+        "row_count": 218,
+        "vanna_table": {
+          "source_file": "01_已运行新能源集中式电站_张家口全域.xlsx",
+          "source_sheet": "新能源电站收资信息表_指标体系",
+          "row_count": 218
+        },
+        "vanna_fields": [
+          "id",
+          "source_file",
+          "source_sheet",
+          "excel_row",
+          "serial_no",
+          "station_name",
+          "energy_type",
+          "station_type",
+          "grid_capacity_mw",
+          "has_storage",
+          "storage_capacity_mwh",
+          "voltage_level_kv",
+          "parent_station_name",
+          "total_investment_tenk_yuan",
+          "mechanism_energy_capacity_pct",
+          "mechanism_price_mw",
+          "start_date",
+          "grid_connection_date",
+          "project_location",
+          "booster_station_coordinate_degree",
+          "pv_wind_coordinate_turbine",
+          "project_builder",
+          "parent_group",
+          "contact"
+        ],
+        "import_audit": [
+          {
+            "source_file": "01_已运行新能源集中式电站_张家口全域.xlsx",
+            "source_sheet": "新能源电站收资信息表_指标体系",
+            "row_count": 218
+          }
+        ]
+      },
+      "ddl": {
+        "registered": true,
+        "file": "D:\\bitagent_workspace\\resources_agent\\data\\数据入库_v1.0.1_2026.07.17\\data_1_all\\vanna_table_ddls\\t01_operating_renewable_station_profile.txt",
+        "exists": true,
+        "sha256": "c507725221b31e6e3e17a161f048efbb38eb0e1f255e5657c9da5acf57f33522",
+        "columns": [
+          "id",
+          "source_file",
+          "source_sheet",
+          "excel_row",
+          "serial_no",
+          "station_name",
+          "energy_type",
+          "station_type",
+          "grid_capacity_mw",
+          "has_storage",
+          "storage_capacity_mwh",
+          "voltage_level_kv",
+          "parent_station_name",
+          "total_investment_tenk_yuan",
+          "mechanism_energy_capacity_pct",
+          "mechanism_price_mw",
+          "start_date",
+          "grid_connection_date",
+          "project_location",
+          "booster_station_coordinate_degree",
+          "pv_wind_coordinate_turbine",
+          "project_builder",
+          "parent_group",
+          "contact"
+        ]
+      },
+      "table_card": {
+        "exists": true,
+        "aliases": {
+          "新能源装机": "grid_capacity_mw",
+          "并网容量": "grid_capacity_mw",
+          "电站": "station_name",
+          "配储": "storage_capacity_mwh"
+        },
+        "important_fields": [
+          "station_name",
+          "energy_type",
+          "station_type",
+          "grid_capacity_mw",
+          "storage_capacity_mwh",
+          "grid_connection_date",
+          "project_location",
+          "parent_group"
+        ]
+      },
+      "issues": []
+    },
+    {
+      "table": "t02_construction_project_station",
+      "status": "pass",
+      "source": {
+        "source_file": "02_在建项目电站信息上报表_张家口全域.xlsx",
+        "source_sheet": "在建新能源_储能项目清单",
+        "raw_exists": true,
+        "processed_exists": true,
+        "raw_sheet_mapping": null,
+        "raw_sheet_exists": null,
+        "raw_sheet_status": "not_mapped",
+        "processed_sheet_exists": true,
+        "raw_sheet_summary": null,
+        "processed_sheet_summary": {
+          "headers": [
+            "序号",
+            "项目名称",
+            "项目类型",
+            "备案编号",
+            "项目容量 新能源（MW) 储能（MW)",
+            "总投资额（万元）",
+            "建设地点（具体到村级）",
+            "升压站位置区域坐标（经纬坐标）",
+            "光伏区及风机坐标 （光伏区/储能提供拐点坐标，风场提供风机机位点坐标）",
+            "项目并网电压等级（kV）",
+            "项目并网上级站",
+            "建设单位",
+            "当前阶段进展",
+            "建设用地批复",
+            "电力接入批复",
+            "光伏/风电/储能场区工程进度",
+            "升压站工程进度",
+            "外送线路进度",
+            "并网手续进度",
+            "项目开工时间",
+            "预计并网时间",
+            "联系人及联系方式",
+            "备注 (表中未提及的可自行备注）"
+          ],
+          "sample_row_count": 1,
+          "sample_non_empty_cell_count": 22
+        }
+      },
+      "sqlite": {
+        "exists": true,
+        "columns": [
+          "id",
+          "source_file",
+          "source_sheet",
+          "excel_row",
+          "serial_no",
+          "project_name",
+          "project_type",
+          "serial_no_2",
+          "project_capacity_mw",
+          "total_investment_tenk_yuan",
+          "construction_location",
+          "booster_station_coordinate",
+          "pv_wind_coordinate_turbine",
+          "grid_voltage_level_kv",
+          "grid_parent_station",
+          "construction_unit",
+          "current_progress",
+          "land_approval",
+          "grid_access_approval",
+          "site_project_progress",
+          "booster_station_progress",
+          "outgoing_line_progress",
+          "grid_connection_procedure_progress",
+          "start_date",
+          "grid_connection_date",
+          "contact",
+          "remarks"
+        ],
+        "published_columns": [
+          "booster_station_coordinate",
+          "booster_station_progress",
+          "construction_location",
+          "construction_unit",
+          "current_progress",
+          "grid_access_approval",
+          "grid_connection_date",
+          "grid_connection_procedure_progress",
+          "grid_parent_station",
+          "grid_voltage_level_kv",
+          "land_approval",
+          "outgoing_line_progress",
+          "project_capacity_mw",
+          "project_name",
+          "project_type",
+          "pv_wind_coordinate_turbine",
+          "remarks",
+          "serial_no",
+          "serial_no_2",
+          "site_project_progress",
+          "start_date",
+          "total_investment_tenk_yuan"
+        ],
+        "row_count": 76,
+        "vanna_table": {
+          "source_file": "02_在建项目电站信息上报表_张家口全域.xlsx",
+          "source_sheet": "在建新能源_储能项目清单",
+          "row_count": 76
+        },
+        "vanna_fields": [
+          "id",
+          "source_file",
+          "source_sheet",
+          "excel_row",
+          "serial_no",
+          "project_name",
+          "project_type",
+          "serial_no_2",
+          "project_capacity_mw",
+          "total_investment_tenk_yuan",
+          "construction_location",
+          "booster_station_coordinate",
+          "pv_wind_coordinate_turbine",
+          "grid_voltage_level_kv",
+          "grid_parent_station",
+          "construction_unit",
+          "current_progress",
+          "land_approval",
+          "grid_access_approval",
+          "site_project_progress",
+          "booster_station_progress",
+          "outgoing_line_progress",
+          "grid_connection_procedure_progress",
+          "start_date",
+          "grid_connection_date",
+          "contact",
+          "remarks"
+        ],
+        "import_audit": [
+          {
+            "source_file": "02_在建项目电站信息上报表_张家口全域.xlsx",
+            "source_sheet": "在建新能源_储能项目清单",
+            "row_count": 76
+          }
+        ]
+      },
+      "ddl": {
+        "registered": true,
+        "file": "D:\\bitagent_workspace\\resources_agent\\data\\数据入库_v1.0.1_2026.07.17\\data_1_all\\vanna_table_ddls\\t02_construction_project_station.txt",
+        "exists": true,
+        "sha256": "6bd3eef12ccb285ebb753c5afc270d4214efdb8110e659388de5fe8e87bb2f85",
+        "columns": [
+          "id",
+          "source_file",
+          "source_sheet",
+          "excel_row",
+          "serial_no",
+          "project_name",
+          "project_type",
+          "serial_no_2",
+          "project_capacity_mw",
+          "total_investment_tenk_yuan",
+          "construction_location",
+          "booster_station_coordinate",
+          "pv_wind_coordinate_turbine",
+          "grid_voltage_level_kv",
+          "grid_parent_station",
+          "construction_unit",
+          "current_progress",
+          "land_approval",
+          "grid_access_approval",
+          "site_project_progress",
+          "booster_station_progress",
+          "outgoing_line_progress",
+          "grid_connection_procedure_progress",
+          "start_date",
+          "grid_connection_date",
+          "contact",
+          "remarks"
+        ]
+      },
+      "table_card": {
+        "exists": true,
+        "aliases": {
+          "在建项目": "project_name",
+          "项目进度": "current_progress",
+          "项目容量": "project_capacity_mw",
+          "接入批复": "grid_access_approval"
+        },
+        "important_fields": [
+          "project_name",
+          "project_type",
+          "project_capacity_mw",
+          "construction_location",
+          "current_progress",
+          "grid_access_approval",
+          "grid_connection_date",
+          "construction_unit"
+        ]
+      },
+      "issues": []
+    },
+    {
+      "table": "t03_large_scale_enterprise",
+      "status": "pass",
+      "source": {
+        "source_file": "03_规上企业信息上报表_张家口全域.xlsx",
+        "source_sheet": "规上企业信息上报清单",
+        "raw_exists": true,
+        "processed_exists": true,
+        "raw_sheet_mapping": null,
+        "raw_sheet_exists": null,
+        "raw_sheet_status": "not_mapped",
+        "processed_sheet_exists": true,
+        "raw_sheet_summary": null,
+        "processed_sheet_summary": {
+          "headers": [
+            "序号",
+            "企业名称",
+            "企业位置",
+            "企业类型",
+            "供电电压等级(kV)",
+            "变压器容量(kVA)",
+            "年用电量（万kwh)",
+            "年用热量(GJ)",
+            "年用蒸汽量（吨）",
+            "热源方式",
+            "年用气量（万Nm³）",
+            "是否配套光伏",
+            "光伏容量（MW)",
+            "是否配套储能",
+            "储能容量(MW/MWH)",
+            "联系方式"
+          ],
+          "sample_row_count": 1,
+          "sample_non_empty_cell_count": 15
+        }
+      },
+      "sqlite": {
+        "exists": true,
+        "columns": [
+          "id",
+          "source_file",
+          "source_sheet",
+          "excel_row",
+          "serial_no",
+          "enterprise_name",
+          "enterprise_location",
+          "enterprise_type",
+          "voltage_level_supply_kv",
+          "transformer_capacity_kv",
+          "annual_electricity_consumption_tenk_kwh",
+          "annual_heat_consumption_gj",
+          "annual_steam_consumption_ton",
+          "heat_source",
+          "annual_gas_consumption_tenk_nm3",
+          "has_pv",
+          "pv_capacity_mw",
+          "has_storage",
+          "storage_capacity_mwh",
+          "contact"
+        ],
+        "published_columns": [
+          "annual_electricity_consumption_tenk_kwh",
+          "annual_gas_consumption_tenk_nm3",
+          "annual_heat_consumption_gj",
+          "annual_steam_consumption_ton",
+          "enterprise_location",
+          "enterprise_name",
+          "enterprise_type",
+          "has_pv",
+          "has_storage",
+          "heat_source",
+          "pv_capacity_mw",
+          "serial_no",
+          "storage_capacity_mwh",
+          "transformer_capacity_kv",
+          "voltage_level_supply_kv"
+        ],
+        "row_count": 80,
+        "vanna_table": {
+          "source_file": "03_规上企业信息上报表_张家口全域.xlsx",
+          "source_sheet": "规上企业信息上报清单",
+          "row_count": 80
+        },
+        "vanna_fields": [
+          "id",
+          "source_file",
+          "source_sheet",
+          "excel_row",
+          "serial_no",
+          "enterprise_name",
+          "enterprise_location",
+          "enterprise_type",
+          "voltage_level_supply_kv",
+          "transformer_capacity_kv",
+          "annual_electricity_consumption_tenk_kwh",
+          "annual_heat_consumption_gj",
+          "annual_steam_consumption_ton",
+          "heat_source",
+          "annual_gas_consumption_tenk_nm3",
+          "has_pv",
+          "pv_capacity_mw",
+          "has_storage",
+          "storage_capacity_mwh",
+          "contact"
+        ],
+        "import_audit": [
+          {
+            "source_file": "03_规上企业信息上报表_张家口全域.xlsx",
+            "source_sheet": "规上企业信息上报清单",
+            "row_count": 80
+          }
+        ]
+      },
+      "ddl": {
+        "registered": true,
+        "file": "D:\\bitagent_workspace\\resources_agent\\data\\数据入库_v1.0.1_2026.07.17\\data_1_all\\vanna_table_ddls\\t03_large_scale_enterprise.txt",
+        "exists": true,
+        "sha256": "054934cbfd1cf055b9510128270e5837a3d4d4c60b09b51a11066ab04055d0bd",
+        "columns": [
+          "id",
+          "source_file",
+          "source_sheet",
+          "excel_row",
+          "serial_no",
+          "enterprise_name",
+          "enterprise_location",
+          "enterprise_type",
+          "voltage_level_supply_kv",
+          "transformer_capacity_kv",
+          "annual_electricity_consumption_tenk_kwh",
+          "annual_heat_consumption_gj",
+          "annual_steam_consumption_ton",
+          "heat_source",
+          "annual_gas_consumption_tenk_nm3",
+          "has_pv",
+          "pv_capacity_mw",
+          "has_storage",
+          "storage_capacity_mwh",
+          "contact"
+        ]
+      },
+      "table_card": {
+        "exists": true,
+        "aliases": {
+          "规上企业": "enterprise_name",
+          "企业": "enterprise_name",
+          "企业位置": "enterprise_location",
+          "企业类型": "enterprise_type",
+          "年用电量": "annual_electricity_consumption_tenk_kwh"
+        },
+        "important_fields": [
+          "enterprise_name",
+          "enterprise_location",
+          "enterprise_type",
+          "annual_electricity_consumption_tenk_kwh",
+          "pv_capacity_mw",
+          "storage_capacity_mwh"
+        ]
+      },
+      "issues": []
+    },
+    {
+      "table": "t04_filing_project",
+      "status": "pass",
+      "source": {
+        "source_file": "04_入库新能源及储能备案项目统计_张家口全域.xlsx",
+        "source_sheet": "入库备案项目信息上报清单",
+        "raw_exists": true,
+        "processed_exists": true,
+        "raw_sheet_mapping": null,
+        "raw_sheet_exists": null,
+        "raw_sheet_status": "not_mapped",
+        "processed_sheet_exists": true,
+        "raw_sheet_summary": null,
+        "processed_sheet_summary": {
+          "headers": [
+            "序号",
+            "项目名称",
+            "项目类型",
+            "拟建规模",
+            "建设地点（县-乡-村）",
+            "升压站坐标",
+            "点位坐标 （风机提供点位作为，光伏区储能提供拐点坐标）",
+            "业主单位（拟定）",
+            "总投资（亿元）",
+            "计划开工时间",
+            "计划并网/投运时间",
+            "联系方式",
+            "备注"
+          ],
+          "sample_row_count": 1,
+          "sample_non_empty_cell_count": 13
+        }
+      },
+      "sqlite": {
+        "exists": true,
+        "columns": [
+          "id",
+          "source_file",
+          "source_sheet",
+          "excel_row",
+          "serial_no",
+          "project_name",
+          "project_type",
+          "planned_scale",
+          "construction_location",
+          "booster_station_coordinate",
+          "point_coordinate",
+          "owner_unit",
+          "total_investment_hundred_million_yuan",
+          "planned_start_date",
+          "planned_grid_operation_date",
+          "contact",
+          "remarks"
+        ],
+        "published_columns": [
+          "booster_station_coordinate",
+          "construction_location",
+          "owner_unit",
+          "planned_grid_operation_date",
+          "planned_scale",
+          "planned_start_date",
+          "point_coordinate",
+          "project_name",
+          "project_type",
+          "remarks",
+          "serial_no",
+          "total_investment_hundred_million_yuan"
+        ],
+        "row_count": 218,
+        "vanna_table": {
+          "source_file": "04_入库新能源及储能备案项目统计_张家口全域.xlsx",
+          "source_sheet": "入库备案项目信息上报清单",
+          "row_count": 218
+        },
+        "vanna_fields": [
+          "id",
+          "source_file",
+          "source_sheet",
+          "excel_row",
+          "serial_no",
+          "project_name",
+          "project_type",
+          "planned_scale",
+          "construction_location",
+          "booster_station_coordinate",
+          "point_coordinate",
+          "owner_unit",
+          "total_investment_hundred_million_yuan",
+          "planned_start_date",
+          "planned_grid_operation_date",
+          "contact",
+          "remarks"
+        ],
+        "import_audit": [
+          {
+            "source_file": "04_入库新能源及储能备案项目统计_张家口全域.xlsx",
+            "source_sheet": "入库备案项目信息上报清单",
+            "row_count": 218
+          }
+        ]
+      },
+      "ddl": {
+        "registered": true,
+        "file": "D:\\bitagent_workspace\\resources_agent\\data\\数据入库_v1.0.1_2026.07.17\\data_1_all\\vanna_table_ddls\\t04_filing_project.txt",
+        "exists": true,
+        "sha256": "cb042f0722aa5d56bf5225c06c7f9a8c26ff9e8be53f4e61dc854b27c91394b7",
+        "columns": [
+          "id",
+          "source_file",
+          "source_sheet",
+          "excel_row",
+          "serial_no",
+          "project_name",
+          "project_type",
+          "planned_scale",
+          "construction_location",
+          "booster_station_coordinate",
+          "point_coordinate",
+          "owner_unit",
+          "total_investment_hundred_million_yuan",
+          "planned_start_date",
+          "planned_grid_operation_date",
+          "contact",
+          "remarks"
+        ]
+      },
+      "table_card": {
+        "exists": true,
+        "aliases": {
+          "备案项目": "project_name",
+          "拟建规模": "planned_scale",
+          "计划开工": "planned_start_date",
+          "计划并网投运": "planned_grid_operation_date",
+          "建设地点": "construction_location"
+        },
+        "important_fields": [
+          "project_name",
+          "project_type",
+          "planned_scale",
+          "construction_location",
+          "owner_unit",
+          "planned_start_date",
+          "planned_grid_operation_date",
+          "total_investment_hundred_million_yuan"
+        ]
+      },
+      "issues": []
+    },
+    {
+      "table": "t06_grid_side_storage",
+      "status": "pass",
+      "source": {
+        "source_file": "06_电网侧储能信息上报表_张家口全域.xlsx",
+        "source_sheet": "在运电网侧储能数据上报清单",
+        "raw_exists": true,
+        "processed_exists": true,
+        "raw_sheet_mapping": null,
+        "raw_sheet_exists": null,
+        "raw_sheet_status": "not_mapped",
+        "processed_sheet_exists": true,
+        "raw_sheet_summary": null,
+        "processed_sheet_summary": {
+          "headers": [
+            "序号",
+            "场站名称",
+            "项目类型",
+            "并网容量（MW/MWH)",
+            "电压等级（kV)",
+            "接入上级站名称",
+            "投运日期",
+            "总投资额(万元）",
+            "厂区拐点坐标",
+            "产权单位",
+            "所属集团公司",
+            "2025年充电量电量（MWH)",
+            "2025年放电量(MWH)",
+            "2026年充电量(MWH) 截至6月",
+            "2026年放电量(MWH) 截至到6月",
+            "联系方式"
+          ],
+          "sample_row_count": 1,
+          "sample_non_empty_cell_count": 16
+        }
+      },
+      "sqlite": {
+        "exists": true,
+        "columns": [
+          "id",
+          "source_file",
+          "source_sheet",
+          "excel_row",
+          "serial_no",
+          "station_name",
+          "project_type",
+          "grid_capacity_mwh",
+          "voltage_level_kv",
+          "parent_station_name",
+          "operation_date",
+          "total_investment_tenk_yuan",
+          "plant_boundary_coordinate",
+          "property_owner",
+          "parent_group",
+          "charge_power_y2025_mwh",
+          "discharge_power_y2025_mwh",
+          "charge_power_y2026_mwh",
+          "discharge_power_y2026_mwh",
+          "contact"
+        ],
+        "published_columns": [
+          "charge_power_y2025_mwh",
+          "charge_power_y2026_mwh",
+          "discharge_power_y2025_mwh",
+          "discharge_power_y2026_mwh",
+          "grid_capacity_mwh",
+          "operation_date",
+          "parent_group",
+          "parent_station_name",
+          "plant_boundary_coordinate",
+          "project_type",
+          "property_owner",
+          "serial_no",
+          "station_name",
+          "total_investment_tenk_yuan",
+          "voltage_level_kv"
+        ],
+        "row_count": 218,
+        "vanna_table": {
+          "source_file": "06_电网侧储能信息上报表_张家口全域.xlsx",
+          "source_sheet": "在运电网侧储能数据上报清单",
+          "row_count": 218
+        },
+        "vanna_fields": [
+          "id",
+          "source_file",
+          "source_sheet",
+          "excel_row",
+          "serial_no",
+          "station_name",
+          "project_type",
+          "grid_capacity_mwh",
+          "voltage_level_kv",
+          "parent_station_name",
+          "operation_date",
+          "total_investment_tenk_yuan",
+          "plant_boundary_coordinate",
+          "property_owner",
+          "parent_group",
+          "charge_power_y2025_mwh",
+          "discharge_power_y2025_mwh",
+          "charge_power_y2026_mwh",
+          "discharge_power_y2026_mwh",
+          "contact"
+        ],
+        "import_audit": [
+          {
+            "source_file": "06_电网侧储能信息上报表_张家口全域.xlsx",
+            "source_sheet": "在运电网侧储能数据上报清单",
+            "row_count": 218
+          }
+        ]
+      },
+      "ddl": {
+        "registered": true,
+        "file": "D:\\bitagent_workspace\\resources_agent\\data\\数据入库_v1.0.1_2026.07.17\\data_1_all\\vanna_table_ddls\\t06_grid_side_storage.txt",
+        "exists": true,
+        "sha256": "8e532ae10fda7b1966a57e064de990dbeee64c27fdc61445d53e3648da9396c2",
+        "columns": [
+          "id",
+          "source_file",
+          "source_sheet",
+          "excel_row",
+          "serial_no",
+          "station_name",
+          "project_type",
+          "grid_capacity_mwh",
+          "voltage_level_kv",
+          "parent_station_name",
+          "operation_date",
+          "total_investment_tenk_yuan",
+          "plant_boundary_coordinate",
+          "property_owner",
+          "parent_group",
+          "charge_power_y2025_mwh",
+          "discharge_power_y2025_mwh",
+          "charge_power_y2026_mwh",
+          "discharge_power_y2026_mwh",
+          "contact"
+        ]
+      },
+      "table_card": {
+        "exists": true,
+        "aliases": {
+          "电网侧储能": "station_name",
+          "储能容量": "grid_capacity_mwh",
+          "接入站": "parent_station_name",
+          "投运日期": "operation_date"
+        },
+        "important_fields": [
+          "station_name",
+          "project_type",
+          "grid_capacity_mwh",
+          "parent_station_name",
+          "operation_date",
+          "charge_power_y2025_mwh",
+          "discharge_power_y2025_mwh",
+          "charge_power_y2026_mwh",
+          "discharge_power_y2026_mwh"
+        ]
+      },
+      "issues": []
+    },
+    {
+      "table": "t07_distributed_pv_wind",
+      "status": "pass",
+      "source": {
+        "source_file": "07_分布式光伏与风电信息上报表_张家口全域.xlsx",
+        "source_sheet": "分布式光伏-风电收资清单",
+        "raw_exists": true,
+        "processed_exists": true,
+        "raw_sheet_mapping": null,
+        "raw_sheet_exists": null,
+        "raw_sheet_status": "not_mapped",
+        "processed_sheet_exists": true,
+        "raw_sheet_summary": null,
+        "processed_sheet_summary": {
+          "headers": [
+            "序号",
+            "电站名称",
+            "电站类型",
+            "电站类型_2",
+            "电站位置（具体到园区/村）",
+            "装机容量（MW)",
+            "接入电网等级(kV)",
+            "投运日期",
+            "点位坐标 （风电项目提供风机点位坐标）",
+            "投资方",
+            "2025年总发电量（万kwh)",
+            "2025年自发自用电量（万kwh)",
+            "2025年上网电量（万kwh)",
+            "2026年总发电量（万kwh)",
+            "2026年自发自用电量",
+            "2026年上网电量",
+            "联系方式"
+          ],
+          "sample_row_count": 1,
+          "sample_non_empty_cell_count": 17
+        }
+      },
+      "sqlite": {
+        "exists": true,
+        "columns": [
+          "id",
+          "source_file",
+          "source_sheet",
+          "excel_row",
+          "serial_no",
+          "station_name",
+          "station_type",
+          "station_type_2",
+          "station_location",
+          "installed_capacity_mw",
+          "grid_voltage_level_kv",
+          "operation_date",
+          "point_coordinate",
+          "investor",
+          "power_generation_total_y2025_tenk_kwh",
+          "self_consumed_power_y2025_tenk_kwh",
+          "on_grid_power_y2025_tenk_kwh",
+          "power_generation_total_y2026_tenk_kwh",
+          "self_consumed_power_y2026",
+          "on_grid_power_y2026",
+          "contact"
+        ],
+        "published_columns": [
+          "grid_voltage_level_kv",
+          "installed_capacity_mw",
+          "investor",
+          "on_grid_power_y2025_tenk_kwh",
+          "on_grid_power_y2026",
+          "operation_date",
+          "point_coordinate",
+          "power_generation_total_y2025_tenk_kwh",
+          "power_generation_total_y2026_tenk_kwh",
+          "self_consumed_power_y2025_tenk_kwh",
+          "self_consumed_power_y2026",
+          "serial_no",
+          "station_location",
+          "station_name",
+          "station_type",
+          "station_type_2"
+        ],
+        "row_count": 218,
+        "vanna_table": {
+          "source_file": "07_分布式光伏与风电信息上报表_张家口全域.xlsx",
+          "source_sheet": "分布式光伏-风电收资清单",
+          "row_count": 218
+        },
+        "vanna_fields": [
+          "id",
+          "source_file",
+          "source_sheet",
+          "excel_row",
+          "serial_no",
+          "station_name",
+          "station_type",
+          "station_type_2",
+          "station_location",
+          "installed_capacity_mw",
+          "grid_voltage_level_kv",
+          "operation_date",
+          "point_coordinate",
+          "investor",
+          "power_generation_total_y2025_tenk_kwh",
+          "self_consumed_power_y2025_tenk_kwh",
+          "on_grid_power_y2025_tenk_kwh",
+          "power_generation_total_y2026_tenk_kwh",
+          "self_consumed_power_y2026",
+          "on_grid_power_y2026",
+          "contact"
+        ],
+        "import_audit": [
+          {
+            "source_file": "07_分布式光伏与风电信息上报表_张家口全域.xlsx",
+            "source_sheet": "分布式光伏-风电收资清单",
+            "row_count": 218
+          }
+        ]
+      },
+      "ddl": {
+        "registered": true,
+        "file": "D:\\bitagent_workspace\\resources_agent\\data\\数据入库_v1.0.1_2026.07.17\\data_1_all\\vanna_table_ddls\\t07_distributed_pv_wind.txt",
+        "exists": true,
+        "sha256": "9f646dd515b2dc7347e79f138190200a4c44d34b982c4a1b5c43489aebd65fc5",
+        "columns": [
+          "id",
+          "source_file",
+          "source_sheet",
+          "excel_row",
+          "serial_no",
+          "station_name",
+          "station_type",
+          "station_type_2",
+          "station_location",
+          "installed_capacity_mw",
+          "grid_voltage_level_kv",
+          "operation_date",
+          "point_coordinate",
+          "investor",
+          "power_generation_total_y2025_tenk_kwh",
+          "self_consumed_power_y2025_tenk_kwh",
+          "on_grid_power_y2025_tenk_kwh",
+          "power_generation_total_y2026_tenk_kwh",
+          "self_consumed_power_y2026",
+          "on_grid_power_y2026",
+          "contact"
+        ]
+      },
+      "table_card": {
+        "exists": true,
+        "aliases": {
+          "分布式光伏": "station_type",
+          "分布式风电": "station_type",
+          "装机容量": "installed_capacity_mw",
+          "投运日期": "operation_date"
+        },
+        "important_fields": [
+          "station_name",
+          "station_type",
+          "station_type_2",
+          "station_location",
+          "installed_capacity_mw",
+          "operation_date",
+          "power_generation_total_y2025_tenk_kwh",
+          "power_generation_total_y2026_tenk_kwh"
+        ]
+      },
+      "issues": []
+    },
+    {
+      "table": "t08_industrial_commercial_storage",
+      "status": "pass",
+      "source": {
+        "source_file": "08_工商业储能信息上报表_张家口全域.xlsx",
+        "source_sheet": "工商业储能数据上报清单",
+        "raw_exists": true,
+        "processed_exists": true,
+        "raw_sheet_mapping": null,
+        "raw_sheet_exists": null,
+        "raw_sheet_status": "not_mapped",
+        "processed_sheet_exists": true,
+        "raw_sheet_summary": null,
+        "processed_sheet_summary": {
+          "headers": [
+            "序号",
+            "电站名称",
+            "电站类型",
+            "电站位置（具体到园区）",
+            "装机容量（MW/MWH)",
+            "接入电网等级(kV)",
+            "是否参与虚拟电厂",
+            "投运日期",
+            "投资方",
+            "2025年总充电量（万kwh)",
+            "2025年总放电量（万kwh)",
+            "2026年总电量（万kwh)",
+            "2026年总电量（万kwh)_2",
+            "联系方式"
+          ],
+          "sample_row_count": 1,
+          "sample_non_empty_cell_count": 14
+        }
+      },
+      "sqlite": {
+        "exists": true,
+        "columns": [
+          "id",
+          "source_file",
+          "source_sheet",
+          "excel_row",
+          "serial_no",
+          "station_name",
+          "station_type",
+          "station_location",
+          "installed_capacity_mwh",
+          "grid_voltage_level_kv",
+          "is_virtual_power_plant",
+          "operation_date",
+          "investor",
+          "total_charge_power_y2025_tenk_kwh",
+          "total_discharge_power_y2025_tenk_kwh",
+          "total_energy_y2026_tenk_kwh",
+          "total_energy_y2026_tenk_kwh_2",
+          "contact"
+        ],
+        "published_columns": [
+          "grid_voltage_level_kv",
+          "installed_capacity_mwh",
+          "investor",
+          "is_virtual_power_plant",
+          "operation_date",
+          "serial_no",
+          "station_location",
+          "station_name",
+          "station_type",
+          "total_charge_power_y2025_tenk_kwh",
+          "total_discharge_power_y2025_tenk_kwh",
+          "total_energy_y2026_tenk_kwh",
+          "total_energy_y2026_tenk_kwh_2"
+        ],
+        "row_count": 240,
+        "vanna_table": {
+          "source_file": "08_工商业储能信息上报表_张家口全域.xlsx",
+          "source_sheet": "工商业储能数据上报清单",
+          "row_count": 240
+        },
+        "vanna_fields": [
+          "id",
+          "source_file",
+          "source_sheet",
+          "excel_row",
+          "serial_no",
+          "station_name",
+          "station_type",
+          "station_location",
+          "installed_capacity_mwh",
+          "grid_voltage_level_kv",
+          "is_virtual_power_plant",
+          "operation_date",
+          "investor",
+          "total_charge_power_y2025_tenk_kwh",
+          "total_discharge_power_y2025_tenk_kwh",
+          "total_energy_y2026_tenk_kwh",
+          "total_energy_y2026_tenk_kwh_2",
+          "contact"
+        ],
+        "import_audit": [
+          {
+            "source_file": "08_工商业储能信息上报表_张家口全域.xlsx",
+            "source_sheet": "工商业储能数据上报清单",
+            "row_count": 240
+          }
+        ]
+      },
+      "ddl": {
+        "registered": true,
+        "file": "D:\\bitagent_workspace\\resources_agent\\data\\数据入库_v1.0.1_2026.07.17\\data_1_all\\vanna_table_ddls\\t08_industrial_commercial_storage.txt",
+        "exists": true,
+        "sha256": "f90734fccbcd86495fb9a943ae4430e4221cdcb93f9d6ae3fcd1ad0db8c7b316",
+        "columns": [
+          "id",
+          "source_file",
+          "source_sheet",
+          "excel_row",
+          "serial_no",
+          "station_name",
+          "station_type",
+          "station_location",
+          "installed_capacity_mwh",
+          "grid_voltage_level_kv",
+          "is_virtual_power_plant",
+          "operation_date",
+          "investor",
+          "total_charge_power_y2025_tenk_kwh",
+          "total_discharge_power_y2025_tenk_kwh",
+          "total_energy_y2026_tenk_kwh",
+          "total_energy_y2026_tenk_kwh_2",
+          "contact"
+        ]
+      },
+      "table_card": {
+        "exists": true,
+        "aliases": {
+          "工商业储能": "station_name",
+          "用户侧储能": "station_name",
+          "储能容量": "installed_capacity_mwh",
+          "投运日期": "operation_date"
+        },
+        "important_fields": [
+          "station_name",
+          "station_type",
+          "station_location",
+          "installed_capacity_mwh",
+          "operation_date",
+          "is_virtual_power_plant",
+          "total_charge_power_y2025_tenk_kwh",
+          "total_discharge_power_y2025_tenk_kwh"
+        ]
+      },
+      "issues": []
+    },
+    {
+      "table": "t09_charging_station",
+      "status": "pass",
+      "source": {
+        "source_file": "09_充换电站信息上报表.xlsx",
+        "source_sheet": "充电站收资清单",
+        "raw_exists": true,
+        "processed_exists": true,
+        "raw_sheet_mapping": null,
+        "raw_sheet_exists": null,
+        "raw_sheet_status": "not_mapped",
+        "processed_sheet_exists": true,
+        "raw_sheet_summary": null,
+        "processed_sheet_summary": {
+          "headers": [
+            "序号",
+            "站点名称",
+            "站点位置",
+            "类型",
+            "投资建设方",
+            "运营方",
+            "接入电压等级(kV）",
+            "变压器容量(kVA)",
+            "充电桩数量",
+            "直流装数量",
+            "交流状数量",
+            "总充电功率(kW)",
+            "日均充电量（kwh)",
+            "是否配置有光伏",
+            "光伏容量(MW)",
+            "是否配置有储能",
+            "储能容量(MWH)",
+            "联系方式"
+          ],
+          "sample_row_count": 1,
+          "sample_non_empty_cell_count": 18
+        }
+      },
+      "sqlite": {
+        "exists": true,
+        "columns": [
+          "id",
+          "source_file",
+          "source_sheet",
+          "excel_row",
+          "serial_no",
+          "station_name",
+          "station_location",
+          "type",
+          "investor_builder",
+          "operator",
+          "voltage_level_kv",
+          "transformer_capacity_kv",
+          "charging_pile_count",
+          "dc_charger_count",
+          "ac_charger_count",
+          "total_charging_power",
+          "charge_power_kwh",
+          "has_pv",
+          "pv_capacity_mw",
+          "has_storage",
+          "storage_capacity_mwh",
+          "contact"
+        ],
+        "published_columns": [
+          "ac_charger_count",
+          "charge_power_kwh",
+          "charging_pile_count",
+          "dc_charger_count",
+          "has_pv",
+          "has_storage",
+          "investor_builder",
+          "operator",
+          "pv_capacity_mw",
+          "serial_no",
+          "station_location",
+          "station_name",
+          "storage_capacity_mwh",
+          "total_charging_power",
+          "transformer_capacity_kv",
+          "type",
+          "voltage_level_kv"
+        ],
+        "row_count": 160,
+        "vanna_table": {
+          "source_file": "09_充换电站信息上报表.xlsx",
+          "source_sheet": "充电站收资清单",
+          "row_count": 160
+        },
+        "vanna_fields": [
+          "id",
+          "source_file",
+          "source_sheet",
+          "excel_row",
+          "serial_no",
+          "station_name",
+          "station_location",
+          "type",
+          "investor_builder",
+          "operator",
+          "voltage_level_kv",
+          "transformer_capacity_kv",
+          "charging_pile_count",
+          "dc_charger_count",
+          "ac_charger_count",
+          "total_charging_power",
+          "charge_power_kwh",
+          "has_pv",
+          "pv_capacity_mw",
+          "has_storage",
+          "storage_capacity_mwh",
+          "contact"
+        ],
+        "import_audit": [
+          {
+            "source_file": "09_充换电站信息上报表.xlsx",
+            "source_sheet": "充电站收资清单",
+            "row_count": 160
+          }
+        ]
+      },
+      "ddl": {
+        "registered": true,
+        "file": "D:\\bitagent_workspace\\resources_agent\\data\\数据入库_v1.0.1_2026.07.17\\data_1_all\\vanna_table_ddls\\t09_charging_station.txt",
+        "exists": true,
+        "sha256": "980f4184300bf20e72344afa4ec36fdffd56860f6cb1b4b253c86964d26bf4fd",
+        "columns": [
+          "id",
+          "source_file",
+          "source_sheet",
+          "excel_row",
+          "serial_no",
+          "station_name",
+          "station_location",
+          "type",
+          "investor_builder",
+          "operator",
+          "voltage_level_kv",
+          "transformer_capacity_kv",
+          "charging_pile_count",
+          "dc_charger_count",
+          "ac_charger_count",
+          "total_charging_power",
+          "charge_power_kwh",
+          "has_pv",
+          "pv_capacity_mw",
+          "has_storage",
+          "storage_capacity_mwh",
+          "contact"
+        ]
+      },
+      "table_card": {
+        "exists": true,
+        "aliases": {
+          "充电站": "station_name",
+          "充电桩": "charging_pile_count",
+          "充电功率": "total_charging_power",
+          "日均充电量": "charge_power_kwh"
+        },
+        "important_fields": [
+          "station_name",
+          "station_location",
+          "type",
+          "operator",
+          "charging_pile_count",
+          "dc_charger_count",
+          "ac_charger_count",
+          "total_charging_power",
+          "charge_power_kwh"
+        ]
+      },
+      "issues": []
+    },
+    {
+      "table": "t10_power_grid_material",
+      "status": "pass",
+      "source": {
+        "source_file": "10_电网材料信息上报表_张家口全域.xlsx",
+        "source_sheet": "电网信息上报明细",
+        "raw_exists": true,
+        "processed_exists": true,
+        "raw_sheet_mapping": null,
+        "raw_sheet_exists": null,
+        "raw_sheet_status": "not_mapped",
+        "processed_sheet_exists": true,
+        "raw_sheet_summary": null,
+        "processed_sheet_summary": {
+          "headers": [
+            "序号",
+            "变电站名称",
+            "电压等级（kV)",
+            "位置坐标",
+            "主变容量及数量",
+            "总间隔数",
+            "剩余间隔数量",
+            "剩余可接入容量",
+            "接入电源类型及占比",
+            "台区下负荷用量",
+            "扩容计划"
+          ],
+          "sample_row_count": 1,
+          "sample_non_empty_cell_count": 11
+        }
+      },
+      "sqlite": {
+        "exists": true,
+        "columns": [
+          "id",
+          "source_file",
+          "source_sheet",
+          "excel_row",
+          "serial_no",
+          "station_name_substation",
+          "voltage_level_kv",
+          "location_coordinate",
+          "main_transformer_capacity_count",
+          "bay_count",
+          "remaining_bay_count",
+          "remaining_access_capacity",
+          "type_power_source_mix",
+          "load_consumption",
+          "expansion_plan"
+        ],
+        "published_columns": [
+          "bay_count",
+          "expansion_plan",
+          "load_consumption",
+          "location_coordinate",
+          "main_transformer_capacity_count",
+          "remaining_access_capacity",
+          "remaining_bay_count",
+          "serial_no",
+          "station_name_substation",
+          "type_power_source_mix",
+          "voltage_level_kv"
+        ],
+        "row_count": 240,
+        "vanna_table": {
+          "source_file": "10_电网材料信息上报表_张家口全域.xlsx",
+          "source_sheet": "电网信息上报明细",
+          "row_count": 240
+        },
+        "vanna_fields": [
+          "id",
+          "source_file",
+          "source_sheet",
+          "excel_row",
+          "serial_no",
+          "station_name_substation",
+          "voltage_level_kv",
+          "location_coordinate",
+          "main_transformer_capacity_count",
+          "bay_count",
+          "remaining_bay_count",
+          "remaining_access_capacity",
+          "type_power_source_mix",
+          "load_consumption",
+          "expansion_plan"
+        ],
+        "import_audit": [
+          {
+            "source_file": "10_电网材料信息上报表_张家口全域.xlsx",
+            "source_sheet": "电网信息上报明细",
+            "row_count": 240
+          }
+        ]
+      },
+      "ddl": {
+        "registered": true,
+        "file": "D:\\bitagent_workspace\\resources_agent\\data\\数据入库_v1.0.1_2026.07.17\\data_1_all\\vanna_table_ddls\\t10_power_grid_material.txt",
+        "exists": true,
+        "sha256": "6942eb7d3180d81a314a803b83ed43cb4ab22dee8b794790e1c408d5cc4ce819",
+        "columns": [
+          "id",
+          "source_file",
+          "source_sheet",
+          "excel_row",
+          "serial_no",
+          "station_name_substation",
+          "voltage_level_kv",
+          "location_coordinate",
+          "main_transformer_capacity_count",
+          "bay_count",
+          "remaining_bay_count",
+          "remaining_access_capacity",
+          "type_power_source_mix",
+          "load_consumption",
+          "expansion_plan"
+        ]
+      },
+      "table_card": {
+        "exists": true,
+        "aliases": {
+          "变电站": "station_name_substation",
+          "主变容量": "main_transformer_capacity_count",
+          "剩余接入容量": "remaining_access_capacity",
+          "剩余间隔": "remaining_bay_count",
+          "扩容计划": "expansion_plan"
+        },
+        "important_fields": [
+          "station_name_substation",
+          "voltage_level_kv",
+          "main_transformer_capacity_count",
+          "bay_count",
+          "remaining_bay_count",
+          "remaining_access_capacity",
+          "type_power_source_mix",
+          "expansion_plan"
+        ]
+      },
+      "issues": []
+    },
+    {
+      "table": "t11_weather_data_element",
+      "status": "pass",
+      "source": {
+        "source_file": "11_气象历史数据信息上报表_张家口全域.xlsx",
+        "source_sheet": "气象历史数据",
+        "raw_exists": true,
+        "processed_exists": true,
+        "raw_sheet_mapping": null,
+        "raw_sheet_exists": null,
+        "raw_sheet_status": "not_mapped",
+        "processed_sheet_exists": true,
+        "raw_sheet_summary": null,
+        "processed_sheet_summary": {
+          "headers": [
+            "编号",
+            "数据要素",
+            "时间颗粒度",
+            "空间颗粒度",
+            "历史时长"
+          ],
+          "sample_row_count": 1,
+          "sample_non_empty_cell_count": 5
+        }
+      },
+      "sqlite": {
+        "exists": true,
+        "columns": [
+          "id",
+          "source_file",
+          "source_sheet",
+          "excel_row",
+          "serial_no",
+          "data_element",
+          "time_granularity",
+          "space_granularity",
+          "history_duration"
+        ],
+        "published_columns": [
+          "data_element",
+          "history_duration",
+          "serial_no",
+          "space_granularity",
+          "time_granularity"
+        ],
+        "row_count": 5,
+        "vanna_table": {
+          "source_file": "11_气象历史数据信息上报表_张家口全域.xlsx",
+          "source_sheet": "气象历史数据",
+          "row_count": 5
+        },
+        "vanna_fields": [
+          "id",
+          "source_file",
+          "source_sheet",
+          "excel_row",
+          "serial_no",
+          "data_element",
+          "time_granularity",
+          "space_granularity",
+          "history_duration"
+        ],
+        "import_audit": [
+          {
+            "source_file": "11_气象历史数据信息上报表_张家口全域.xlsx",
+            "source_sheet": "气象历史数据",
+            "row_count": 5
+          }
+        ]
+      },
+      "ddl": {
+        "registered": true,
+        "file": "D:\\bitagent_workspace\\resources_agent\\data\\数据入库_v1.0.1_2026.07.17\\data_1_all\\vanna_table_ddls\\t11_weather_data_element.txt",
+        "exists": true,
+        "sha256": "daf361a6a197064ab8d1e85adb5f3afc93dcb82567cfabf4cbd62e46d74eb24d",
+        "columns": [
+          "id",
+          "source_file",
+          "source_sheet",
+          "excel_row",
+          "serial_no",
+          "data_element",
+          "time_granularity",
+          "space_granularity",
+          "history_duration"
+        ]
+      },
+      "table_card": {
+        "exists": true,
+        "aliases": {
+          "气象要素": "data_element",
+          "时间粒度": "time_granularity",
+          "空间粒度": "space_granularity",
+          "历史时长": "history_duration"
+        },
+        "important_fields": [
+          "data_element",
+          "time_granularity",
+          "space_granularity",
+          "history_duration"
+        ]
+      },
+      "issues": []
+    },
+    {
+      "table": "t11_weather_grid_sample",
+      "status": "pass",
+      "source": {
+        "source_file": "11_气象历史数据信息上报表_张家口全域.xlsx",
+        "source_sheet": "张家口全域_3x3km格点样本",
+        "raw_exists": true,
+        "processed_exists": true,
+        "raw_sheet_mapping": null,
+        "raw_sheet_exists": null,
+        "raw_sheet_status": "not_mapped",
+        "processed_sheet_exists": true,
+        "raw_sheet_summary": null,
+        "processed_sheet_summary": {
+          "headers": [
+            "格点ID",
+            "中心经度(°E)",
+            "中心纬度(°N)",
+            "所属乡镇",
+            "海拔(m)",
+            "2025年总辐射(kWh/m²)",
+            "2025年直射辐射(kWh/m²)",
+            "2025年散射辐射(kWh/m²)",
+            "年平均气温(℃)",
+            "年最高气温(℃)",
+            "年最低气温(℃)",
+            "年平均相对湿度(%)",
+            "10m年均风速(m/s)",
+            "70m年均风速(m/s)",
+            "100m年均风速(m/s)",
+            "主导风向(度)",
+            "年日照时数(h)",
+            "光伏等效满负荷小时(h)",
+            "风电等效满负荷小时(h)"
+          ],
+          "sample_row_count": 1,
+          "sample_non_empty_cell_count": 19
+        }
+      },
+      "sqlite": {
+        "exists": true,
+        "columns": [
+          "id",
+          "source_file",
+          "source_sheet",
+          "excel_row",
+          "grid_id",
+          "center_longitude_deg_e",
+          "center_latitude_deg_n",
+          "township",
+          "altitude_m",
+          "total_radiation_y2025_kwh",
+          "direct_radiation_y2025_kwh",
+          "diffuse_radiation_y2025_kwh",
+          "avg_temperature_celsius",
+          "max_temperature_celsius",
+          "min_temperature_celsius",
+          "avg_relative_humidity_pct",
+          "annual_avg_wind_speed_h10m_mps",
+          "annual_avg_wind_speed_h70m_mps",
+          "annual_avg_wind_speed_h100m_mps",
+          "dominant_wind_direction_degree",
+          "annual_sunshine_hours",
+          "pv_equivalent_full_load_hours",
+          "wind_equivalent_full_load_hours"
+        ],
+        "published_columns": [
+          "altitude_m",
+          "annual_avg_wind_speed_h100m_mps",
+          "annual_avg_wind_speed_h10m_mps",
+          "annual_avg_wind_speed_h70m_mps",
+          "annual_sunshine_hours",
+          "avg_relative_humidity_pct",
+          "avg_temperature_celsius",
+          "center_latitude_deg_n",
+          "center_longitude_deg_e",
+          "diffuse_radiation_y2025_kwh",
+          "direct_radiation_y2025_kwh",
+          "dominant_wind_direction_degree",
+          "grid_id",
+          "max_temperature_celsius",
+          "min_temperature_celsius",
+          "pv_equivalent_full_load_hours",
+          "total_radiation_y2025_kwh",
+          "township",
+          "wind_equivalent_full_load_hours"
+        ],
+        "row_count": 240,
+        "vanna_table": {
+          "source_file": "11_气象历史数据信息上报表_张家口全域.xlsx",
+          "source_sheet": "张家口全域_3x3km格点样本",
+          "row_count": 240
+        },
+        "vanna_fields": [
+          "id",
+          "source_file",
+          "source_sheet",
+          "excel_row",
+          "grid_id",
+          "center_longitude_deg_e",
+          "center_latitude_deg_n",
+          "township",
+          "altitude_m",
+          "total_radiation_y2025_kwh",
+          "direct_radiation_y2025_kwh",
+          "diffuse_radiation_y2025_kwh",
+          "avg_temperature_celsius",
+          "max_temperature_celsius",
+          "min_temperature_celsius",
+          "avg_relative_humidity_pct",
+          "annual_avg_wind_speed_h10m_mps",
+          "annual_avg_wind_speed_h70m_mps",
+          "annual_avg_wind_speed_h100m_mps",
+          "dominant_wind_direction_degree",
+          "annual_sunshine_hours",
+          "pv_equivalent_full_load_hours",
+          "wind_equivalent_full_load_hours"
+        ],
+        "import_audit": [
+          {
+            "source_file": "11_气象历史数据信息上报表_张家口全域.xlsx",
+            "source_sheet": "张家口全域_3x3km格点样本",
+            "row_count": 240
+          }
+        ]
+      },
+      "ddl": {
+        "registered": true,
+        "file": "D:\\bitagent_workspace\\resources_agent\\data\\数据入库_v1.0.1_2026.07.17\\data_1_all\\vanna_table_ddls\\t11_weather_grid_sample.txt",
+        "exists": true,
+        "sha256": "6c418ade1b1379c418447bc9881e90faf27b62c82c8249031588ccb13724b843",
+        "columns": [
+          "id",
+          "source_file",
+          "source_sheet",
+          "excel_row",
+          "grid_id",
+          "center_longitude_deg_e",
+          "center_latitude_deg_n",
+          "township",
+          "altitude_m",
+          "total_radiation_y2025_kwh",
+          "direct_radiation_y2025_kwh",
+          "diffuse_radiation_y2025_kwh",
+          "avg_temperature_celsius",
+          "max_temperature_celsius",
+          "min_temperature_celsius",
+          "avg_relative_humidity_pct",
+          "annual_avg_wind_speed_h10m_mps",
+          "annual_avg_wind_speed_h70m_mps",
+          "annual_avg_wind_speed_h100m_mps",
+          "dominant_wind_direction_degree",
+          "annual_sunshine_hours",
+          "pv_equivalent_full_load_hours",
+          "wind_equivalent_full_load_hours"
+        ]
+      },
+      "table_card": {
+        "exists": true,
+        "aliases": {
+          "10m年平均风速": "annual_avg_wind_speed_h10m_mps",
+          "70m年平均风速": "annual_avg_wind_speed_h70m_mps",
+          "100m年平均风速": "annual_avg_wind_speed_h100m_mps",
+          "2025年总辐照": "total_radiation_y2025_kwh",
+          "光伏等效满负荷小时": "pv_equivalent_full_load_hours",
+          "风电等效满负荷小时": "wind_equivalent_full_load_hours"
+        },
+        "important_fields": [
+          "grid_id",
+          "township",
+          "total_radiation_y2025_kwh",
+          "annual_avg_wind_speed_h10m_mps",
+          "annual_avg_wind_speed_h70m_mps",
+          "annual_avg_wind_speed_h100m_mps",
+          "pv_equivalent_full_load_hours",
+          "wind_equivalent_full_load_hours"
+        ]
+      },
+      "issues": []
+    }
+  ]
+}

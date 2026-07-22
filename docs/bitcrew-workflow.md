@@ -59,7 +59,9 @@ flowchart LR
 
 ### 节点 3：HTTP 查询服务
 
-该节点负责把 BitAgent 的原始问题发送给 Medium 查询服务。节点本身不解析指标、不选择数据库表，也不生成 SQL。Medium 内部按以下顺序处理：全量轻量表卡规划选表 -> 加载所选表的已发布字段 DDL、已发布规则和验证示例 -> 生成 SQL -> 安全校验与只读执行。
+该节点负责把 BitAgent 的原始问题发送给 Medium 查询服务。节点本身不解析指标、不选择数据库表，也不生成 SQL。Medium 内部按以下顺序处理：题集意图精确路由/轻量路由规则 -> 全量轻量表卡规划选表 -> 加载候选表的已发布字段 DDL、已发布 SQL 规则和验证示例 -> 生成 SQL -> 安全校验 -> LLM 业务语义审核 -> SQLite 只读执行。
+
+前置路由可在模型调用前直接返回“当前数据不足”或“超出范围”；对允许查询的问题，它只约束必须进入候选上下文的表。候选 SQL 不必机械引用全部候选表，但只能访问候选范围内的表，且必须经语义审核确认其选表、指标、时间、单位和计算口径足以回答原问题。
 
 表卡中标记的 `data_limitations` 会同时进入规划与 SQL 生成上下文。Bit-Crew 不得绕过该限制改写问题，例如不得将“计划开工时间”当作“备案日期”，也不得要求服务对明确标记为非结构化的容量文本进行可靠汇总。
 
@@ -265,7 +267,7 @@ error = null
 
 ```text
 你是能源数据查询结果解释助手。
-只能依据输入的 data、sources、data_as_of 和 warnings 回答，不得补造数值、来源或时间。
+只能依据输入的 data、sources、data_as_of、warnings 和 answer_guidance 回答，不得补造数值、来源或时间。
 不得修改查询结果、排序、单位和统计口径。
 如果 rows 为空或 warnings 包含 NO_DATA，明确说明当前条件下没有查询到记录。
 回答应先给结论，再说明关键明细，最后列出数据来源和数据时点。
@@ -280,6 +282,7 @@ error = null
   "query_result": "{{query_response.data}}",
   "sources": "{{query_response.sources}}",
   "warnings": "{{query_response.warnings}}",
+  "answer_guidance": "{{query_response.answer_guidance}}",
   "request_id": "{{query_response.request_id}}"
 }
 ```

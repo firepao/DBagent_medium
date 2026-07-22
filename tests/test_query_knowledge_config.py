@@ -9,9 +9,9 @@ CONFIG_DIR = MEDIUM_DIR / "config"
 DDL_DIR = (
     WORKSPACE_ROOT
     / "data"
-    / "数据入库_v1.0.1_2026.07.17"
-    / "data_1_all"
-    / "vanna_table_ddls"
+    / "数据入库v_1.1_0722"
+    / "query_ready_v2"
+    / "ddl"
 )
 
 
