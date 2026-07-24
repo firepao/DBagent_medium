@@ -35,13 +35,13 @@ def test_llm_client_writes_planning_output_to_server_trace(tmp_path) -> None:
                         "message": {
                             "content": json.dumps(
                                 {
+                                    "original_question": "问题",
                                     "query_type": "list",
                                     "table_hints": ["stations"],
-                                    "metrics": [],
-                                    "filters": {},
-                                    "group_by": [],
-                                    "order_by": [],
-                                    "limit": 20,
+                                    "required_outputs": ["查询结果"],
+                                    "business_objects": [],
+                                    "time_requirements": [],
+                                    "presentation_requirements": [],
                                     "requires_clarification": False,
                                     "clarification_question": None,
                                 }
@@ -63,7 +63,8 @@ def test_llm_client_writes_planning_output_to_server_trace(tmp_path) -> None:
         prompts={
             "planner": "测试规划提示词",
             "sql_generator": "测试 SQL 提示词",
-            "sql_reviewer": "测试审核提示词",
+            "pre_execution_reviewer": "测试前置审核提示词",
+            "result_reviewer": "测试结果审核提示词",
         },
         trace_repository=LLMTraceRepository(path),
     )

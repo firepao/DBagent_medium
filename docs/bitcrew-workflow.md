@@ -358,3 +358,6 @@ retry_count = 1
 5. `查询一个当前目录不支持的企业税收指标。`，验证范围兜底。
 
 每次验证记录：用户问题、最终答案、`request_id`、来源、数据时点、错误码或告警。Bit-Crew 不保存和展示 SQL。
+### 失败响应约束
+
+Bit-Crew 收到 `success=false` 时必须读取 `error.message`、`request_id` 和 `answer_guidance`。后置 LLM 只能转述服务已经确认的业务原因，不得自行补充“可能没有字段”“字段名称不匹配”“数据没有接入”等推测。除非 `error.message` 明确说明需要用户补充某个查询参数，否则不得要求用户补数据库字段。

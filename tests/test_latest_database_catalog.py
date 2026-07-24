@@ -1,4 +1,5 @@
 import asyncio
+import sqlite3
 from pathlib import Path
 
 from app.catalog import MetadataCatalog
@@ -83,6 +84,100 @@ def test_registered_ddls_match_the_data1_sqlite_schema() -> None:
 
     for table in catalog.allowed_tables:
         assert catalog.load_ddl(table)
+
+
+def test_detailed_ddls_cover_every_field_with_real_data_profiles() -> None:
+    catalog = default_catalog()
+
+    for table in catalog.allowed_tables:
+        ddl = catalog.load_ddl(table)
+        field_lines = [line for line in ddl.splitlines() if line.startswith("-- 字段：")]
+        with sqlite3.connect(LATEST_DATABASE) as connection:
+            schema_columns = connection.execute(
+                f'PRAGMA table_info("{table}")'
+            ).fetchall()
+        assert "-- 行粒度：" in ddl
+        assert "-- 当前数据画像：" in ddl
+        assert "-- 题集问题映射：" in ddl
+        assert "-- 题集已发布口径：" in ddl
+        assert len(field_lines) == len(schema_columns)
+        assert all(line.count("当前库画像：") == 1 for line in field_lines)
+        assert all(line.count("用途=") == 1 for line in field_lines)
+
+
+def test_categorical_values_and_question_rules_enter_sql_context() -> None:
+    catalog = default_catalog()
+    operating_context = catalog.build_sql_context(
+        "统计风电、光伏和风光储一体化项目的配储情况",
+        ["t01_operating_renewable_station_profile"],
+    )
+    construction_context = catalog.build_sql_context(
+        "未取得电力接入批复的在建项目有哪些？",
+        ["t02_construction_project_station"],
+    )
+
+    assert "题集问题映射" in operating_context
+    assert "当前完整枚举" in operating_context
+    assert "风光储一体化" in operating_context
+    assert "是否配储" in operating_context
+    assert "否" in operating_context
+    assert "是" in operating_context
+    assert "电站类型" in operating_context
+    assert "不是能源类型" in operating_context
+    assert "当前完整枚举" in construction_context
+    assert "办理中" in construction_context
+    assert "电力接入批复办理状态" in construction_context
+    assert "建设用地批复办理状态" in construction_context
+
+
+def test_planning_context_stays_lightweight_until_tables_are_selected() -> None:
+    catalog = default_catalog()
+    planning_context = catalog.build_planning_context()
+    sql_context = catalog.build_sql_context(
+        "统计能源类型和配储情况",
+        ["t01_operating_renewable_station_profile"],
+    )
+
+    assert "能源类型" in planning_context
+    assert "当前库画像" not in planning_context
+    assert "当前完整枚举" not in planning_context
+    assert "当前完整枚举" in sql_context
+
+
+def test_distributed_pv_categories_enter_lightweight_planning_context() -> None:
+    catalog = default_catalog()
+
+    planning_context = catalog.build_planning_context()
+    resolved = catalog.resolved_categorical_values(
+        "张家口市已投运分布式光伏项目装机容量按县区排名",
+        ["t07_distributed_pv_wind"],
+    )
+
+    assert '"field": "station_type"' in planning_context
+    assert '"allowed_values": ["分布式光伏", "分散式风电"]' in planning_context
+    assert '"field": "station_type_2"' in planning_context
+    assert "自发自用余电上网" in planning_context
+    assert resolved == [
+        {
+            "table": "t07_distributed_pv_wind",
+            "field": "station_type",
+            "business_label": "项目类型",
+            "value": "分布式光伏",
+        }
+    ]
+
+
+def test_detailed_ddl_and_context_do_not_publish_contact_values() -> None:
+    catalog = default_catalog()
+    ddl = catalog.load_ddl("t02_construction_project_station")
+    context = catalog.build_sql_context(
+        "查询在建项目进度", ["t02_construction_project_station"]
+    )
+
+    assert "该字段不发布实际取值或代表样例" in ddl
+    assert "13031331234" not in ddl
+    assert "13803131234" not in ddl
+    assert '"contact"' not in context
 
 
 def test_customer_question_q1_has_a_published_capacity_rule() -> None:
@@ -202,6 +297,65 @@ def test_customer_question_q13_is_not_supported_without_filing_date() -> None:
     assert "备案日期" in case["reason"]
 
 
+def test_q24_parent_group_top5_and_central_enterprise_share() -> None:
+    catalog = default_catalog()
+    question = "装机最多的5家业主单位？央企占比多少？"
+    route = catalog.routing_decision(question)
+    context = catalog.build_sql_context(question, list(route.required_tables), route)
+    example = catalog.exact_example(question)
+    guard = SqlGuard(catalog, max_rows=100)
+    executor = SQLiteExecutor(LATEST_DATABASE, timeout_seconds=2, max_rows=100)
+
+    result = asyncio.run(executor.execute(guard.validate(example["sql"]).sql))
+
+    assert route.action == "allow"
+    assert route.required_tables == ("t01_operating_renewable_station_profile",)
+    assert catalog.concept_clarification(question) is None
+    assert catalog.concept_clarification("按上级集团汇总业主装机") is None
+    assert "q24_parent_group_top5_and_central_enterprise_share" in context
+    assert result.rows[:5] == [
+        {"section_order": 1, "result_section": "TOP5", "parent_group": "国家能源集团", "capacity_mw": 4940.0, "ranking": 1, "central_capacity_mw": None, "total_capacity_mw": None, "central_share_pct": None},
+        {"section_order": 1, "result_section": "TOP5", "parent_group": "中国广核集团", "capacity_mw": 2530.0, "ranking": 2, "central_capacity_mw": None, "total_capacity_mw": None, "central_share_pct": None},
+        {"section_order": 1, "result_section": "TOP5", "parent_group": "河北建投集团", "capacity_mw": 2420.0, "ranking": 3, "central_capacity_mw": None, "total_capacity_mw": None, "central_share_pct": None},
+        {"section_order": 1, "result_section": "TOP5", "parent_group": "北京能源集团", "capacity_mw": 2390.0, "ranking": 4, "central_capacity_mw": None, "total_capacity_mw": None, "central_share_pct": None},
+        {"section_order": 1, "result_section": "TOP5", "parent_group": "中国核工业集团", "capacity_mw": 1965.0, "ranking": 5, "central_capacity_mw": None, "total_capacity_mw": None, "central_share_pct": None},
+    ]
+    assert result.rows[5] == {
+        "section_order": 2,
+        "result_section": "央企占比",
+        "parent_group": None,
+        "capacity_mw": None,
+        "ranking": None,
+        "central_capacity_mw": 19395.0,
+        "total_capacity_mw": 25255.0,
+        "central_share_pct": 76.797,
+    }
+
+
+def test_customer_confirmed_calculation_examples_execute() -> None:
+    catalog = default_catalog()
+    guard = SqlGuard(catalog, max_rows=100)
+    executor = SQLiteExecutor(LATEST_DATABASE, timeout_seconds=2, max_rows=100)
+    expected_rules = {
+        "储能装机现状？电网侧、电源侧、工商业各多少？": "storage_categories_non_additive",
+        "全市新能源行业2025年总营收？": "theoretical_revenue_2025",
+        "当前新能源消纳情况？弃风弃光率？": "curtailment_rate_and_utilization_hours",
+        "哪些变电站接入容量快饱和了？": "substation_near_saturation_q17_q33",
+        "哪些变电站已接近饱和？是否已有扩容计划？": "substation_near_saturation_q17_q33",
+        "等效利用小时最高、限电率最低的场站TOP5？": "curtailment_rate_and_utilization_hours",
+    }
+
+    for question, rule_id in expected_rules.items():
+        route = catalog.routing_decision(question)
+        context = catalog.build_sql_context(question, list(route.required_tables), route)
+        example = catalog.exact_example(question)
+        result = asyncio.run(executor.execute(guard.validate(example["sql"]).sql))
+
+        assert route.action == "allow"
+        assert rule_id in context
+        assert result.rows
+
+
 def test_published_runtime_rules_only_reference_published_fields() -> None:
     catalog = default_catalog()
 
@@ -228,3 +382,49 @@ def test_date_precision_rules_are_injected_for_the_relevant_tables() -> None:
     assert "start_month" in operating_context
     assert "filing_project_month_precision_dates" in filing_context
     assert "planned_start_month" in filing_context
+
+
+def test_q18_uses_table_object_scope_instead_of_inventing_a_progress_value() -> None:
+    catalog = default_catalog()
+    question = "哪些在建项目还没拿到接入意见函？"
+    route = catalog.routing_decision(question)
+    context = catalog.build_sql_context(
+        question, list(route.required_tables), route
+    )
+    example = catalog.exact_example("未取得电力接入批复的在建项目有哪些？")
+    guard = SqlGuard(catalog, max_rows=100)
+    executor = SQLiteExecutor(LATEST_DATABASE, timeout_seconds=2, max_rows=100)
+
+    result = asyncio.run(executor.execute(guard.validate(example["sql"]).sql))
+
+    assert route.action == "allow"
+    assert route.required_tables == ("t02_construction_project_station",)
+    assert "construction_grid_access_approval_pending" in context
+    assert "对象范围与状态筛选约束" in context
+    assert "本表每一行均属于在建新能源及储能项目" in context
+    assert "未取得电力接入批复的在建项目有哪些" in context
+    assert len(result.rows) == 2
+    assert sum(row["project_capacity_mw"] for row in result.rows) == 250.0
+
+
+def test_object_scope_rejects_implicit_status_filter_but_allows_explicit_enum() -> None:
+    catalog = default_catalog()
+    table = {"t02_construction_project_station"}
+
+    implicit = catalog.scope_filter_issues(
+        "哪些在建项目还没拿到接入意见函？",
+        "SELECT project_name FROM t02_construction_project_station "
+        "WHERE current_progress = '在建' AND grid_access_approval = '办理中'",
+        table,
+    )
+    explicit = catalog.scope_filter_issues(
+        "当前阶段是前期的在建项目有哪些？",
+        "SELECT project_name FROM t02_construction_project_station "
+        "WHERE current_progress = '前期'",
+        table,
+    )
+
+    assert implicit == [
+        "对象范围词不能自动转换为当前阶段筛选；仅当用户明确给出已发布阶段值时才可筛选该字段"
+    ]
+    assert explicit == []

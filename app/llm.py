@@ -6,7 +6,7 @@ from pydantic import ValidationError
 
 from app.config import Settings
 from app.llm_trace import LLMTraceRepository
-from app.models import QueryPlan, SqlSemanticReview
+from app.models import PreExecutionReview, QueryPlan, ResultReview
 from app.prompts import PromptRegistry
 
 
@@ -34,7 +34,7 @@ class LLMPlanSchemaError(LLMResponseError):
     pass
 
 
-class LLMSemanticReviewSchemaError(LLMResponseError):
+class LLMReviewSchemaError(LLMResponseError):
     pass
 
 
@@ -42,21 +42,32 @@ class QueryLLM(Protocol):
     async def plan(self, question: str, planning_context: str) -> QueryPlan: ...
 
     async def generate_sql(
-        self, question: str, plan: QueryPlan, context: str
+        self,
+        question: str,
+        plan: QueryPlan,
+        context: str,
+        *,
+        task_mode: str = "initial",
+        previous_sql: str | None = None,
+        feedback: dict[str, Any] | None = None,
     ) -> str: ...
 
-    async def review_sql(
-        self, question: str, plan: QueryPlan, context: str, candidate_sql: str
-    ) -> SqlSemanticReview: ...
-
-    async def repair_sql(
+    async def review_before_execution(
         self,
         question: str,
         plan: QueryPlan,
         context: str,
         candidate_sql: str,
-        feedback: str,
-    ) -> str: ...
+        expected_result_contract: dict[str, Any],
+    ) -> PreExecutionReview: ...
+
+    async def review_result(
+        self,
+        question: str,
+        plan: QueryPlan,
+        expected_result_contract: dict[str, Any],
+        evidence: dict[str, Any],
+    ) -> ResultReview: ...
 
 
 class OpenAIQueryLLM:
@@ -142,62 +153,81 @@ class OpenAIQueryLLM:
             raise LLMPlanSchemaError("查询规划结果不符合约定结构") from exc
 
     async def generate_sql(
-        self, question: str, plan: QueryPlan, context: str
+        self,
+        question: str,
+        plan: QueryPlan,
+        context: str,
+        *,
+        task_mode: str = "initial",
+        previous_sql: str | None = None,
+        feedback: dict[str, Any] | None = None,
     ) -> str:
         system = self.prompts.get("sql_generator")
         user = "\n\n".join(
             [
                 f"用户问题:\n{question}",
+                f"任务模式:\n{task_mode}",
                 f"查询计划:\n{plan.model_dump_json()}",
                 f"受控目录:\n{context}",
+                f"上一次候选 SQL:\n{previous_sql or '无'}",
+                f"服务端反馈:\n{json.dumps(feedback or {}, ensure_ascii=False)}",
+                "initial 模式生成首次 SQL。其他模式只修改反馈指出的问题；仍只返回一条 SQL。",
             ]
         )
         return self._strip_sql_fence(await self._chat(system, user))
 
-    async def repair_sql(
+    async def review_before_execution(
         self,
         question: str,
         plan: QueryPlan,
         context: str,
         candidate_sql: str,
-        feedback: str,
-    ) -> str:
-        system = self.prompts.get("sql_generator")
-        user = "\n\n".join(
-            [
-                "这是一次受控 SQL 修复。只返回修复后的一条 SQL，不要解释。",
-                f"用户问题:\n{question}",
-                f"查询计划:\n{plan.model_dump_json()}",
-                f"受控目录:\n{context}",
-                f"上一次候选 SQL:\n{candidate_sql}",
-                f"服务端校验反馈:\n{feedback}",
-                "只修复反馈指出的问题；仍不得使用受控目录外的表、字段、单位、规则或关联。禁止 SELECT * 或 table.*，必须逐列列出输出字段。",
-            ]
-        )
-        return self._strip_sql_fence(await self._chat(system, user))
-
-    async def review_sql(
-        self, question: str, plan: QueryPlan, context: str, candidate_sql: str
-    ) -> SqlSemanticReview:
-        system = self.prompts.get("sql_reviewer")
+        expected_result_contract: dict[str, Any],
+    ) -> PreExecutionReview:
+        system = self.prompts.get("pre_execution_reviewer")
         user = json.dumps(
             {
                 "question": question,
                 "query_plan": plan.model_dump(),
                 "controlled_context": context,
                 "candidate_sql": candidate_sql,
+                "expected_result_contract": expected_result_contract,
             },
             ensure_ascii=False,
         )
         content = self._strip_json_fence(await self._chat(system, user))
         try:
-            review = SqlSemanticReview.model_validate_json(content)
+            review = PreExecutionReview.model_validate_json(content)
         except ValidationError as exc:
-            raise LLMSemanticReviewSchemaError("SQL 语义审核结果不符合约定结构") from exc
-        if review.decision == "rewrite" and not review.corrected_sql:
-            raise LLMSemanticReviewSchemaError("SQL 语义审核未提供重写 SQL")
-        if review.decision == "clarification" and not review.clarification_question:
-            raise LLMSemanticReviewSchemaError("SQL 语义审核未提供澄清问题")
+            raise LLMReviewSchemaError("执行前审核结果不符合约定结构") from exc
+        if review.decision == "clarification" and not review.clarification:
+            raise LLMReviewSchemaError("执行前审核未提供澄清问题")
+        return review
+
+    async def review_result(
+        self,
+        question: str,
+        plan: QueryPlan,
+        expected_result_contract: dict[str, Any],
+        evidence: dict[str, Any],
+    ) -> ResultReview:
+        system = self.prompts.get("result_reviewer")
+        user = json.dumps(
+            {
+                "question": question,
+                "query_plan": plan.model_dump(),
+                "expected_result_contract": expected_result_contract,
+                "result_evidence": evidence,
+            },
+            ensure_ascii=False,
+        )
+        content = self._strip_json_fence(await self._chat(system, user))
+        try:
+            review = ResultReview.model_validate_json(content)
+        except ValidationError as exc:
+            raise LLMReviewSchemaError("执行后结果审核不符合约定结构") from exc
+        if review.decision == "clarification" and not review.clarification:
+            raise LLMReviewSchemaError("执行后审核未提供澄清问题")
         return review
 
     @staticmethod
@@ -228,7 +258,7 @@ __all__ = [
     "LLMInvalidResponseError",
     "LLMPlanSchemaError",
     "LLMResponseError",
-    "LLMSemanticReviewSchemaError",
+    "LLMReviewSchemaError",
     "LLMTimeoutError",
     "LLMUpstreamUnavailableError",
     "OpenAIQueryLLM",

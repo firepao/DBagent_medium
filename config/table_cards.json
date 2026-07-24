@@ -123,6 +123,11 @@
       "dataset": "已运行新能源集中式电站项目画像",
       "description": "已运行集中式风电、光伏和风光储一体化电站的项目画像、并网容量、配储、并网时间、地址和集团信息。",
       "coverage": "仅覆盖已运行集中式新能源电站；并网容量按客户题集口径等同于装机容量。",
+      "object_scope": {
+        "object_terms": ["已运行项目", "已投运项目", "集中式新能源电站"],
+        "row_scope": "all_rows",
+        "description": "本表每一行均属于已运行集中式新能源电站；对象词用于选择本表，不得臆造运行状态字段筛选。"
+      },
       "supported_queries": [
         "集中式新能源装机及类型结构",
         "集中式项目、集团和配储清单",
@@ -201,6 +206,29 @@
       "dataset": "在建新能源及储能项目",
       "description": "在建项目的规模、建设地点、当前进展、前置手续和计划并网时间。",
       "coverage": "仅覆盖在建项目，不代表已运行或备案项目。",
+      "object_scope": {
+        "object_terms": [
+          "在建项目",
+          "在建新能源项目",
+          "在建储能项目"
+        ],
+        "row_scope": "all_rows",
+        "description": "本表每一行均属于在建新能源及储能项目；“在建”用于识别本表的业务对象，不是 current_progress 的枚举值。",
+        "status_filters": [
+          {
+            "field": "current_progress",
+            "semantic_label": "当前阶段进展",
+            "requires_explicit_user_value": true,
+            "allowed_values": [
+              "前期",
+              "土建",
+              "已开工",
+              "设备安装",
+              "设备调试"
+            ]
+          }
+        ]
+      },
       "supported_queries": [
         "在建项目数量和规模",
         "项目进度与预计并网时间",
@@ -350,6 +378,11 @@
       "dataset": "入库新能源及储能备案项目",
       "description": "备案项目的项目类型、拟建规模、建设地点及计划开工、计划并网投运月份。",
       "coverage": "仅覆盖备案项目计划信息，不含备案日期、实际开工时间或项目当前状态。",
+      "object_scope": {
+        "object_terms": ["备案项目", "拟建项目", "储备项目"],
+        "row_scope": "all_rows",
+        "description": "本表每一行均属于备案项目；对象词用于选择本表，不能推断实际开工、投运或新增备案状态。"
+      },
       "supported_queries": [
         "备案项目清单",
         "计划开工或计划并网投运月份",
@@ -540,6 +573,11 @@
       "dataset": "电网侧储能",
       "description": "已投运电网侧储能项目的容量、接入站、投运日期和充放电量。",
       "coverage": "仅覆盖电网侧储能，不与电源侧或工商业储能自动去重合并。",
+      "object_scope": {
+        "object_terms": ["电网侧储能", "已投运电网侧储能"],
+        "row_scope": "all_rows",
+        "description": "本表每一行均属于电网侧储能项目；对象词用于选择本表，不自动与其他储能对象合并。"
+      },
       "supported_queries": [
         "电网侧储能规模和清单",
         "按接入站或投运日期筛选",
@@ -603,6 +641,37 @@
       "dataset": "分布式光伏与风电",
       "description": "已投运分布式光伏和分散式风电项目的装机、位置、投运日期及年度发电量。",
       "coverage": "仅覆盖分布式/分散式项目，不包含集中式电站。",
+      "object_scope": {
+        "object_terms": ["分布式项目", "分布式光伏", "分散式风电"],
+        "row_scope": "all_rows",
+        "description": "本表每一行均属于分布式光伏或分散式风电项目；对象词用于选择本表，不得误当成集中式项目条件。"
+      },
+      "categorical_fields": [
+        {
+          "field": "station_type",
+          "business_label": "项目类型",
+          "allowed_values": [
+            "分布式光伏",
+            "分散式风电"
+          ],
+          "value_aliases": {
+            "光伏": "分布式光伏",
+            "分布式光伏项目": "分布式光伏",
+            "风电": "分散式风电",
+            "分散式风电项目": "分散式风电"
+          }
+        },
+        {
+          "field": "station_type_2",
+          "business_label": "上网方式",
+          "allowed_values": [
+            "全额上网",
+            "自发自用",
+            "自发自用余电上网"
+          ],
+          "value_aliases": {}
+        }
+      ],
       "supported_queries": [
         "分布式风光装机规模",
         "按县区或投运日期汇总",
@@ -668,6 +737,11 @@
       "dataset": "工商业储能",
       "description": "已投运工商业储能项目的规模、位置、投运日期和年度充放电信息。",
       "coverage": "仅覆盖工商业储能，不等同于电网侧或电源侧储能。",
+      "object_scope": {
+        "object_terms": ["工商业储能", "用户侧储能"],
+        "row_scope": "all_rows",
+        "description": "本表每一行均属于工商业储能项目；对象词用于选择本表，不自动与电网侧或电源侧储能合并。"
+      },
       "supported_queries": [
         "工商业储能项目和规模",
         "按位置或投运日期筛选",

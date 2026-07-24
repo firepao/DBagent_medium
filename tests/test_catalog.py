@@ -160,6 +160,20 @@ def build_query_knowledge_files(tmp_path):
                         "message": "当前数据不支持该指标。",
                     }
                 ],
+                "concept_alternatives": [
+                    {
+                        "id": "owner_capacity_scope",
+                        "status": "published",
+                        "runtime_enabled": True,
+                        "all_terms": ["业主", "装机"],
+                        "none_terms": ["备案", "拟建"],
+                        "message": "当前没有经确认的业主单位口径，可按归属上级集团或项目建设方汇总，请确认采用哪一种。",
+                        "suggestions": [
+                            {"business_label": "归属上级集团"},
+                            {"business_label": "项目建设方"},
+                        ],
+                    }
+                ],
             },
             ensure_ascii=False,
         ),
@@ -309,6 +323,51 @@ def test_routing_prefers_exact_validation_intent_then_uses_published_terms(tmp_p
     assert terms.intent_id == "unsupported_metric"
     assert terms.action == "reject_capability"
     assert terms.match_type == "lightweight_terms"
+
+
+def test_concept_alternative_requires_all_terms_and_respects_exclusions(tmp_path) -> None:
+    module = load_catalog_module()
+    db_path, catalog_path, examples_path = build_catalog_files(tmp_path)
+    ddl_dir, cards, registry, knowledge, cases = build_query_knowledge_files(tmp_path)
+    catalog = module.MetadataCatalog(
+        db_path,
+        catalog_path,
+        examples_path,
+        table_cards_path=cards,
+        ddl_registry_path=registry,
+        query_knowledge_path=knowledge,
+        validation_cases_path=cases,
+        ddl_directory=ddl_dir,
+    )
+
+    clarification = catalog.concept_clarification("各业主单位装机容量汇总")
+
+    assert clarification["id"] == "owner_capacity_scope"
+    assert "归属上级集团" in clarification["message"]
+    assert "项目建设方" in clarification["message"]
+    assert catalog.concept_clarification("各业主单位有哪些") is None
+    assert catalog.concept_clarification("备案项目拟定业主装机规模") is None
+
+
+def test_runtime_rule_issues_validate_concept_alternatives(tmp_path) -> None:
+    module = load_catalog_module()
+    db_path, catalog_path, examples_path = build_catalog_files(tmp_path)
+    ddl_dir, cards, registry, knowledge, cases = build_query_knowledge_files(tmp_path)
+    payload = json.loads(knowledge.read_text(encoding="utf-8"))
+    payload["concept_alternatives"][0]["suggestions"] = []
+    knowledge.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+    catalog = module.MetadataCatalog(
+        db_path,
+        catalog_path,
+        examples_path,
+        table_cards_path=cards,
+        ddl_registry_path=registry,
+        query_knowledge_path=knowledge,
+        validation_cases_path=cases,
+        ddl_directory=ddl_dir,
+    )
+
+    assert "概念替代 owner_capacity_scope 缺少业务口径建议" in catalog.runtime_rule_issues()
 
 
 def test_context_keeps_candidate_formula_as_non_executable_reference_and_returns_answer_guidance(

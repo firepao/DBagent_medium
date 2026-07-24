@@ -63,6 +63,7 @@ class MetadataCatalog:
         knowledge = self._load_optional_json(query_knowledge_path, {})
         self._rules = knowledge.get("rules", [])
         self._routing_rules = knowledge.get("routing_rules", [])
+        self._concept_alternatives = knowledge.get("concept_alternatives", [])
         self._answer_guidance = knowledge.get("answer_guidance", {})
         self._validation_cases = self._load_optional_json(
             validation_cases_path, {}
@@ -148,6 +149,80 @@ class MetadataCatalog:
                     issues.append(
                         f"{table}.important_fields 引用未发布字段 {field}"
                     )
+            for categorical in card.get("categorical_fields", []):
+                field = categorical.get("field")
+                values = categorical.get("allowed_values", [])
+                aliases = categorical.get("value_aliases", {})
+                if field not in allowed:
+                    issues.append(
+                        f"{table}.categorical_fields 引用未发布字段 {field}"
+                    )
+                    continue
+                if not values or not all(
+                    isinstance(value, str) and value.strip() for value in values
+                ):
+                    issues.append(
+                        f"{table}.categorical_fields.{field} 缺少枚举值"
+                    )
+                    continue
+                invalid_targets = set(aliases.values()) - set(values)
+                if invalid_targets:
+                    issues.append(
+                        f"{table}.categorical_fields.{field} 别名指向未发布枚举: "
+                        + ", ".join(sorted(invalid_targets))
+                    )
+                uri = f"file:{self.db_path.as_posix()}?mode=ro"
+                with sqlite3.connect(uri, uri=True) as connection:
+                    actual_values = {
+                        str(row[0]).strip()
+                        for row in connection.execute(
+                            f'SELECT DISTINCT "{field}" FROM "{table}" '
+                            f'WHERE "{field}" IS NOT NULL AND TRIM(CAST("{field}" AS TEXT)) <> \'\''
+                        )
+                    }
+                if actual_values - set(values):
+                    issues.append(
+                        f"{table}.categorical_fields.{field} 缺少实际枚举值: "
+                        + ", ".join(sorted(actual_values - set(values)))
+                    )
+            object_scope = card.get("object_scope")
+            if object_scope is not None:
+                if object_scope.get("row_scope") not in {"all_rows", "filtered"}:
+                    issues.append(f"{table}.object_scope.row_scope 无效")
+                object_terms = object_scope.get("object_terms", [])
+                if not isinstance(object_terms, list) or not all(
+                    isinstance(term, str) and term.strip() for term in object_terms
+                ):
+                    issues.append(f"{table}.object_scope.object_terms 缺少对象词")
+                for status_filter in object_scope.get("status_filters", []):
+                    field = status_filter.get("field")
+                    if field not in allowed:
+                        issues.append(
+                            f"{table}.object_scope.status_filters 引用未发布字段 {field}"
+                        )
+                    values = status_filter.get("allowed_values", [])
+                    if not isinstance(values, list) or not all(
+                        isinstance(value, str) and value.strip() for value in values
+                    ):
+                        issues.append(
+                            f"{table}.object_scope.status_filters.{field} 缺少枚举值"
+                        )
+                    elif field in allowed:
+                        uri = f"file:{self.db_path.as_posix()}?mode=ro"
+                        with sqlite3.connect(uri, uri=True) as connection:
+                            actual_values = {
+                                str(row[0]).strip()
+                                for row in connection.execute(
+                                    f'SELECT DISTINCT "{field}" FROM "{table}" '
+                                    f'WHERE "{field}" IS NOT NULL AND TRIM(CAST("{field}" AS TEXT)) <> \'\''
+                                )
+                            }
+                        unlisted = actual_values - set(values)
+                        if unlisted:
+                            issues.append(
+                                f"{table}.object_scope.status_filters.{field} "
+                                f"缺少实际枚举值: {', '.join(sorted(unlisted))}"
+                            )
             for section in ("metrics", "dimensions"):
                 for item in card.get(section, []):
                     if not isinstance(item, dict):
@@ -193,7 +268,70 @@ class MetadataCatalog:
             for table in rule.get("required_tables", []):
                 if table not in self.allowed_tables:
                     issues.append(f"路由规则 {rule.get('id')} 引用未发布表 {table}")
+        for alternative in self._concept_alternatives:
+            if not (
+                alternative.get("status") == "published"
+                and alternative.get("runtime_enabled") is True
+            ):
+                continue
+            alternative_id = alternative.get("id") or "未命名概念替代"
+            all_terms = alternative.get("all_terms")
+            if not (
+                isinstance(all_terms, list)
+                and all_terms
+                and all(isinstance(term, str) and term.strip() for term in all_terms)
+            ):
+                issues.append(f"概念替代 {alternative_id} 缺少 all_terms")
+            if not isinstance(alternative.get("message"), str) or not alternative["message"].strip():
+                issues.append(f"概念替代 {alternative_id} 缺少业务化提示")
+            suggestions = alternative.get("suggestions")
+            if not (
+                isinstance(suggestions, list)
+                and suggestions
+                and all(
+                    isinstance(item, dict)
+                    and isinstance(item.get("business_label"), str)
+                    and item["business_label"].strip()
+                    for item in suggestions
+                )
+            ):
+                issues.append(f"概念替代 {alternative_id} 缺少业务口径建议")
         return issues
+
+    def concept_clarification(self, question: str) -> dict[str, Any] | None:
+        """Return a published business clarification without exposing schema details.
+
+        Alternatives are deliberately configured rather than inferred from column-name
+        similarity. Every required term must match, and any excluded term cancels the
+        rule, so a nearby concept is never substituted silently.
+        """
+        normalized = question.casefold()
+        for alternative in self._concept_alternatives:
+            if not (
+                alternative.get("status") == "published"
+                and alternative.get("runtime_enabled") is True
+            ):
+                continue
+            all_terms = alternative.get("all_terms", [])
+            none_terms = alternative.get("none_terms", [])
+            if not all_terms or not all(
+                str(term).casefold() in normalized for term in all_terms
+            ):
+                continue
+            if any(str(term).casefold() in normalized for term in none_terms):
+                continue
+            return {
+                "id": str(alternative.get("id") or "concept_clarification"),
+                "message": str(alternative["message"]).strip(),
+                "suggestions": [
+                    {
+                        "business_label": item["business_label"],
+                        "scope": item.get("scope"),
+                    }
+                    for item in alternative.get("suggestions", [])
+                ],
+            }
+        return None
 
     def region_rule_issues(self) -> list[str]:
         if not self._administrative_regions:
@@ -342,6 +480,15 @@ class MetadataCatalog:
     ) -> str:
         cards: list[dict[str, Any]] = []
         for card in self.table_cards():
+            planning_fields = []
+            for entry in self._field_semantics(
+                card["table"], card.get("important_fields", [])
+            ):
+                planning_entry = dict(entry)
+                planning_entry["description"] = entry["description"].split(
+                    " 当前库画像：", 1
+                )[0]
+                planning_fields.append(planning_entry)
             cards.append(
                 {
                     "table": card["table"],
@@ -351,10 +498,10 @@ class MetadataCatalog:
                     "metrics": card.get("metrics", []),
                     "dimensions": card.get("dimensions", []),
                     "supported_queries": card.get("supported_queries", []),
-                    "important_field_semantics": self._field_semantics(
-                        card["table"], card.get("important_fields", [])
-                    ),
+                    "important_field_semantics": planning_fields,
                     "data_limitations": card.get("data_limitations", []),
+                    "object_scope": card.get("object_scope"),
+                    "categorical_fields": card.get("categorical_fields", []),
                 }
             )
         return "\n".join(
@@ -368,6 +515,41 @@ class MetadataCatalog:
                 else "无。",
             ]
         )
+
+    def resolved_categorical_values(
+        self, question: str, tables: list[str] | None = None
+    ) -> list[dict[str, str]]:
+        """Resolve user-facing terms to uniquely published categorical values."""
+        normalized = question.casefold()
+        selected = set(tables or self.allowed_tables)
+        matches: dict[tuple[str, str], set[str]] = {}
+        labels: dict[tuple[str, str], str] = {}
+        for table in sorted(selected & self.allowed_tables):
+            card = self._table_cards[table]
+            for categorical in card.get("categorical_fields", []):
+                field = categorical.get("field")
+                if not field:
+                    continue
+                key = (table, field)
+                labels[key] = categorical.get("business_label", field)
+                terms = {
+                    str(value): str(value)
+                    for value in categorical.get("allowed_values", [])
+                }
+                terms.update(categorical.get("value_aliases", {}))
+                for term, value in terms.items():
+                    if term and term.casefold() in normalized:
+                        matches.setdefault(key, set()).add(str(value))
+        return [
+            {
+                "table": table,
+                "field": field,
+                "business_label": labels[(table, field)],
+                "value": next(iter(values)),
+            }
+            for (table, field), values in sorted(matches.items())
+            if len(values) == 1
+        ]
 
     def match_tables(self, question: str, max_tables: int = 4) -> list[str]:
         """仅保留给诊断和离线分析；运行路径不再依赖关键词匹配。"""
@@ -423,6 +605,12 @@ class MetadataCatalog:
 
     def _published_ddl(self, table: str) -> str:
         ddl = self.load_ddl(table)
+        header_lines: list[str] = []
+        for line in ddl.splitlines():
+            if line.startswith("-- 字段：") or line.startswith("CREATE TABLE"):
+                break
+            if line.startswith("-- "):
+                header_lines.append(line)
         with sqlite3.connect(":memory:") as connection:
             connection.executescript(ddl)
             columns = connection.execute(f'PRAGMA table_info("{table}")').fetchall()
@@ -432,7 +620,12 @@ class MetadataCatalog:
             for _, name, column_type, *_ in columns
             if name in published
         ]
-        return f'CREATE TABLE "{table}" (\n    ' + ",\n    ".join(definitions) + "\n);"
+        published_create = (
+            f'CREATE TABLE "{table}" (\n    '
+            + ",\n    ".join(definitions)
+            + "\n);"
+        )
+        return "\n".join([*header_lines, published_create])
 
     def _field_semantics(
         self, table: str, fields: list[str] | None = None
@@ -504,20 +697,35 @@ class MetadataCatalog:
         ranked = [item for item in items if score(item) > 0]
         return sorted(ranked, key=lambda item: (-score(item), item.get("id", "")))[:max_items]
 
-    def _selected_examples(self, question: str, tables: set[str]) -> list[dict[str, Any]]:
+    def _selected_examples(
+        self,
+        question: str,
+        tables: set[str],
+        decision: RoutingDecision | None = None,
+    ) -> list[dict[str, Any]]:
         applicable = [
             example
             for example in self._examples
             if set(example.get("tables", []))
             and set(example.get("tables", [])).issubset(tables)
         ]
+        exact = [
+            example
+            for example in applicable
+            if decision is not None
+            and decision.intent_id in example.get("source_question_ids", [])
+        ]
+        exact_ids = {id(example) for example in exact}
         ranked_examples = [
             {**example, "terms": example.get("terms") or [example.get("question", "")]}
             for example in applicable
+            if id(example) not in exact_ids
         ]
         if not question.strip():
-            return ranked_examples[:3]
-        return self._rank_by_terms(ranked_examples, question, 3)
+            return exact[:3] + ranked_examples[: max(0, 3 - len(exact))]
+        return exact[:3] + self._rank_by_terms(
+            ranked_examples, question, max(0, 3 - len(exact))
+        )
 
     def _rules_for_context(
         self,
@@ -622,7 +830,7 @@ class MetadataCatalog:
             if self._table_cards[table].get("data_limitations")
         ]
         rules, references = self._rules_for_context(question, requested, decision)
-        examples = self._selected_examples(question, requested)
+        examples = self._selected_examples(question, requested, decision)
         region_rules = self._region_context(requested)
         return "\n\n".join(
             [
@@ -645,6 +853,19 @@ class MetadataCatalog:
                 ),
                 "数据限制：",
                 json.dumps(limitations, ensure_ascii=False) if limitations else "无",
+                "对象范围与状态筛选约束：对象范围用于选择表，不能自动变成字段筛选；仅当用户明确给出状态字段的已发布枚举值时，才可添加对应状态条件。",
+                json.dumps(
+                    [
+                        {
+                            "table": table,
+                            "object_scope": self._table_cards[table].get("object_scope"),
+                        }
+                        for table in sorted(requested)
+                        if self._table_cards[table].get("object_scope")
+                    ],
+                    ensure_ascii=False,
+                )
+                or "无",
                 "已发布业务规则：",
                 json.dumps(rules, ensure_ascii=False) if rules else "无",
                 "待确认辅助规则：仅用于识别数据缺口和回答边界，严禁据此生成计算 SQL：",
@@ -659,6 +880,95 @@ class MetadataCatalog:
                 else "无",
             ]
         )
+
+    @staticmethod
+    def data_domain() -> dict[str, Any]:
+        """Published scope fact used by every model stage and response."""
+        return {
+            "domain_id": "zhangjiakou_citywide_v1",
+            "administrative_scope": "张家口市全域",
+            "single_city_dataset": True,
+            "city_filter_required": False,
+        }
+
+    def expected_result_contract(
+        self,
+        question: str,
+        tables: list[str],
+        plan: Any,
+        decision: RoutingDecision | None = None,
+    ) -> dict[str, Any]:
+        """Return a bounded semantic contract; it never invents database fields."""
+        requested = set(tables)
+        if not requested.issubset(self.allowed_tables):
+            raise CatalogError("结果契约包含未发布数据表")
+        examples = self._selected_examples(question, requested, decision)
+        example_contract = next(
+            (
+                item.get("expected_result_contract")
+                for item in examples
+                if isinstance(item.get("expected_result_contract"), dict)
+            ),
+            {},
+        )
+        return {
+            "required_dimensions": example_contract.get("required_dimensions", []),
+            "required_measures": example_contract.get("required_measures", []),
+            "required_sections": example_contract.get(
+                "required_sections", list(getattr(plan, "required_outputs", []))
+            ),
+            "business_objects": list(getattr(plan, "business_objects", [])),
+            "time_requirements": list(getattr(plan, "time_requirements", [])),
+            "presentation_requirements": list(
+                getattr(plan, "presentation_requirements", [])
+            ),
+            "scope": self.data_domain()["administrative_scope"],
+            "must_not_filter_city_name": True,
+            "routing_context": self.routing_context(decision),
+        }
+
+    def scope_filter_issues(
+        self, question: str, sql: str, tables: set[str]
+    ) -> list[str]:
+        """Reject object-scope words being silently converted to status predicates.
+
+        This is deliberately driven by TableCard configuration. A user may filter a
+        status field only after naming one of its published enum values; object
+        labels such as "在建项目" select the table and do not imply a status value.
+        """
+        normalized_question = question.casefold()
+        issues: list[str] = []
+        for table in tables:
+            object_scope = self._table_cards[table].get("object_scope") or {}
+            for status_filter in object_scope.get("status_filters", []):
+                field = status_filter.get("field")
+                if not field:
+                    continue
+                predicate = re.compile(
+                    rf"\b{re.escape(field)}\b\s*(?:=|==|!=|<>|LIKE\b|IN\b|NOT\s+IN\b)",
+                    re.IGNORECASE,
+                )
+                if not predicate.search(sql):
+                    continue
+                values = [
+                    str(value).casefold()
+                    for value in status_filter.get("allowed_values", [])
+                ]
+                if status_filter.get("requires_explicit_user_value") and not any(
+                    value in normalized_question for value in values
+                ):
+                    issues.append(
+                        "对象范围词不能自动转换为当前阶段筛选；仅当用户明确给出已发布阶段值时才可筛选该字段"
+                    )
+        return issues
+
+    def result_field_labels(self, tables: set[str]) -> dict[str, str]:
+        """Map physical field names to published labels for result evidence only."""
+        labels: dict[str, str] = {}
+        for table in tables:
+            for field in self._field_semantics(table):
+                labels.setdefault(field["name"], field["label"])
+        return labels
 
     def build_context(self, tables: list[str], max_examples: int = 5) -> str:
         if not tables:

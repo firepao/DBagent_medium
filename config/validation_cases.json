@@ -21,11 +21,13 @@
     {
       "id": "Q2",
       "question": "和去年同期比，新能源装机增长多少？",
-      "status": "not_supported",
+      "status": "supported",
+      "routing_enabled": true,
       "scope_tables": [
-        "t01_operating_renewable_station_profile"
+        "t01_operating_renewable_station_profile",
+        "t07_distributed_pv_wind"
       ],
-      "reason": "缺少可用于历史装机快照的完整数据。",
+      "reason": "按并网/投运月份构造历史累计装机，在数据最新有效月份与上年同期月份比较；同时覆盖集中式和分布式风光。",
       "question_set_question": "和去年同期比，新能源装机增长多少？",
       "source_reference": "表01 投运时间字段按月切片",
       "reported_issue": "缺少装机相关数据的字段",
@@ -52,13 +54,14 @@
     {
       "id": "Q4",
       "question": "储能装机现状？电网侧、电源侧、工商业各多少？",
-      "status": "needs_customer_confirmation",
+      "status": "supported",
+      "routing_enabled": true,
       "scope_tables": [
         "t01_operating_renewable_station_profile",
         "t06_grid_side_storage",
         "t08_industrial_commercial_storage"
       ],
-      "reason": "三表容量字段和单位口径尚未统一。",
+      "reason": "按表01、表06、表08分别统计电源侧、电网侧、工商业储能的功率（MW）和能量（MWh），总量和占比均按三类对应字段计算。",
       "question_set_question": "储能装机现状？电网侧/电源侧/工商业各多少？",
       "source_reference": "表06 + 表01 配储字段 + 表08",
       "reported_issue": "所谓\"储能装机现状\"是否为：表01 配储容量；表06 并网容量；表08 装机容量 ？\n三表字段不统一，不确定业务应该统计哪个字段",
@@ -84,15 +87,16 @@
     {
       "id": "Q6",
       "question": "全市新能源行业2025年总营收？",
-      "status": "needs_customer_confirmation",
+      "status": "supported",
+      "routing_enabled": true,
       "scope_tables": [
         "t01_operating_generation_monthly"
       ],
-      "reason": "年度发电量乘 3720 的单位、价格和适用范围未确认。",
+      "reason": "按表01月度发电量统计2025年1月至12月总发电量，再乘客户确认的3720折算系数；结果表述为按确认电价折算的理论发电收入，不等同于财务报表营业收入。",
       "question_set_question": "全市新能源行业2025年总营收？",
       "source_reference": "表03  改为表01",
       "reported_issue": "表03缺少\"营收\"字段",
-      "missing_data_or_policy": "营收字段",
+      "missing_data_or_policy": null,
       "customer_note": "计算方法为：2025年1月至2025年12月发电量总和乘以3720，为总营收",
       "standard_answer_is_example": true
     },
@@ -115,10 +119,11 @@
       "id": "Q8",
       "question": "分布式光伏哪个县区跑得最快？",
       "status": "supported",
+      "routing_enabled": true,
       "scope_tables": [
         "t07_distributed_pv_wind"
       ],
-      "reason": "可按位置和投运日期统计；增长口径需限定时间范围。",
+      "reason": "表07全体记录均为已投运分布式项目；按项目类型精确筛选分布式光伏，返回各县区累计装机和以数据最新有效日期为截止日的近12个月新增装机，按新增装机量判定发展最快。",
       "question_set_question": "分布式光伏哪个县区跑得最快？",
       "source_reference": "表07",
       "reported_issue": null,
@@ -222,12 +227,14 @@
     {
       "id": "Q15",
       "question": "当前新能源消纳情况？弃风弃光率？",
-      "status": "needs_customer_confirmation",
+      "status": "supported",
+      "routing_enabled": true,
       "scope_tables": [
+        "t01_operating_renewable_station_profile",
         "t01_operating_generation_monthly",
         "t01_operating_curtailment_monthly"
       ],
-      "reason": "限电率计算口径待确认。",
+      "reason": "按同一场站、同一月份汇总发电量和限电量后计算限电率；不平均各场站百分比。",
       "question_set_question": "当前新能源消纳情况？弃风弃光率？",
       "source_reference": "表10 调度运行数据",
       "reported_issue": "表 10 中没有\"消纳\"、\"弃风弃光率\"等业务字段，需要说明专业知识的计算方法",
@@ -254,11 +261,12 @@
     {
       "id": "Q17",
       "question": "哪些变电站接入容量快饱和了？",
-      "status": "needs_customer_confirmation",
+      "status": "supported",
+      "routing_enabled": true,
       "scope_tables": [
         "t10_power_grid_material"
       ],
-      "reason": "接近饱和判定公式与阈值待确认。",
+      "reason": "按剩余间隔数量≤1或剩余可接入容量≤10MW判定接近饱和；不将MW与MVA相除。",
       "question_set_question": "哪些变电站接入容量快饱和了？",
       "source_reference": "表10 变电站容量+接入电源字段",
       "reported_issue": "接入电源类型及占比有多个来源：电网、新能源等，以谁为标准衡量还是sum汇总？",
@@ -270,10 +278,11 @@
       "id": "Q18",
       "question": "哪些在建项目还没拿到接入意见函？",
       "status": "supported",
+      "routing_enabled": true,
       "scope_tables": [
         "t02_construction_project_station"
       ],
-      "reason": "按电力接入批复字段筛选。",
+      "reason": "表02全表即在建项目范围；按电力接入批复字段筛选“否”或“办理中”。",
       "question_set_question": "哪些在建项目还没拿到接入意见函？",
       "source_reference": "表02 接入审批字段",
       "reported_issue": "①、没有接入审批字段；\n②、是指电力接入审批还是建设用地批复？",
@@ -361,15 +370,16 @@
     {
       "id": "Q24",
       "question": "装机最多的5家业主单位？央企占比多少？",
-      "status": "needs_customer_confirmation",
+      "status": "supported",
+      "routing_enabled": true,
       "scope_tables": [
         "t01_operating_renewable_station_profile"
       ],
-      "reason": "业主口径及央国企名单需发布为可审计规则。",
+      "reason": "本题按归属上级集团统计；装机容量使用已运行集中式新能源电站并网容量（MW）。",
       "question_set_question": "装机最多的5家业主单位？央企占比多少？",
-      "source_reference": "表01 业主单位字段",
-      "reported_issue": "①、表01没有业主单位字段；\n②、01表中的归属上级集团的央国企判断，不知道哪些单位是央企",
-      "missing_data_or_policy": "业主单位和央国企名单",
+      "source_reference": "表01 归属上级集团 + 并网容量",
+      "reported_issue": null,
+      "missing_data_or_policy": null,
       "customer_note": "央企（10 家）：\n国家能源集团、中国大唐集团、中国广核集团、国家电投集团、中国核工业集团、中国节能环保集团、中国华能集团、中国三峡集团、华润集团、中国华电集团\n地方国企（3 家）：\n北京能源集团（北京市属）、河北建投集团（河北省属）、河北交投集团（河北省属）",
       "standard_answer_is_example": true
     },
@@ -494,27 +504,30 @@
     {
       "id": "Q33",
       "question": "哪些变电站已接近饱和？是否已有扩容计划？",
-      "status": "needs_customer_confirmation",
+      "status": "supported",
+      "routing_enabled": true,
       "scope_tables": [
         "t10_power_grid_material"
       ],
-      "reason": "阈值和饱和定义待确认。",
+      "reason": "按剩余间隔数量≤1或剩余可接入容量≤10MW筛选，并展示扩容计划原文；不使用负荷预测台账推断饱和。",
       "question_set_question": "如果要新增500万千瓦光伏，电网消纳够吗？\n哪些变电站已接近饱和（剩余间隔≤1 或剩余可接入容量≤10 MW）？是否已有扩容计划？\n",
       "source_reference": "表10 通道余量 + 表01 装机+负荷预测台账\n 表10（剩余间隔数量、剩余可接入容量、扩容计划字段）",
       "reported_issue": "①、缺少负荷预测台账；②、表10没有通道余量的相关字段",
-      "missing_data_or_policy": "负荷预测台账",
+      "missing_data_or_policy": null,
       "customer_note": "已调整问答",
       "standard_answer_is_example": true
     },
     {
       "id": "Q34",
       "question": "等效利用小时最高、限电率最低的场站TOP5？",
-      "status": "needs_customer_confirmation",
+      "status": "supported",
+      "routing_enabled": true,
       "scope_tables": [
+        "t01_operating_renewable_station_profile",
         "t01_operating_generation_monthly",
         "t01_operating_curtailment_monthly"
       ],
-      "reason": "限电率计算口径待确认。",
+      "reason": "按2025年完整年度数据计算等效利用小时和限电率，分别降序/升序取TOP5；场站容量来自表01，发电量和限电量按场站及月份关联。",
       "question_set_question": "哪些项目同时具备\"高利用率+低弃风弃光+高税收贡献\"特征？可作为示范？\n： 已运行集中式电站中，等效利用小时最高、限电率最低的场站 TOP5 分别是哪些？可作为标杆推广。",
       "source_reference": "表01 + 表03 + 表10 多表联查\n 表01（并网容量、发电量、限电量字段联算）",
       "reported_issue": "①、高利用率+低弃风弃光+高税收贡献这个特征具体的判定指标，涉及的具体数值以及计算方式；②、这个多表联查如何查，逻辑是什么？",

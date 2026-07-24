@@ -2,6 +2,57 @@
   "version": "2026-07-21-business-rules-v1",
   "routing_rules": [
     {
+      "id": "route_distributed_pv_growth",
+      "status": "published",
+      "runtime_enabled": true,
+      "terms": [
+        "分布式光伏哪个县区跑得最快",
+        "分布式光伏发展最快",
+        "分布式光伏新增装机",
+        "分布式光伏增长"
+      ],
+      "action": "allow",
+      "required_tables": [
+        "t07_distributed_pv_wind"
+      ],
+      "message": "按表07项目类型精确筛选分布式光伏；同时计算累计装机和最新有效日期近12个月新增装机，按新增装机量判定最快县区。"
+    },
+    {
+      "id": "route_citywide_capacity_yoy",
+      "status": "published",
+      "runtime_enabled": true,
+      "terms": [
+        "和去年同期比，新能源装机增长",
+        "新能源装机同比",
+        "装机同比增长"
+      ],
+      "action": "allow",
+      "required_tables": [
+        "t01_operating_renewable_station_profile",
+        "t07_distributed_pv_wind"
+      ],
+      "message": "按并网/投运月份累计装机，在最新有效月份与上年同期比较；集中式与分布式分别归类后汇总。"
+    },
+    {
+      "id": "route_curtailment_metrics",
+      "status": "published",
+      "runtime_enabled": true,
+      "terms": [
+        "当前新能源消纳情况",
+        "弃风弃光率",
+        "新能源消纳",
+        "弃风率",
+        "弃光率"
+      ],
+      "action": "allow",
+      "required_tables": [
+        "t01_operating_renewable_station_profile",
+        "t01_operating_generation_monthly",
+        "t01_operating_curtailment_monthly"
+      ],
+      "message": "消纳/弃风弃光计算必须关联场站画像中的energy_type与两张月度表；按场站和月份先汇总再计算。"
+    },
+    {
       "id": "route_citywide_installed_capacity",
       "status": "published",
       "runtime_enabled": true,
@@ -15,6 +66,23 @@
         "t07_distributed_pv_wind"
       ],
       "message": "全市新能源装机需同时覆盖已运行集中式与分布式风光。"
+    },
+    {
+      "id": "route_q24_parent_group_capacity",
+      "status": "published",
+      "runtime_enabled": true,
+      "terms": [
+        "装机最多的5家业主单位",
+        "上级集团装机排名",
+        "归属上级集团装机",
+        "央企装机占比",
+        "央企占比"
+      ],
+      "action": "allow",
+      "required_tables": [
+        "t01_operating_renewable_station_profile"
+      ],
+      "message": "按已运行集中式新能源电站的归属上级集团汇总装机容量。"
     },
     {
       "id": "route_filing_date_unavailable",
@@ -97,6 +165,35 @@
       "action": "reject_scope",
       "required_tables": [],
       "message": "当前平台未接入氢能产业数据，超出本期数据范围。"
+    }
+  ],
+  "concept_alternatives": [
+    {
+      "id": "operating_owner_installed_capacity_scope",
+      "status": "published",
+      "runtime_enabled": true,
+      "all_terms": [
+        "业主",
+        "装机"
+      ],
+      "none_terms": [
+        "备案",
+        "拟建",
+        "央企",
+        "上级集团",
+        "归属上级集团"
+      ],
+      "message": "当前已运行集中式新能源电站没有经确认的“业主单位”统计口径。现有数据可按“归属上级集团”或“项目建设方”汇总装机容量。为确保下一次查询口径完整，请补充为“按归属上级集团汇总已运行集中式新能源电站装机容量”或“按项目建设方汇总已运行集中式新能源电站装机容量”。",
+      "suggestions": [
+        {
+          "business_label": "归属上级集团",
+          "scope": "已运行集中式新能源电站"
+        },
+        {
+          "business_label": "项目建设方",
+          "scope": "已运行集中式新能源电站"
+        }
+      ]
     }
   ],
   "answer_guidance": {
@@ -193,6 +290,59 @@
   },
   "rules": [
     {
+      "id": "citywide_installed_capacity_yoy",
+      "status": "published",
+      "runtime_enabled": true,
+      "source_question_ids": ["Q2"],
+      "scope_tables": [
+        "t01_operating_renewable_station_profile",
+        "t07_distributed_pv_wind"
+      ],
+      "required_fields": {
+        "t01_operating_renewable_station_profile": ["energy_type", "grid_capacity_mw", "grid_connection_month"],
+        "t07_distributed_pv_wind": ["station_type", "installed_capacity_mw", "operation_date"]
+      },
+      "terms": ["和去年同期比", "新能源装机增长", "装机同比", "装机同比增长"],
+      "formula": "同比增量 = 最新有效月份累计装机 - 上年同期累计装机；同比增速 = 同比增量 / 上年同期累计装机 × 100%",
+      "content": "装机历史口径使用并网/投运月份作为纳入日期。表01并网容量等同集中式装机，表07按项目类型将分布式光伏、分散式风电纳入对应分类。统计截至日取两表各自最新有效日期中的较早共同月份；分别计算当期及上年同期累计装机，再汇总总量和分类型。不得把当前全量容量直接当作去年同期快照。"
+    },
+    {
+      "id": "distributed_pv_county_growth",
+      "status": "published",
+      "runtime_enabled": true,
+      "source_question_ids": ["Q8"],
+      "scope_tables": ["t07_distributed_pv_wind"],
+      "required_fields": {
+        "t07_distributed_pv_wind": ["station_type", "installed_capacity_mw", "district_name", "operation_date"]
+      },
+      "terms": ["分布式光伏哪个县区跑得最快", "分布式光伏发展最快", "分布式光伏新增装机"],
+      "formula": "近12个月新增装机 = operation_date > (数据最新有效日期 - 12个月) 且 <= 数据最新有效日期的项目装机容量之和",
+      "content": "只筛选 station_type='分布式光伏'。表07记录均为已投运项目，不再追加状态条件。回答必须同时给出各县区累计装机排名和近12个月新增装机排名；“跑得最快”按近12个月新增装机MW最大判定，平行时按累计装机降序。数据最新有效日期取分布式光伏记录的MAX(operation_date)，当前为2024-12-01。待核实区县不进入排名。"
+    },
+    {
+      "id": "distributed_pv_classification",
+      "status": "published",
+      "runtime_enabled": true,
+      "source_question_ids": ["Q8", "Q10", "Q28"],
+      "scope_tables": ["t07_distributed_pv_wind"],
+      "required_fields": {
+        "t07_distributed_pv_wind": [
+          "station_type",
+          "station_type_2",
+          "installed_capacity_mw",
+          "district_name",
+          "operation_date"
+        ]
+      },
+      "terms": [
+        "分布式光伏",
+        "分布式光伏项目",
+        "分布式光伏装机",
+        "分布式光伏县区排名"
+      ],
+      "content": "表07中，分布式光伏必须使用项目类型“分布式光伏”精确筛选；项目类型的另一已发布枚举为“分散式风电”。上网方式只描述全额上网、自发自用或余电上网，不用于识别光伏。表07全体记录均为已投运项目，无需追加投运状态条件。装机容量使用规范化 MW 数值，县区使用已发布区县维度。"
+    },
+    {
       "id": "installed_capacity_from_grid_capacity",
       "status": "published",
       "runtime_enabled": true,
@@ -216,6 +366,32 @@
         "并网容量"
       ],
       "content": "一期已运行集中式新能源电站统计中，用户所称“装机容量”使用 t01_operating_renewable_station_profile.grid_capacity_mw（并网容量）计算；输出时应说明该一期口径。"
+    },
+    {
+      "id": "q24_parent_group_top5_and_central_enterprise_share",
+      "status": "published",
+      "runtime_enabled": true,
+      "source_question_ids": [
+        "Q24"
+      ],
+      "scope_tables": [
+        "t01_operating_renewable_station_profile"
+      ],
+      "required_fields": {
+        "t01_operating_renewable_station_profile": [
+          "parent_group",
+          "grid_capacity_mw"
+        ]
+      },
+      "terms": [
+        "装机最多的5家业主单位",
+        "业主单位装机排名",
+        "上级集团装机排名",
+        "归属上级集团",
+        "央企占比"
+      ],
+      "formula": "央企装机占比 = 已发布10家央企集团的并网容量合计 / 全部归属上级集团并网容量合计 × 100%",
+      "content": "Q24仅统计已运行集中式新能源电站。“业主单位”在本题中按归属上级集团解释，装机容量使用规范化并网容量MW。按归属上级集团分组求和，降序取前5。央企名单为：国家能源集团、中国大唐集团、中国广核集团、国家电投集团、中国核工业集团、中国节能环保集团、中国华能集团、中国三峡集团、华润集团、中国华电集团。地方国企为：北京能源集团、河北建投集团、河北交投集团。央企占比分母为全部归属上级集团装机容量合计。空值不按0处理。"
     },
     {
       "id": "county_from_location",
@@ -263,7 +439,7 @@
         "分类型多少"
       ],
       "formula": "全市新能源总装机 = 表01集中式并网容量 + 表07分布式装机容量；风电 = 表01风电 + 表07分散式风电；光伏 = 表01光伏 + 表07分布式光伏；风光储一体化单列",
-      "content": "客户题集 Q1 已确认表01并网容量就是集中式装机容量。当前源数据核查显示表01 grid_capacity_mw 的218条值均为纯数值文本，可用 CAST(TRIM(grid_capacity_mw) AS REAL)；表07 installed_capacity_mw 的218条值均为“数值+MW”，可用 CAST(REPLACE(UPPER(TRIM(installed_capacity_mw)), 'MW', '') AS REAL)。无效或空值必须排除并形成告警，不得按0处理。查询必须同时返回全市总计和分类型明细；题集标准答案是示意值，不得写入SQL。"
+      "content": "客户题集 Q1 已确认表01并网容量就是集中式装机容量。当前查询库已将表01 grid_capacity_mw 与表07 installed_capacity_mw 规范化为 REAL 类型的 MW 数值，直接用于 SUM、比较和排序；不得再对这两个规范化字段执行 TRIM、REPLACE 或单位文本清洗。对应 *_raw 原文列仅用于追溯，不参与计算。空值必须排除并形成告警，不得按0处理。查询必须同时返回全市总计和分类型明细；题集标准答案是示意值，不得写入SQL。"
     },
     {
       "id": "planned_date_not_actual_status",
@@ -279,6 +455,33 @@
         "备案项目"
       ],
       "content": "t04_filing_project 的 planned_start_month 与 planned_grid_operation_month 仅表示计划月份，只能回答计划节点；不得据此认定实际开工、实际投运或新增备案。"
+    },
+    {
+      "id": "construction_grid_access_approval_pending",
+      "status": "published",
+      "runtime_enabled": true,
+      "source_question_ids": [
+        "Q18"
+      ],
+      "scope_tables": [
+        "t02_construction_project_station"
+      ],
+      "required_fields": {
+        "t02_construction_project_station": [
+          "project_name",
+          "project_capacity_mw",
+          "grid_access_approval",
+          "current_progress"
+        ]
+      },
+      "terms": [
+        "接入意见函",
+        "没拿到接入意见函",
+        "未取得电力接入批复",
+        "电力接入批复",
+        "接入批复"
+      ],
+      "content": "Q18 已确认：t02_construction_project_station 的全体记录就是在建新能源及储能项目范围。用户说“在建项目”时不得额外添加 current_progress = '在建'、LIKE '%在建%' 或其他 current_progress 条件；current_progress 仅用于展示实际阶段。当前 grid_access_approval 的完整枚举只有“是”“办理中”；用户说“没拿到接入意见函”“未取得电力接入批复”时，按 grid_access_approval = '办理中' 筛选。若后续数据库出现新的未办结枚举，须更新字段画像和规则后才能使用。输出项目名称、项目容量（功率）和电力接入批复；不得把“办理中”表述为已经取得批复。"
     },
     {
       "id": "construction_schedule_date_normalization",
@@ -352,28 +555,71 @@
       "id": "storage_categories_non_additive",
       "status": "published",
       "runtime_enabled": true,
-      "scope_tables": [],
+      "source_question_ids": [
+        "Q4"
+      ],
+      "scope_tables": [
+        "t01_operating_renewable_station_profile",
+        "t06_grid_side_storage",
+        "t08_industrial_commercial_storage"
+      ],
+      "required_fields": {
+        "t01_operating_renewable_station_profile": [
+          "storage_power_mw",
+          "storage_energy_mwh"
+        ],
+        "t06_grid_side_storage": [
+          "storage_power_mw",
+          "storage_energy_mwh"
+        ],
+        "t08_industrial_commercial_storage": [
+          "storage_power_mw",
+          "storage_energy_mwh"
+        ]
+      },
       "terms": [
         "全市储能",
         "储能现状",
         "储能规模",
         "储能装机"
       ],
-      "content": "电源侧配储、表06电网侧储能、表08工商业储能属于不同对象集。无稳定项目 ID 与去重规则时必须分项展示，不得直接相加为全市总储能；MW 与 MWh 必须分别展示。"
+      "formula": "总储能功率(MW) = 电源侧储能功率 + 电网侧储能功率 + 工商业储能功率；总储能能量(MWh) = 三类储能能量之和；各类功率占比 = 该类功率 / 总功率；各类能量占比 = 该类能量 / 总能量",
+      "content": "Q4按客户确认口径统计在运储能现状：表01 storage_power_mw/storage_energy_mwh 为电源侧，表06同名规范化字段为电网侧，表08同名规范化字段为工商业侧。MW与MWh必须分别汇总、分别计算占比，禁止相互相加或混成一个无单位总量。三类对象当前按各表记录直接汇总；空值排除并形成数据质量说明。题集标准答案是示意值，必须使用当前数据库重算。"
     },
     {
-      "id": "curtailment_rate_candidate",
-      "status": "needs_customer_confirmation",
-      "runtime_enabled": false,
-      "reference_enabled": true,
+      "id": "curtailment_rate_and_utilization_hours",
+      "status": "published",
+      "runtime_enabled": true,
       "source_question_ids": [
         "Q15",
         "Q34"
       ],
       "scope_tables": [
+        "t01_operating_renewable_station_profile",
         "t01_operating_generation_monthly",
         "t01_operating_curtailment_monthly"
       ],
+      "required_fields": {
+        "t01_operating_renewable_station_profile": [
+          "station_name",
+          "energy_type",
+          "grid_capacity_mw"
+        ],
+        "t01_operating_generation_monthly": [
+          "station_name",
+          "time_period",
+          "metric_name",
+          "metric_unit",
+          "metric_value"
+        ],
+        "t01_operating_curtailment_monthly": [
+          "station_name",
+          "time_period",
+          "metric_name",
+          "metric_unit",
+          "metric_value"
+        ]
+      },
       "terms": [
         "限电率",
         "弃风率",
@@ -381,32 +627,38 @@
         "利用小时"
       ],
       "formula": "限电率 = 限电量 / (发电量 + 限电量) × 100%；等效利用小时 = 年发电量(MWh) / 并网容量(MW)",
-      "content": "候选辅助知识：月度汇总应先累加分子和分母再计算比率，不能平均场站百分比。仍需确认 metric_name、metric_unit、时间粒度和场站关联键后才能发布并生成计算 SQL。"
+      "content": "客户已确认限电率和等效利用小时公式。发电表与限电表均为月粒度，metric_unit='万kwh'；按 station_name + time_period 关联，同一统计范围内先累计发电量和限电量，再计算限电率，禁止平均月度或场站百分比。弃风率只统计表01 energy_type='风电'的场站，弃光率只统计 energy_type='光伏'的场站；风光储一体化必须单列，不得拆入风电或光伏。等效利用小时计算时将发电量由万kWh换算为MWh（乘10），再除以表01 grid_capacity_mw。Q34按题集修订口径使用2025-01至2025-12完整年度，等效利用小时降序取TOP5，限电率升序取TOP5；分母为0或容量为空的场站不参与排名。"
     },
     {
-      "id": "revenue_candidate",
-      "status": "needs_customer_confirmation",
-      "runtime_enabled": false,
-      "reference_enabled": true,
+      "id": "theoretical_revenue_2025",
+      "status": "published",
+      "runtime_enabled": true,
       "source_question_ids": [
         "Q6"
       ],
       "scope_tables": [
         "t01_operating_generation_monthly"
       ],
+      "required_fields": {
+        "t01_operating_generation_monthly": [
+          "time_period",
+          "metric_name",
+          "metric_unit",
+          "metric_value"
+        ]
+      },
       "terms": [
         "营收",
         "收入",
         "3720"
       ],
-      "formula": "年度发电量 × 确认电价",
-      "content": "候选辅助知识：仅可作为样本发电量按确认电价折算的理论电费收入；须确认发电量单位、电价单位、税费和结算边界后才能发布。"
+      "formula": "2025年理论发电收入(元) = 2025年1月至12月发电量合计(万kWh) × 3720元/万kWh",
+      "content": "客户确认使用折算系数3720。只统计 time_period='2025-01'至'2025-12'、metric_name='发电量'、metric_unit='万kwh'的记录。3720按元/万kWh解释，等价于0.372元/kWh；结果应称为“按确认电价折算的理论发电收入”，不能表述为包含税费、补贴、交易结算或企业其他业务的财务报表营业收入。回答同时展示新能源场站数、年度发电量（万kWh）及理论收入（亿元），题集示意数值不写入SQL。"
     },
     {
-      "id": "substation_saturation_candidate",
-      "status": "needs_customer_confirmation",
-      "runtime_enabled": false,
-      "reference_enabled": true,
+      "id": "substation_near_saturation_q17_q33",
+      "status": "published",
+      "runtime_enabled": true,
       "source_question_ids": [
         "Q17",
         "Q33"
@@ -414,13 +666,22 @@
       "scope_tables": [
         "t10_power_grid_material"
       ],
+      "required_fields": {
+        "t10_power_grid_material": [
+          "station_name_substation",
+          "voltage_level_kv",
+          "remaining_bay_count",
+          "remaining_access_capacity_mw",
+          "expansion_plan"
+        ]
+      },
       "terms": [
         "接近饱和",
         "剩余接入容量",
         "剩余间隔"
       ],
-      "formula": "候选阈值：剩余间隔数量 ≤ 1 或 剩余可接入容量 ≤ 10 MW",
-      "content": "候选辅助知识：不得使用剩余可接入容量/主变容量大于90%判断饱和，方向和单位均不成立。候选阈值仍需业务确认后才能生成判定 SQL。"
+      "formula": "接近饱和 = 剩余间隔数量 ≤ 1 OR 剩余可接入容量 ≤ 10 MW",
+      "content": "客户已确认Q17、Q33统一采用该阈值。任一条件命中即列入接近饱和清单，并返回命中的原因及扩容计划原文。remaining_access_capacity_mw为规范化REAL字段，可直接与10比较，不读取带单位原文列。不得使用“剩余可接入容量/主变容量>90%”，因为方向不符合剩余量定义，且MW与MVA单位不能直接相除。查询结果超过单次展示上限时应先返回总数和分档汇总，再分页展示明细，不得声称只有前100条。"
     },
     {
       "id": "project_delay_candidate",
@@ -448,33 +709,6 @@
       ],
       "formula": "计划逾期 = 当前阶段进展 <> '已完成' 且 date(预计并网时间) < 表02数据截至日（2026-07-15）",
       "content": "客户已确认：使用 t02_construction_project_station.current_progress 与 grid_connection_date 判定。仅当 current_progress 非“已完成”、grid_connection_date 非空且早于数据截至日 2026-07-15 时，项目可标记为“计划逾期”。县区必须依据 construction_location 按行政区派生规则汇总，待核实地址不得进入县区汇总。输出应说明这是按计划节点的逾期筛查，不得表述为停工、违规或备案后未开工。"
-    },
-    {
-      "id": "grid_near_saturation_q33",
-      "status": "published",
-      "runtime_enabled": true,
-      "source_question_ids": [
-        "Q33"
-      ],
-      "scope_tables": [
-        "t10_power_grid_material"
-      ],
-      "required_fields": {
-        "t10_power_grid_material": [
-          "station_name_substation",
-          "remaining_bay_count",
-          "remaining_access_capacity_mw",
-          "expansion_plan"
-        ]
-      },
-      "terms": [
-        "接近饱和",
-        "剩余间隔",
-        "剩余可接入容量",
-        "扩容计划"
-      ],
-      "formula": "近饱和 = remaining_bay_count <= 1 OR remaining_access_capacity_mw <= 10",
-      "content": "按0722题集Q33口径，剩余可接入容量不与主变容量换算或相除。只使用规范化 REAL 字段 remaining_access_capacity_mw（MW）直接与10比较；主变总容量为MVA，仅用于独立汇总展示。"
     }
   ]
 }

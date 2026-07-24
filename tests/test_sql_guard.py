@@ -116,3 +116,18 @@ def test_guard_rejects_unsafe_or_unpublished_sql(tmp_path, sql: str) -> None:
 
     with pytest.raises(guard_module.SqlValidationError):
         guard.validate(sql)
+
+
+@pytest.mark.parametrize(
+    "sql",
+    [
+        "WITH RECURSIVE x(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM x) SELECT n FROM x",
+        "SELECT a.id FROM stations AS a CROSS JOIN stations AS b",
+        "SELECT a.id FROM stations AS a JOIN stations AS b",
+    ],
+)
+def test_guard_rejects_recursive_or_unbounded_join_shapes(tmp_path, sql: str) -> None:
+    _, guard_module = load_modules()
+    guard = guard_module.SqlGuard(build_catalog(tmp_path), max_rows=100)
+    with pytest.raises(guard_module.SqlValidationError):
+        guard.validate(sql)

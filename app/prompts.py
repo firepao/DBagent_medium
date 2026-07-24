@@ -8,7 +8,9 @@ class PromptConfigurationError(ValueError):
 
 
 class PromptRegistry:
-    REQUIRED_PROMPTS = frozenset({"planner", "sql_generator", "sql_reviewer"})
+    REQUIRED_PROMPTS = frozenset(
+        {"planner", "sql_generator", "pre_execution_reviewer", "result_reviewer"}
+    )
 
     def __init__(self, version: str, prompts: Mapping[str, str]) -> None:
         self.version = version

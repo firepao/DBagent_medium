@@ -67,6 +67,25 @@ BitAgent
 
 表01、表02、表04、表07、表08、表09未单列 `county` 时，服务使用 `administrative_regions.json` 中的完整行政区名称，从项目或站点位置字段派生县区。对于“哪个县区”“按县区排名”等问题，模型不得追问是否接受按地址汇总；必须使用 SQL 上下文提供的 `CASE` 模板。未匹配或匹配多个行政区名称的记录统一标记为“待核实”，不得进入县区排名、占比或增速分母，并在最终回答中说明。
 
+### 2.1.2 对象范围与字段筛选
+
+TableCard 的 `object_scope` 用来区分业务对象和字段条件。例如，表02全表已经是“在建项目”，因此用户说“在建项目”只负责选中表02，不得自动生成 `current_progress = '在建'`。只有用户明确说出 `object_scope.status_filters.allowed_values` 中的实际枚举值，例如“前期”或“设备安装”，才允许筛选当前阶段字段。
+
+该规则有三层约束：规划提示词区分对象和条件；SQL 上下文注入结构化 `object_scope`；服务端在 Guard 后、执行前确定性检查状态谓词。违反约束的候选 SQL 会交回原 SQL 生成器修复一次，不会进入数据库执行。
+
+### 2.1.3 严格 DDL 与字段画像
+
+`query_ready_v2/ddl/*.sql` 不只是可执行建表语句。每张 DDL 同时记录表的行粒度、当前行数、业务范围、关联口径、题集问题映射、已发布规则、待确认边界和验证问题示例；每个字段记录真实 SQLite 类型、中文含义、用途、非空/空值数、去重值数量，以及低基数字段的完整枚举、数值字段的当前范围或高基数字段的有限代表值。联系人、来源追溯列、原始解析列等排除字段不发布实际取值，也不会进入 LLM 的可查询字段上下文。
+
+数据库或题集配置更新后，在 `medium` 目录重新生成：
+
+```powershell
+& 'C:\Users\nine\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe' `
+  tools\generate_detailed_ddls.py
+```
+
+生成器依据当前 SQLite、`table_cards.json`、`validation_cases.json`、`query_knowledge.json` 和 `examples.json` 重建 16 张 DDL，并同步更新 `ddl_registry.json` 的 SHA-256。它可以重复执行，不会叠加旧画像。规划阶段只加载轻量字段业务含义；完整枚举、范围和题集口径只在选表后进入 SQL 生成与审核上下文。
+
 ### 2.2 源数据事实核查
 
 每次更新 `data`、`data_1`、SQLite、DDL 或 `config/` 后，先运行只读核查：
@@ -82,15 +101,22 @@ BitAgent
 
 ### 2.3 提示词配置
 
-所有 LLM System Prompt 统一位于 `config/prompts.json`，不再硬编码在 Python 代码中。该文件必须包含下列三个非空提示词；服务启动时会校验缺失或格式错误的配置并拒绝启动：
+所有 LLM System Prompt 统一位于 `config/prompts.json`，不再硬编码在 Python 代码中。该文件必须包含下列四个非空提示词；服务启动时会校验缺失或格式错误的配置并拒绝启动：
 
 | ID | 调用阶段 | 业务职责 |
 | --- | --- | --- |
 | `planner` | 第一轮 LLM | 基于增强表卡选择完整且必要的表，识别缺参和范围限制 |
 | `sql_generator` | 第二轮 LLM | 依据所选表的 DDL、字段语义、规则和示例生成候选 SQLite SQL |
-| `sql_reviewer` | 第三轮 LLM | 审核候选 SQL 的选表、指标、单位、范围、规则和结果覆盖；可通过、重写一次、澄清或拒绝 |
+| `pre_execution_reviewer` | 第三轮 LLM | 审核候选 SQL 的选表、指标、单位、范围和结果形态；仅输出结构化意见，不生成 SQL |
+| `result_reviewer` | 执行后 LLM | 基于脱敏结果证据判断是否足以回答；可回答、要求一次补查、澄清或拒绝；不生成 SQL |
 
-修改提示词时应保持输出契约不变：规划器返回 `QueryPlan` JSON，审核器返回 `SqlSemanticReview` JSON，SQL 生成器仅返回一条 SQL。修改后必须运行全量测试，并重启 Uvicorn 才会加载新版本。
+修改提示词时应保持输出契约不变：规划器返回 `QueryPlan` JSON；执行前审核器返回 `PreExecutionReview` JSON；结果审核器返回 `ResultReview` JSON；SQL 生成器在 `initial`、`guard_repair`、`semantic_revision`、`result_requery` 模式下均仅返回一条 SQL。审核器不得返回 SQL。修改后必须运行全量测试，并重启 Uvicorn 才会加载新版本。
+
+### 2.4 双阶段审核与受控试执行
+
+服务采用显式状态机：`规划 -> SQL 生成 -> Guard -> 执行前审核 -> 受控执行 -> 结果证据 -> 结果审核`。Guard 修复和执行前语义修改共享一次 SQL 修改预算；结果审核最多触发一次补查。每次修改都由 SQL 生成器完成并重新通过 Guard。结果审核只接收有限行、脱敏的结果摘要，不能直接执行 SQL 或修改结果数值。
+
+成功响应保留原有 `data`，并新增可选的 `result_sets`、`coverage`、`limitations`。`result_sets` 中的 `primary` 是主查询，`supplemental` 仅在服务端完成一次补查后出现；两个结果集不会被服务端自动相加。
 
 ## 3. Python 环境与依赖
 
@@ -380,7 +406,7 @@ HTTP `200` 不代表业务查询成功。`200 + success=false` 是服务已正�
   "inputParameters": {
     "question": "张北县已运行风电项目装机容量合计是多少？"
   }
-}
+}{"output":{"output":"抱歉，我无法根据您提供的信息回答这个问题。\n\n请求编号：qry_cd89c56c11d74767979cec25df50db65","question":"在建项目中，建设用地批复尚未办结的项目有哪些？列出项目名称，统计数量和总装机容量（MW）"},"processInstanceId":"2079846670824247296","traceId":"hyuwGuDayHejeInN"}
 /api/v1/query-energy-data
 https://shoes-greensboro-module-alexander.trycloudflare.com/api/v1/query-energy-data
 https://inspired-dayton-technological-cedar.trycloudflare.com/api/v1/query-energy-data
@@ -399,6 +425,15 @@ https://disabilities-passage-colour-edwards.trycloudflare.com/api/v1/query-energ
 https://yeast-isolated-entries-receptor.trycloudflare.com/api/v1/query-energy-data
 https://travel-lease-save-pills.trycloudflare.com/api/v1/query-energy-data
 https://reserve-submissions-extensions-software.trycloudflare.com/api/v1/query-energy-data
+https://tel-smart-appliance-handling.trycloudflare.com/api/v1/query-energy-data
+https://isle-treaty-groundwater-floating.trycloudflare.com/api/v1/query-energy-data
+https://mention-wines-addresses-extent.trycloudflare.com/api/v1/query-energy-data
+https://advertising-estimated-machines-sustained.trycloudflare.com/api/v1/query-energy-data
+https://chains-modular-colin-reservoir.trycloudflare.com/api/v1/query-energy-data
+https://oecd-memories-sat-vsnet.trycloudflare.com/api/v1/query-energy-data
+https://robertson-tubes-carrying-sending.trycloudflare.com/api/v1/query-energy-data
+https://tramadol-processes-detect-attending.trycloudflare.com/api/v1/query-energy-data
+https://reed-facts-jar-closer.trycloudflare.com/api/v1/query-energy-data
 服务不接收 `operation`、`metric`、`filters`、`group_by`、`limit`、SQL、表名、字段名、DDL 或 RAG 原始 chunk。它们属于旧 `min` 服务的查询计划协议，或应在 Medium 服务内部受控处理。
 
 ### 8.2 成功响应

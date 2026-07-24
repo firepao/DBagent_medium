@@ -36,7 +36,10 @@ class Settings(BaseSettings):
         validation_alias="ENABLE_LLM_TRACE",
     )
     query_timeout_seconds: float = Field(default=10.0, gt=0)
+    query_total_timeout_seconds: float = Field(default=240.0, gt=0)
     max_result_rows: int = Field(default=100, ge=1, le=1000)
+    max_sql_modification_attempts: int = Field(default=1, ge=0, le=1)
+    max_result_requery_attempts: int = Field(default=1, ge=0, le=1)
     audit_log_path: Path = Path("runtime/query_audit.jsonl")
     query_diagnostics_enabled: bool = Field(
         default=False,

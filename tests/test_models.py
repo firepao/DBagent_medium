@@ -48,4 +48,19 @@ def test_tool_error_has_stable_non_leaking_shape() -> None:
         message="请求参数不合法",
         retryable=False,
     )
+    assert response.answer_guidance["response_mode"] == "error"
+    assert "不得推测字段不存在" in response.answer_guidance["hard_constraints"][1]
     assert "sql" not in response.model_dump_json().lower()
+
+
+def test_clarification_failure_uses_clarification_answer_mode() -> None:
+    models = load_models()
+    response = models.ToolResponse.failure(
+        request_id="qry_test",
+        code="CLARIFICATION_REQUIRED",
+        message="请确认统计口径。",
+        retryable=False,
+    )
+
+    assert response.answer_guidance["response_mode"] == "clarification"
+    assert response.answer_guidance["template"].startswith("需要补充查询口径")

@@ -74,6 +74,10 @@ def build_default_service() -> QueryService:
         executor,
         audit,
         diagnostics_enabled=settings.query_diagnostics_enabled,
+        max_sql_repair_attempts=settings.max_sql_modification_attempts,
+        max_semantic_rewrite_attempts=settings.max_sql_modification_attempts,
+        max_result_requery_attempts=settings.max_result_requery_attempts,
+        total_timeout_seconds=settings.query_total_timeout_seconds,
     )
 
 

@@ -72,6 +72,7 @@ class SqlGuard:
         if not isinstance(statement, compound_query_types):
             raise SqlValidationError("只允许 SELECT、WITH...SELECT 或只读集合查询")
         self._reject_forbidden_nodes(statement)
+        self._reject_excessive_complexity(statement)
 
         cte_names = {cte.alias_or_name for cte in statement.find_all(exp.CTE)}
         cte_columns = {
@@ -102,6 +103,8 @@ class SqlGuard:
             alias_to_table[name] = name
         if not base_tables:
             raise SqlValidationError("查询没有引用已发布数据表")
+        if len(base_tables) > 4:
+            raise SqlValidationError("查询引用的数据表超过允许范围")
 
         allowed_by_table = {
             table: self.catalog.allowed_columns(table) for table in base_tables
@@ -160,6 +163,24 @@ class SqlGuard:
         )
         if any(isinstance(node, forbidden_types) for node in statement.walk()):
             raise SqlValidationError("SQL 包含禁止操作")
+
+    @staticmethod
+    def _reject_excessive_complexity(statement: exp.Expression) -> None:
+        with_nodes = list(statement.find_all(exp.With))
+        if any(node.args.get("recursive") for node in with_nodes):
+            raise SqlValidationError("不允许递归 CTE")
+        if len(list(statement.find_all(exp.CTE))) > 3:
+            raise SqlValidationError("CTE 数量超过允许范围")
+        for join in statement.find_all(exp.Join):
+            if str(join.args.get("kind") or "").upper() == "CROSS":
+                raise SqlValidationError("不允许笛卡尔积连接")
+            on_expression = join.args.get("on")
+            if (
+                (not on_expression and not join.args.get("using"))
+                or isinstance(on_expression, exp.Boolean)
+                and on_expression.this is True
+            ):
+                raise SqlValidationError("连接必须声明关联条件")
 
     def _enforce_limit(self, statement: exp.Expression) -> exp.Expression:
         limit = statement.args.get("limit")

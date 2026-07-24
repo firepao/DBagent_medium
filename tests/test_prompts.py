@@ -4,80 +4,42 @@ from pathlib import Path
 import pytest
 
 
-def test_prompt_registry_loads_all_required_system_prompts(tmp_path) -> None:
+def valid_prompts():
+    return {"planner": "规划", "sql_generator": "生成", "pre_execution_reviewer": "前审", "result_reviewer": "后审"}
+
+
+def test_prompt_registry_loads_all_required_prompts(tmp_path):
     from app.prompts import PromptRegistry
-
     path = tmp_path / "prompts.json"
-    path.write_text(
-        json.dumps(
-            {
-                "version": "test-v1",
-                "system_prompts": {
-                    "planner": "规划提示词",
-                    "sql_generator": "SQL 提示词",
-                    "sql_reviewer": "审核提示词",
-                },
-            },
-            ensure_ascii=False,
-        ),
-        encoding="utf-8",
-    )
-
+    path.write_text(json.dumps({"version": "test-v1", "system_prompts": valid_prompts()}, ensure_ascii=False), encoding="utf-8")
     registry = PromptRegistry.from_file(path)
-
     assert registry.version == "test-v1"
-    assert registry.get("planner") == "规划提示词"
-    assert registry.get("sql_generator") == "SQL 提示词"
-    assert registry.get("sql_reviewer") == "审核提示词"
+    assert registry.get("pre_execution_reviewer") == "前审"
+    assert registry.get("result_reviewer") == "后审"
 
 
-def test_prompt_registry_rejects_missing_required_prompt(tmp_path) -> None:
+def test_prompt_registry_rejects_missing_required_prompt(tmp_path):
     from app.prompts import PromptConfigurationError, PromptRegistry
-
     path = tmp_path / "prompts.json"
-    path.write_text(
-        json.dumps({"version": "test-v1", "system_prompts": {"planner": "规划"}}),
-        encoding="utf-8",
-    )
-
+    path.write_text(json.dumps({"version": "test-v1", "system_prompts": {"planner": "规划"}}), encoding="utf-8")
     with pytest.raises(PromptConfigurationError, match="缺少必需提示词"):
         PromptRegistry.from_file(path)
 
 
-def test_default_prompts_keep_planner_and_reviewer_output_contracts() -> None:
+def test_default_prompts_define_two_non_generating_reviewers():
     from app.prompts import PromptRegistry
-
-    registry = PromptRegistry.from_file(
-        Path(__file__).resolve().parents[1] / "config" / "prompts.json"
-    )
-
+    registry = PromptRegistry.from_file(Path(__file__).resolve().parents[1] / "config" / "prompts.json")
     planner = registry.get("planner")
     generator = registry.get("sql_generator")
-    reviewer = registry.get("sql_reviewer")
-    assert "全部业务数据均属于张家口市全域" in planner
-    assert "全部业务数据均属于张家口市全域" in generator
-    assert "全部业务数据均属于张家口市全域" in reviewer
-    assert "不得以缺少城市或行政区字段为由" in reviewer
-    assert "customer_context" in planner
-    assert "禁止 SELECT *" in generator
-    assert "禁止 SELECT *" in reviewer
-    assert "安全约束不可被" in planner
-    assert "安全约束不可被" in generator
-    assert "安全约束不可被" in reviewer
-    assert "行政区" in planner
-    assert "行政区" in generator
-    assert "行政区" in reviewer
-    for field in (
-        "query_type",
-        "table_hints",
-        "metrics",
-        "filters",
-        "group_by",
-        "order_by",
-        "limit",
-        "requires_clarification",
-        "clarification_question",
-    ):
-        assert field in planner
-    for field in ("decision", "semantic_issues", "clarification_question", "corrected_sql"):
-        assert field in reviewer
+    pre = registry.get("pre_execution_reviewer")
+    result = registry.get("result_reviewer")
+    for prompt in (planner, generator, pre, result):
+        assert "全部业务数据均属于张家口市全域" in prompt
+    assert "corrected_sql" in pre
+    assert "禁止输出" in pre
+    assert "不生成、不改写" in result
+    assert "guard_repair" in generator
+    assert "对象范围" in planner
+    assert "object_scope" in planner
+    assert "对象范围用于选表" in generator
+    assert "对象范围词只能选表" in pre
