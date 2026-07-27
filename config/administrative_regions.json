@@ -30,6 +30,27 @@
     "t04_filing_project": "construction_location",
     "t07_distributed_pv_wind": "station_location",
     "t08_industrial_commercial_storage": "station_location",
-    "t09_charging_station": "station_location"
+    "t09_charging_station": "station_location",
+    "t06_grid_side_storage": "station_name"
+  },
+  "table_area_aliases": {
+    "t06_grid_side_storage": {
+      "桥东区": ["桥东"],
+      "桥西区": ["桥西"],
+      "崇礼区": ["崇礼"],
+      "宣化区": ["宣化"],
+      "下花园区": ["下花园"],
+      "万全区": ["万全"],
+      "张北县": ["张北"],
+      "康保县": ["康保"],
+      "沽源县": ["沽源"],
+      "尚义县": ["尚义"],
+      "蔚县": ["蔚"],
+      "阳原县": ["阳原"],
+      "怀安县": ["怀安"],
+      "怀来县": ["怀来"],
+      "涿鹿县": ["涿鹿"],
+      "赤城县": ["赤城"]
+    }
   }
 }

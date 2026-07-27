@@ -15,6 +15,11 @@ class Settings(BaseSettings):
     openai_base_url: str = ""
     openai_api_key: str = ""
     openai_model: str = ""
+    llm_providers_path: Path | None = None
+    llm_provider_retry_count: int = Field(default=1, ge=0, le=3)
+    llm_circuit_failure_threshold: int = Field(default=3, ge=1, le=20)
+    llm_circuit_cooldown_seconds: float = Field(default=60.0, gt=0)
+    llm_max_provider_attempts: int = Field(default=3, ge=1, le=10)
     sqlite_db_path: Path = Path(
         "../data/数据入库v_1.1_0722/query_ready_v2/zhangbei_energy_query_ready_v2.sqlite3"
     )
@@ -48,6 +53,8 @@ class Settings(BaseSettings):
 
     @property
     def llm_configured(self) -> bool:
+        if self.llm_providers_path is not None:
+            return True
         return bool(
             self.openai_base_url.strip()
             and self.openai_api_key.strip()

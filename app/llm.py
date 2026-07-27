@@ -1,11 +1,18 @@
+import asyncio
 import json
-from typing import Any, Mapping, Protocol
+from pathlib import Path
+from typing import Any, Callable, Mapping, Protocol, TypeVar
 
 import httpx
 from pydantic import ValidationError
 
 from app.config import Settings
 from app.llm_trace import LLMTraceRepository
+from app.llm_providers import (
+    LLMProvider,
+    LLMProviderConfigurationError,
+    LLMProviderPool,
+)
 from app.models import PreExecutionReview, QueryPlan, ResultReview
 from app.prompts import PromptRegistry
 
@@ -70,6 +77,9 @@ class QueryLLM(Protocol):
     ) -> ResultReview: ...
 
 
+T = TypeVar("T")
+
+
 class OpenAIQueryLLM:
     def __init__(
         self,
@@ -77,11 +87,19 @@ class OpenAIQueryLLM:
         client: httpx.AsyncClient | None = None,
         prompts: PromptRegistry | Mapping[str, str] | None = None,
         trace_repository: LLMTraceRepository | None = None,
+        provider_pool: LLMProviderPool | None = None,
+        base_dir: Path | None = None,
     ) -> None:
         self.settings = settings
         self._owns_client = client is None
         self.client = client or httpx.AsyncClient(timeout=settings.llm_timeout_seconds)
         self.trace_repository = trace_repository
+        try:
+            self.provider_pool = provider_pool or LLMProviderPool.from_settings(
+                settings, base_dir=base_dir
+            )
+        except LLMProviderConfigurationError as exc:
+            raise LLMConfigurationError(str(exc)) from exc
         if prompts is None:
             self.prompts = PromptRegistry.from_file(settings.prompts_path)
         elif isinstance(prompts, PromptRegistry):
@@ -91,54 +109,112 @@ class OpenAIQueryLLM:
 
     @property
     def is_configured(self) -> bool:
-        return self.settings.llm_configured
+        return True
 
     def _ensure_configured(self) -> None:
-        if not self.settings.llm_configured:
-            raise LLMConfigurationError("OpenAI 兼容接口配置不完整")
+        if not self.provider_pool:
+            raise LLMConfigurationError("大模型供应商池配置不完整")
 
-    async def _chat(self, system: str, user: str) -> str:
+    async def _chat(
+        self,
+        stage: str,
+        system: str,
+        user: str,
+        validator: Callable[[str], T] | None = None,
+    ) -> str | T:
         self._ensure_configured()
-        url = f"{self.settings.openai_base_url.rstrip('/')}/chat/completions"
-        try:
-            response = await self.client.post(
-                url,
-                headers={
-                    "Authorization": f"Bearer {self.settings.openai_api_key}",
-                    "Content-Type": "application/json",
-                },
-                json={
-                    "model": self.settings.openai_model,
-                    "messages": [
-                        {"role": "system", "content": system},
-                        {"role": "user", "content": user},
-                    ],
-                    "temperature": 0,
-                },
-            )
-            response.raise_for_status()
-            payload: dict[str, Any] = response.json()
-            content = payload["choices"][0]["message"]["content"]
-        except httpx.TimeoutException as exc:
-            self._record_error("timeout")
-            raise LLMTimeoutError("模型接口调用超时") from exc
-        except httpx.HTTPError as exc:
-            self._record_error("upstream_http_error")
-            raise LLMUpstreamUnavailableError("模型接口不可用") from exc
-        except (KeyError, IndexError, TypeError, ValueError) as exc:
-            self._record_error("invalid_response")
-            raise LLMInvalidResponseError("模型接口返回无效响应") from exc
-        if not isinstance(content, str) or not content.strip():
-            self._record_error("empty_content")
-            raise LLMInvalidResponseError("模型接口返回空内容")
-        normalized = content.strip()
-        if self.trace_repository is not None:
-            self.trace_repository.record_output(self.settings.openai_model, normalized)
-        return normalized
+        last_error: Exception | None = None
+        for provider in self.provider_pool.candidates(stage):
+            for attempt in range(self.settings.llm_provider_retry_count + 1):
+                try:
+                    normalized = await self._chat_provider(provider, system, user)
+                    validated = validator(normalized) if validator else normalized
+                    self.provider_pool.record_success(provider.id)
+                    if self.trace_repository is not None:
+                        self.trace_repository.record_output(
+                            provider.model, normalized, provider=provider.id
+                        )
+                    return validated
+                except httpx.TimeoutException as exc:
+                    last_error = exc
+                    self._record_error(provider, "timeout")
+                    if attempt < self.settings.llm_provider_retry_count:
+                        await asyncio.sleep(0.2)
+                        continue
+                except httpx.HTTPStatusError as exc:
+                    last_error = exc
+                    status = exc.response.status_code
+                    self._record_error(provider, f"upstream_http_{status}")
+                    if status in {400, 422}:
+                        raise LLMInvalidResponseError(
+                            f"模型接口拒绝请求（HTTP {status}）"
+                        ) from exc
+                    if (
+                        status in {408, 429, 500, 502, 503, 504}
+                        and attempt < self.settings.llm_provider_retry_count
+                    ):
+                        await asyncio.sleep(0.2)
+                        continue
+                except httpx.HTTPError as exc:
+                    last_error = exc
+                    self._record_error(provider, "upstream_http_error")
+                    if attempt < self.settings.llm_provider_retry_count:
+                        await asyncio.sleep(0.2)
+                        continue
+                except (KeyError, IndexError, TypeError, ValueError) as exc:
+                    last_error = exc
+                    self._record_error(provider, "invalid_response")
+                except LLMInvalidResponseError as exc:
+                    last_error = exc
+                    self._record_error(provider, "empty_content")
+                except (LLMPlanSchemaError, LLMReviewSchemaError) as exc:
+                    last_error = exc
+                    self._record_error(provider, "schema_invalid")
+                break
+            self.provider_pool.record_failure(provider.id)
+        if isinstance(last_error, (LLMPlanSchemaError, LLMReviewSchemaError)):
+            raise last_error
+        if isinstance(last_error, httpx.TimeoutException):
+            raise LLMTimeoutError("所有模型供应商均调用超时") from last_error
+        raise LLMUpstreamUnavailableError(
+            "所有模型供应商均不可用"
+        ) from last_error
 
-    def _record_error(self, error_type: str) -> None:
+    async def _chat_provider(
+        self, provider: LLMProvider, system: str, user: str
+    ) -> str:
+        response = await self.client.post(
+            f"{provider.base_url.rstrip('/')}/chat/completions",
+            headers={
+                "Authorization": f"Bearer {provider.api_key}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": provider.model,
+                "messages": [
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": user},
+                ],
+                "temperature": 0,
+            },
+        )
+        response.raise_for_status()
+        payload: dict[str, Any] = response.json()
+        message = payload["choices"][0]["message"]
+        content = message.get("content")
+        if not isinstance(content, str) or not content.strip():
+            reasoning = message.get("reasoning_content")
+            if isinstance(reasoning, str) and reasoning.strip():
+                content = reasoning
+            else:
+                raise LLMInvalidResponseError("模型接口返回空内容")
+        return content.strip()
+
+    def _record_error(self, provider: LLMProvider, error_type: str) -> None:
         if self.trace_repository is not None:
-            self.trace_repository.record_error(self.settings.openai_model, error_type)
+            self.trace_repository.record_error(
+                provider.model, error_type, provider=provider.id
+            )
 
     async def plan(self, question: str, planning_context: str) -> QueryPlan:
         system = self.prompts.get("planner")
@@ -146,11 +222,13 @@ class OpenAIQueryLLM:
             {"question": question, "planning_context": planning_context},
             ensure_ascii=False,
         )
-        content = self._strip_json_fence(await self._chat(system, user))
-        try:
-            return QueryPlan.model_validate_json(content)
-        except ValidationError as exc:
-            raise LLMPlanSchemaError("查询规划结果不符合约定结构") from exc
+        def validate(content: str) -> QueryPlan:
+            try:
+                return QueryPlan.model_validate_json(self._strip_json_fence(content))
+            except ValidationError as exc:
+                raise LLMPlanSchemaError("查询规划结果不符合约定结构") from exc
+
+        return await self._chat("planning", system, user, validate)
 
     async def generate_sql(
         self,
@@ -174,7 +252,9 @@ class OpenAIQueryLLM:
                 "initial 模式生成首次 SQL。其他模式只修改反馈指出的问题；仍只返回一条 SQL。",
             ]
         )
-        return self._strip_sql_fence(await self._chat(system, user))
+        return self._strip_sql_fence(
+            await self._chat("sql_generation", system, user)
+        )
 
     async def review_before_execution(
         self,
@@ -195,14 +275,18 @@ class OpenAIQueryLLM:
             },
             ensure_ascii=False,
         )
-        content = self._strip_json_fence(await self._chat(system, user))
-        try:
-            review = PreExecutionReview.model_validate_json(content)
-        except ValidationError as exc:
-            raise LLMReviewSchemaError("执行前审核结果不符合约定结构") from exc
-        if review.decision == "clarification" and not review.clarification:
-            raise LLMReviewSchemaError("执行前审核未提供澄清问题")
-        return review
+        def validate(content: str) -> PreExecutionReview:
+            try:
+                review = PreExecutionReview.model_validate_json(
+                    self._strip_json_fence(content)
+                )
+            except ValidationError as exc:
+                raise LLMReviewSchemaError("执行前审核结果不符合约定结构") from exc
+            if review.decision == "clarification" and not review.clarification:
+                raise LLMReviewSchemaError("执行前审核未提供澄清问题")
+            return review
+
+        return await self._chat("pre_execution_review", system, user, validate)
 
     async def review_result(
         self,
@@ -221,14 +305,18 @@ class OpenAIQueryLLM:
             },
             ensure_ascii=False,
         )
-        content = self._strip_json_fence(await self._chat(system, user))
-        try:
-            review = ResultReview.model_validate_json(content)
-        except ValidationError as exc:
-            raise LLMReviewSchemaError("执行后结果审核不符合约定结构") from exc
-        if review.decision == "clarification" and not review.clarification:
-            raise LLMReviewSchemaError("执行后审核未提供澄清问题")
-        return review
+        def validate(content: str) -> ResultReview:
+            try:
+                review = ResultReview.model_validate_json(
+                    self._strip_json_fence(content)
+                )
+            except ValidationError as exc:
+                raise LLMReviewSchemaError("执行后结果审核不符合约定结构") from exc
+            if review.decision == "clarification" and not review.clarification:
+                raise LLMReviewSchemaError("执行后审核未提供澄清问题")
+            return review
+
+        return await self._chat("result_review", system, user, validate)
 
     @staticmethod
     def _strip_json_fence(content: str) -> str:

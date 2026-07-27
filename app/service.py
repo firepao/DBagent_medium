@@ -523,7 +523,11 @@ class QueryService:
             except sqlite3.DatabaseError:
                 pass
         llm_state = "configured" if getattr(self.llm, "is_configured", False) else "missing"
-        return {"status": "healthy" if database_state == "healthy" and llm_state == "configured" else "degraded", "checks": {"database": database_state, "llm": llm_state}}
+        response = {"status": "healthy" if database_state == "healthy" and llm_state == "configured" else "degraded", "checks": {"database": database_state, "llm": llm_state}}
+        provider_pool = getattr(self.llm, "provider_pool", None)
+        if provider_pool is not None:
+            response["llm_providers"] = provider_pool.snapshot()
+        return response
 
     async def aclose(self):
         close = getattr(self.llm, "aclose", None)

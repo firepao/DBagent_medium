@@ -28,11 +28,25 @@ class LLMTraceRepository:
         self.path = Path(path)
         self._lock = threading.Lock()
 
-    def record_output(self, model: str, output: str) -> None:
-        self._record({"model": model, "event": "output", "output": output})
+    def record_output(
+        self, model: str, output: str, *, provider: str | None = None
+    ) -> None:
+        payload = {"model": model, "event": "output", "output": output}
+        if provider:
+            payload["provider"] = provider
+        self._record(payload)
 
-    def record_error(self, model: str, error_type: str) -> None:
-        self._record({"model": model, "event": "error", "error_type": error_type})
+    def record_error(
+        self,
+        model: str,
+        error_type: str,
+        *,
+        provider: str | None = None,
+    ) -> None:
+        payload = {"model": model, "event": "error", "error_type": error_type}
+        if provider:
+            payload["provider"] = provider
+        self._record(payload)
 
     def _record(self, payload: dict[str, str]) -> None:
         context = _trace_context.get()

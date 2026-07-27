@@ -59,7 +59,12 @@ def build_default_service() -> QueryService:
         if settings.enable_llm_trace
         else None
     )
-    llm = OpenAIQueryLLM(settings, prompts=prompts, trace_repository=trace)
+    llm = OpenAIQueryLLM(
+        settings,
+        prompts=prompts,
+        trace_repository=trace,
+        base_dir=BASE_DIR,
+    )
     guard = SqlGuard(catalog, max_rows=settings.max_result_rows)
     executor = SQLiteExecutor(
         db_path,

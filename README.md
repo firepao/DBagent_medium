@@ -187,6 +187,30 @@ ENABLE_QUERY_DIAGNOSTICS=false
 
 不要把 `.env`、API Key、Cloudflare Access 密钥或用户完整问题提交到 Git、工作流导出文件和日志。`ENABLE_LLM_TRACE=true` 只用于受控联调：该日志会保存模型原始输出，必须限制服务器本机访问，并在问题定位后关闭。
 
+### 4.1 多供应商自动降级
+
+复制供应商池示例并填写各服务的地址、模型和密钥变量名：
+
+```powershell
+Copy-Item config\llm_providers.example.json config\llm_providers.json
+```
+
+在 `.env` 中启用并保存实际密钥：
+
+```dotenv
+LLM_PROVIDERS_PATH=config/llm_providers.json
+LLM_PRIMARY_API_KEY=主服务密钥
+LLM_FALLBACK_1_API_KEY=备用服务密钥
+LLM_PROVIDER_RETRY_COUNT=1
+LLM_CIRCUIT_FAILURE_THRESHOLD=3
+LLM_CIRCUIT_COOLDOWN_SECONDS=60
+LLM_MAX_PROVIDER_ATTEMPTS=3
+```
+
+`llm_providers.json` 只保存 `api_key_env`，不得保存实际密钥。各阶段按 `stage_routes` 顺序调用供应商。连接失败、超时、限流、上游 5xx、空响应、无效响应以及规划/审核结构错误会尝试备用服务；请求本身的 400/422 错误不会盲目切换。连续失败达到阈值后供应商进入冷却，避免每个请求反复等待已故障服务。
+
+未配置 `LLM_PROVIDERS_PATH` 时，服务继续使用原有 `OPENAI_BASE_URL/OPENAI_API_KEY/OPENAI_MODEL`，保持向后兼容。供应商配置只在服务启动时加载，修改后必须重启。
+
 ## 5. 本地启动与检查
 
 ### 5.1 启动服务
@@ -434,6 +458,15 @@ https://oecd-memories-sat-vsnet.trycloudflare.com/api/v1/query-energy-data
 https://robertson-tubes-carrying-sending.trycloudflare.com/api/v1/query-energy-data
 https://tramadol-processes-detect-attending.trycloudflare.com/api/v1/query-energy-data
 https://reed-facts-jar-closer.trycloudflare.com/api/v1/query-energy-data
+https://external-excellent-tribunal-feels.trycloudflare.com/api/v1/query-energy-data
+https://bibliography-cant-protecting-ecology.trycloudflare.com/api/v1/query-energy-data
+https://strike-tissue-thumbnail-purse.trycloudflare.com/api/v1/query-energy-data
+https://scotland-minimize-pit-executive.trycloudflare.com/api/v1/query-energy-data
+https://regards-sig-relay-metallic.trycloudflare.com/api/v1/query-energy-data
+https://situations-intention-dispatch-lip.trycloudflare.com/api/v1/query-energy-data
+https://works-invest-teach-bit.trycloudflare.com/api/v1/query-energy-data
+https://captain-staffing-rugs-lovely.trycloudflare.com/api/v1/query-energy-data
+https://exposed-charger-fits-cocktail.trycloudflare.com/api/v1/query-energy-data
 服务不接收 `operation`、`metric`、`filters`、`group_by`、`limit`、SQL、表名、字段名、DDL 或 RAG 原始 chunk。它们属于旧 `min` 服务的查询计划协议，或应在 Medium 服务内部受控处理。
 
 ### 8.2 成功响应

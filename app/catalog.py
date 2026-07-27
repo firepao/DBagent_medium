@@ -442,6 +442,7 @@ class MetadataCatalog:
             return []
         areas = self._administrative_regions.get("areas", [])
         mappings = self._administrative_regions.get("table_location_fields", {})
+        table_area_aliases = self._administrative_regions.get("table_area_aliases", {})
         rules: list[dict[str, Any]] = []
         for table in sorted(tables):
             field = mappings.get(table)
@@ -450,7 +451,10 @@ class MetadataCatalog:
             clauses = []
             for area in areas:
                 name = area["name"].replace("'", "''")
-                for alias in area.get("aliases", []):
+                aliases = table_area_aliases.get(table, {}).get(
+                    area["name"], area.get("aliases", [])
+                )
+                for alias in aliases:
                     escaped = str(alias).replace("'", "''")
                     clauses.append(
                         f"WHEN {{location_field}} LIKE '%{escaped}%' THEN '{name}'"

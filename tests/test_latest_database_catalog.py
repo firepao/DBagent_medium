@@ -282,6 +282,27 @@ def test_county_derivation_context_and_verified_rankings_use_location_fields() -
         assert result.rows == [expected_row]
 
 
+def test_grid_side_storage_distribution_aggregates_all_rows_before_limit() -> None:
+    catalog = default_catalog()
+    guard = SqlGuard(catalog, max_rows=100)
+    executor = SQLiteExecutor(LATEST_DATABASE, timeout_seconds=2, max_rows=100)
+    question = "电网侧储能项目都分布在哪？"
+
+    route = catalog.routing_decision(question)
+    case = catalog.validation_case(question)
+    context = catalog.build_sql_context(question, case["scope_tables"], route)
+    example = catalog.exact_example(question)
+    result = asyncio.run(executor.execute(guard.validate(example["sql"]).sql))
+
+    assert '"table": "t06_grid_side_storage"' in context
+    assert "station_name" in context
+    assert len(result.rows) == 16
+    assert result.truncated is False
+    assert {row["total_project_count"] for row in result.rows} == {218}
+    assert {row["district_count"] for row in result.rows} == {16}
+    assert sum(row["project_count"] for row in result.rows) == 218
+
+
 def test_default_table_cards_only_reference_published_sqlite_fields() -> None:
     catalog = default_catalog()
 

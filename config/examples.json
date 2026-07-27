@@ -1,5 +1,37 @@
 [
   {
+    "question": "电网侧储能项目都分布在哪？",
+    "terms": [
+      "电网侧储能项目都分布在哪",
+      "电网侧储能区县分布",
+      "各区县电网侧储能项目数量"
+    ],
+    "source_question_ids": [
+      "Q19"
+    ],
+    "expected_result_contract": {
+      "required_dimensions": [
+        "区县"
+      ],
+      "required_measures": [
+        "各区县项目数",
+        "全量项目总数",
+        "覆盖区县数"
+      ]
+    },
+    "tables": [
+      "t06_grid_side_storage"
+    ],
+    "query_plan": {
+      "query_type": "distribution",
+      "table_hints": [
+        "t06_grid_side_storage"
+      ]
+    },
+    "sql": "WITH classified AS (SELECT CASE WHEN station_name LIKE '%桥东%' THEN '桥东区' WHEN station_name LIKE '%桥西%' THEN '桥西区' WHEN station_name LIKE '%崇礼%' THEN '崇礼区' WHEN station_name LIKE '%宣化%' THEN '宣化区' WHEN station_name LIKE '%下花园%' THEN '下花园区' WHEN station_name LIKE '%万全%' THEN '万全区' WHEN station_name LIKE '%张北%' THEN '张北县' WHEN station_name LIKE '%康保%' THEN '康保县' WHEN station_name LIKE '%沽源%' THEN '沽源县' WHEN station_name LIKE '%尚义%' THEN '尚义县' WHEN station_name LIKE '%蔚%' THEN '蔚县' WHEN station_name LIKE '%阳原%' THEN '阳原县' WHEN station_name LIKE '%怀安%' THEN '怀安县' WHEN station_name LIKE '%怀来%' THEN '怀来县' WHEN station_name LIKE '%涿鹿%' THEN '涿鹿县' WHEN station_name LIKE '%赤城%' THEN '赤城县' ELSE '待核实' END AS district_name, station_name FROM t06_grid_side_storage), distribution AS (SELECT district_name, COUNT(DISTINCT station_name) AS project_count FROM classified WHERE district_name <> '待核实' GROUP BY district_name) SELECT district_name, project_count, SUM(project_count) OVER () AS total_project_count, COUNT(*) OVER () AS district_count FROM distribution ORDER BY project_count DESC, district_name",
+    "verification": "使用行政区派生规则对全部底层记录分组；当前库应返回16个区县、项目总数218，桥东区和桥西区各4个，其余14个区县各15个；不得把LIMIT或返回行数当作项目总数。"
+  },
+  {
     "question": "分布式光伏哪个县区跑得最快？",
     "terms": ["分布式光伏哪个县区跑得最快", "分布式光伏发展最快"],
     "tables": ["t07_distributed_pv_wind"],
