@@ -184,6 +184,7 @@ ENABLE_QUERY_DIAGNOSTICS=false
 | `QUERY_TIMEOUT_SECONDS` | 否 | SQLite 单次查询超时，默认 `10` 秒 |
 | `MAX_RESULT_ROWS` | 否 | 最多返回结果行数，默认 `100`，上限 `1000` |
 | `AUDIT_LOG_PATH` | 否 | 审计日志路径 |
+| `STAGE_TIMING_LOG_PATH` | 否 | 阶段耗时 JSONL 日志路径，默认 `runtime/stage_timing.jsonl` |
 
 不要把 `.env`、API Key、Cloudflare Access 密钥或用户完整问题提交到 Git、工作流导出文件和日志。`ENABLE_LLM_TRACE=true` 只用于受控联调：该日志会保存模型原始输出，必须限制服务器本机访问，并在问题定位后关闭。
 
@@ -208,6 +209,10 @@ LLM_MAX_PROVIDER_ATTEMPTS=3
 ```
 
 `llm_providers.json` 只保存 `api_key_env`，不得保存实际密钥。各阶段按 `stage_routes` 顺序调用供应商。连接失败、超时、限流、上游 5xx、空响应、无效响应以及规划/审核结构错误会尝试备用服务；请求本身的 400/422 错误不会盲目切换。连续失败达到阈值后供应商进入冷却，避免每个请求反复等待已故障服务。
+
+DeepSeek V4 供应商需要关闭思考模式时，在对应供应商中配置
+`"reasoning": false`。Medium 会将其转换为 DeepSeek 兼容请求参数
+`"thinking": {"type": "disabled"}`；未配置 `reasoning` 时保持供应商默认行为。
 
 未配置 `LLM_PROVIDERS_PATH` 时，服务继续使用原有 `OPENAI_BASE_URL/OPENAI_API_KEY/OPENAI_MODEL`，保持向后兼容。供应商配置只在服务启动时加载，修改后必须重启。
 
@@ -594,3 +599,19 @@ Get-Content .\runtime\llm_trace.jsonl -Tail 20
 ```
 
 该日志不会经 HTTP 响应返回给 Bit-Crew；不要将其中内容复制到最终用户回答。
+
+### 12.2 生成调用链可视化报告
+
+将阶段耗时、模型输出和查询审计三份 JSONL 按 `request_id` 合并为单文件报告：
+
+```powershell
+python tools/build_trace_report.py
+```
+
+输出文件为 `runtime/trace-report.html`，可直接用浏览器打开。报告包含请求列表、
+阶段瀑布、阶段状态与耗时、模型及供应商、SQL、审核输出和查询审计摘要。
+当前审计日志不保存查询结果正文，因此报告只显示行数和结果集数量，不会伪造结果内容。
+
+cd D:\bitagent_workspace\resources_agent\medium
+'C:\Users\nine\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe' `
+  tools\build_trace_report.py

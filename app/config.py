@@ -46,6 +46,7 @@ class Settings(BaseSettings):
     max_sql_modification_attempts: int = Field(default=1, ge=0, le=1)
     max_result_requery_attempts: int = Field(default=1, ge=0, le=1)
     audit_log_path: Path = Path("runtime/query_audit.jsonl")
+    stage_timing_log_path: Path = Path("runtime/stage_timing.jsonl")
     query_diagnostics_enabled: bool = Field(
         default=False,
         validation_alias="ENABLE_QUERY_DIAGNOSTICS",

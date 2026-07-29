@@ -6,7 +6,8 @@
       "api_key_env": "LLM_PRIMARY_API_KEY",
       "model": "primary-model",
       "priority": 1,
-      "enabled": true
+      "enabled": true,
+      "reasoning": false
     },
     {
       "id": "fallback_1",
@@ -14,7 +15,8 @@
       "api_key_env": "LLM_FALLBACK_1_API_KEY",
       "model": "fallback-model",
       "priority": 2,
-      "enabled": true
+      "enabled": true,
+      "reasoning": false
     }
   ],
   "stage_routes": {

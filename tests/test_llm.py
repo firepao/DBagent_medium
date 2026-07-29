@@ -43,6 +43,51 @@ def test_plan_uses_openai_compatible_request_and_parses_json():
     assert result.table_hints == ["stations"]
     assert result.original_question == "查询装机"
     assert captured["messages"][0]["content"] == "规划"
+    assert "thinking" not in captured
+
+
+def test_reasoning_false_sends_deepseek_thinking_disabled():
+    from app.llm import OpenAIQueryLLM
+
+    captured = {}
+
+    def handler(request):
+        captured.update(json.loads(request.content))
+        return httpx.Response(
+            200,
+            json={"choices": [{"message": {"content": "SELECT 1"}}]},
+        )
+
+    pool = LLMProviderPool(
+        [
+            LLMProvider(
+                "primary",
+                "https://primary.test/v1",
+                "key-1",
+                "deepseek-v4-flash",
+                1,
+                reasoning=False,
+            )
+        ],
+        {},
+        failure_threshold=3,
+        cooldown_seconds=60,
+        max_attempts=1,
+    )
+    client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    llm = OpenAIQueryLLM(
+        settings(), client, prompts=prompts(), provider_pool=pool
+    )
+    sql = asyncio.run(
+        llm.generate_sql(
+            "问题", QueryPlan(query_type="detail", table_hints=["stations"]), "目录"
+        )
+    )
+    asyncio.run(client.aclose())
+
+    assert sql == "SELECT 1"
+    assert captured["thinking"] == {"type": "disabled"}
+    assert "reasoning_effort" not in captured
 
 
 def test_sql_generator_receives_task_mode_previous_sql_and_feedback():

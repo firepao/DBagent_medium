@@ -481,7 +481,7 @@
         "电力接入批复",
         "接入批复"
       ],
-      "content": "Q18 已确认：t02_construction_project_station 的全体记录就是在建新能源及储能项目范围。用户说“在建项目”时不得额外添加 current_progress = '在建'、LIKE '%在建%' 或其他 current_progress 条件；current_progress 仅用于展示实际阶段。当前 grid_access_approval 的完整枚举只有“是”“办理中”；用户说“没拿到接入意见函”“未取得电力接入批复”时，按 grid_access_approval = '办理中' 筛选。若后续数据库出现新的未办结枚举，须更新字段画像和规则后才能使用。输出项目名称、项目容量（功率）和电力接入批复；不得把“办理中”表述为已经取得批复。"
+      "content": "Q18 已确认：t02_construction_project_station 的全体记录就是在建新能源及储能项目范围。用户说“在建项目”时不得额外添加 current_progress = '在建'、LIKE '%在建%' 或其他 current_progress 条件；current_progress 仅用于展示实际阶段。当前 grid_access_approval 的完整枚举只有“是”“办理中”；用户说“没拿到接入意见函”“未取得电力接入批复”时，按 grid_access_approval = '办理中' 筛选。若后续数据库出现新的未办结枚举，须更新字段画像和规则后才能使用。不得把“办理中”表述为已经取得批复。"
     },
     {
       "id": "construction_schedule_date_normalization",

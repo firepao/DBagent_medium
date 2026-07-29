@@ -183,26 +183,33 @@ class OpenAIQueryLLM:
     async def _chat_provider(
         self, provider: LLMProvider, system: str, user: str
     ) -> str:
+        request_body: dict[str, Any] = {
+            "model": provider.model,
+            "messages": [
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ],
+            "temperature": 0,
+        }
+        if provider.reasoning is False:
+            # DeepSeek V4 OpenAI-compatible endpoints use this payload to
+            # explicitly disable thinking instead of relying on provider defaults.
+            request_body["thinking"] = {"type": "disabled"}
         response = await self.client.post(
             f"{provider.base_url.rstrip('/')}/chat/completions",
             headers={
                 "Authorization": f"Bearer {provider.api_key}",
                 "Content-Type": "application/json",
             },
-            json={
-                "model": provider.model,
-                "messages": [
-                    {"role": "system", "content": system},
-                    {"role": "user", "content": user},
-                ],
-                "temperature": 0,
-            },
+            json=request_body,
         )
         response.raise_for_status()
         payload: dict[str, Any] = response.json()
         message = payload["choices"][0]["message"]
         content = message.get("content")
         if not isinstance(content, str) or not content.strip():
+            if provider.reasoning is False:
+                raise LLMInvalidResponseError("模型接口在关闭思考模式后返回空内容")
             reasoning = message.get("reasoning_content")
             if isinstance(reasoning, str) and reasoning.strip():
                 content = reasoning

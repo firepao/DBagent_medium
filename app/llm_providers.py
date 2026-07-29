@@ -21,6 +21,7 @@ class LLMProvider:
     api_key: str
     model: str
     priority: int = 100
+    reasoning: bool | None = None
 
 
 @dataclass
@@ -113,6 +114,7 @@ class LLMProviderPool:
             provider_id = str(raw.get("id", "")).strip()
             base_url = str(raw.get("base_url", "")).strip()
             model = str(raw.get("model", "")).strip()
+            reasoning = raw.get("reasoning")
             api_key_env = str(raw.get("api_key_env", "")).strip()
             api_key = (
                 os.getenv(api_key_env)
@@ -125,6 +127,10 @@ class LLMProviderPool:
                 raise LLMProviderConfigurationError(
                     f"供应商 {provider_id} 的地址、模型或密钥环境变量不完整"
                 )
+            if reasoning is not None and not isinstance(reasoning, bool):
+                raise LLMProviderConfigurationError(
+                    f"供应商 {provider_id} 的 reasoning 必须是布尔值"
+                )
             seen.add(provider_id)
             result.append(
                 LLMProvider(
@@ -133,6 +139,7 @@ class LLMProviderPool:
                     api_key=api_key,
                     model=model,
                     priority=int(raw.get("priority", 100)),
+                    reasoning=reasoning,
                 )
             )
         return result

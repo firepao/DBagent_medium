@@ -15,6 +15,7 @@ from app.models import QueryRequest, ToolResponse
 from app.prompts import PromptRegistry
 from app.llm_trace import LLMTraceRepository
 from app.service import QueryService
+from app.stage_timing import StageTimingRepository
 from app.sql_guard import SqlGuard
 
 
@@ -72,12 +73,16 @@ def build_default_service() -> QueryService:
         max_rows=settings.max_result_rows,
     )
     audit = AuditRepository(_resolve_from_base(settings.audit_log_path))
+    stage_timing = StageTimingRepository(
+        _resolve_from_base(settings.stage_timing_log_path)
+    )
     return QueryService(
         catalog,
         llm,
         guard,
         executor,
         audit,
+        stage_timing=stage_timing,
         diagnostics_enabled=settings.query_diagnostics_enabled,
         max_sql_repair_attempts=settings.max_sql_modification_attempts,
         max_semantic_rewrite_attempts=settings.max_sql_modification_attempts,

@@ -23,6 +23,7 @@ from app.llm import (
 from app.llm_trace import llm_trace_context
 from app.models import Coverage, QueryData, QueryPlan, QueryRequest, ResultSet, SourceInfo, ToolResponse
 from app.sql_guard import SqlGuard, SqlValidationError, ValidatedSql
+from app.stage_timing import StageTimingRepository
 
 
 class QueryTotalTimeoutError(RuntimeError):
@@ -43,6 +44,7 @@ class QueryService:
         guard: SqlGuard,
         executor: SQLiteExecutor,
         audit: AuditRepository,
+        stage_timing: StageTimingRepository | None = None,
         diagnostics_enabled: bool = False,
         max_sql_repair_attempts: int = 1,
         max_semantic_rewrite_attempts: int = 1,
@@ -54,6 +56,7 @@ class QueryService:
         self.guard = guard
         self.executor = executor
         self.audit = audit
+        self.stage_timing = stage_timing
         self.diagnostics_enabled = diagnostics_enabled
         # Guard repair and semantic revision share one budget by design.
         self.max_sql_modification_attempts = min(
@@ -102,7 +105,11 @@ class QueryService:
         diagnostics = self._new_diagnostics()
         stage = "routing"
         try:
-            route = self.catalog.routing_decision(request.question)
+            with self._measure_stage(request_id, stage):
+                route = self.catalog.routing_decision(request.question)
+                concept_clarification = self.catalog.concept_clarification(
+                    request.question
+                )
             if route is not None and route.action in {"reject_scope", "reject_capability"}:
                 return self._failure(
                     request_id,
@@ -111,7 +118,6 @@ class QueryService:
                     False, audit_base, started, list(route.required_tables), stage, diagnostics,
                 )
 
-            concept_clarification = self.catalog.concept_clarification(request.question)
             if concept_clarification is not None:
                 return self._failure(
                     request_id,
@@ -132,24 +138,26 @@ class QueryService:
             )
             if deterministic_route:
                 stage = "planning_deterministic_route"
-                plan = QueryPlan(
-                    original_question=request.question,
-                    query_type="aggregation",
-                    table_hints=list(route.required_tables),
-                    required_outputs=[request.question],
-                    business_objects=[],
-                    time_requirements=[],
-                    presentation_requirements=[],
-                )
+                with self._measure_stage(request_id, stage):
+                    plan = QueryPlan(
+                        original_question=request.question,
+                        query_type="aggregation",
+                        table_hints=list(route.required_tables),
+                        required_outputs=[request.question],
+                        business_objects=[],
+                        time_requirements=[],
+                        presentation_requirements=[],
+                    )
                 planning_mode = "deterministic_route"
             else:
                 stage = "planning"
                 self._ensure_within_total_timeout(deadline)
                 self._diag(diagnostics, "plan", {"status": "started"}, stage)
-                with llm_trace_context(request_id, stage):
-                    plan = await self.llm.plan(
-                        request.question, self.catalog.build_planning_context(route)
-                    )
+                with self._measure_stage(request_id, stage):
+                    with llm_trace_context(request_id, stage):
+                        plan = await self.llm.plan(
+                            request.question, self.catalog.build_planning_context(route)
+                        )
                 planning_mode = "llm"
             plan = self._normalize_plan(plan, request.question, route)
             audit_base.update(
@@ -183,8 +191,9 @@ class QueryService:
                             json.dumps(resolved_values, ensure_ascii=False),
                         ]
                     )
-                    with llm_trace_context(request_id, stage):
-                        plan = await self.llm.plan(request.question, retry_context)
+                    with self._measure_stage(request_id, stage):
+                        with llm_trace_context(request_id, stage):
+                            plan = await self.llm.plan(request.question, retry_context)
                     plan = self._normalize_plan(plan, request.question, route)
                     audit_base["query_plan"] = plan.model_dump(
                         exclude={"original_question"}
@@ -234,7 +243,7 @@ class QueryService:
 
             stage = "execution_primary"
             self._ensure_within_total_timeout(deadline)
-            primary = await self._execute(validated, diagnostics, stage)
+            primary = await self._execute(request_id, validated, diagnostics, stage)
             sources = self._sources(validated.tables)
             primary_evidence = self.evidence_builder.build(
                 primary, sources=sources, applied_scope=contract["scope"],
@@ -264,13 +273,16 @@ class QueryService:
                 self._review_feedback(result_review.result_issues, result_review.required_changes),
             )
             self._append_diag(diagnostics, "sql_generation", {"stage": stage, "task_mode": "result_requery", "status": "generated"}, stage)
-            supplemental_validated = self._validate_planned_sql(
-                supplemental_sql, plan.table_hints, request.question
+            supplemental_validated = self._timed_validate(
+                request_id, "sql_guard_requery_1", supplemental_sql,
+                plan.table_hints, request.question,
             )
             self._append_diag(diagnostics, "sql_guard", {"stage": "sql_guard_requery_1", "status": "passed", "tables": sorted(supplemental_validated.tables)}, "sql_guard_requery_1")
             stage = "execution_supplemental"
             self._ensure_within_total_timeout(deadline)
-            supplemental = await self._execute(supplemental_validated, diagnostics, stage)
+            supplemental = await self._execute(
+                request_id, supplemental_validated, diagnostics, stage
+            )
             all_tables = validated.tables | supplemental_validated.tables
             all_sources = self._sources(all_tables)
             supplemental_evidence = self.evidence_builder.build(
@@ -330,7 +342,10 @@ class QueryService:
             return self._failure(request_id, "PRE_EXECUTION_REVIEW_EXHAUSTED", self._pre_exhausted_message(review.issues), False, audit_base, started, plan.table_hints, "pre_execution_review", diagnostics), None
         revised_sql = await self._generate_sql(request_id, "sql_semantic_revision_1", question, plan, context, "semantic_revision", candidate_sql, self._review_feedback(review.issues, review.required_changes))
         self._append_diag(diagnostics, "sql_generation", {"stage": "sql_semantic_revision_1", "task_mode": "semantic_revision", "status": "generated"}, "sql_semantic_revision_1")
-        revised = self._validate_planned_sql(revised_sql, plan.table_hints, question)
+        revised = self._timed_validate(
+            request_id, "sql_guard_revision_1", revised_sql,
+            plan.table_hints, question,
+        )
         self._append_diag(diagnostics, "sql_guard", {"stage": "sql_guard_revision_1", "status": "passed", "tables": sorted(revised.tables)}, "sql_guard_revision_1")
         second = await self._pre_review(request_id, "pre_execution_review_2", question, plan, context, revised.sql, contract)
         self._append_diag(diagnostics, "pre_execution_review", {"stage": "pre_execution_review_2", "decision": second.decision}, "pre_execution_review_2")
@@ -344,8 +359,9 @@ class QueryService:
 
     async def _validate_or_modify(self, request_id, question, plan, context, candidate_sql, modifications, diagnostics):
         try:
-            validated = self._validate_planned_sql(
-                candidate_sql, plan.table_hints, question
+            validated = self._timed_validate(
+                request_id, "sql_guard_initial", candidate_sql,
+                plan.table_hints, question,
             )
             self._append_diag(diagnostics, "sql_guard", {"stage": "sql_guard_initial", "status": "passed", "tables": sorted(validated.tables)}, "sql_guard_initial")
             return validated, candidate_sql, modifications
@@ -355,28 +371,46 @@ class QueryService:
                 raise
             repaired_sql = await self._generate_sql(request_id, "sql_guard_repair_1", question, plan, context, "guard_repair", candidate_sql, {"guard_error": str(error)})
             self._append_diag(diagnostics, "sql_generation", {"stage": "sql_guard_repair_1", "task_mode": "guard_repair", "status": "generated"}, "sql_guard_repair_1")
-            validated = self._validate_planned_sql(
-                repaired_sql, plan.table_hints, question
+            validated = self._timed_validate(
+                request_id, "sql_guard_repair_validation_1", repaired_sql,
+                plan.table_hints, question,
             )
             self._append_diag(diagnostics, "sql_guard", {"stage": "sql_guard_repair_1", "status": "passed", "tables": sorted(validated.tables)}, "sql_guard_repair_1")
             return validated, repaired_sql, modifications + 1
 
     async def _generate_sql(self, request_id, stage, question, plan, context, task_mode, previous_sql=None, feedback=None):
-        with llm_trace_context(request_id, stage):
-            return await self.llm.generate_sql(question, plan, context, task_mode=task_mode, previous_sql=previous_sql, feedback=feedback)
+        with self._measure_stage(request_id, stage):
+            with llm_trace_context(request_id, stage):
+                return await self.llm.generate_sql(question, plan, context, task_mode=task_mode, previous_sql=previous_sql, feedback=feedback)
 
     async def _pre_review(self, request_id, stage, question, plan, context, sql, contract):
-        with llm_trace_context(request_id, stage):
-            return await self.llm.review_before_execution(question, plan, context, sql, contract)
+        with self._measure_stage(request_id, stage):
+            with llm_trace_context(request_id, stage):
+                return await self.llm.review_before_execution(question, plan, context, sql, contract)
 
     async def _result_review(self, request_id, stage, question, plan, contract, evidence):
-        with llm_trace_context(request_id, stage):
-            return await self.llm.review_result(question, plan, contract, evidence)
+        with self._measure_stage(request_id, stage):
+            with llm_trace_context(request_id, stage):
+                return await self.llm.review_result(question, plan, contract, evidence)
 
-    async def _execute(self, validated: ValidatedSql, diagnostics, stage: str) -> ExecutionResult:
-        result = await self.executor.execute(validated.sql)
+    async def _execute(
+        self, request_id: str, validated: ValidatedSql, diagnostics, stage: str
+    ) -> ExecutionResult:
+        with self._measure_stage(request_id, stage):
+            result = await self.executor.execute(validated.sql)
         self._append_diag(diagnostics, "execution", {"stage": stage, "row_count": result.row_count, "truncated": result.truncated, "duration_ms": result.duration_ms}, stage)
         return result
+
+    def _timed_validate(self, request_id, stage, sql, table_hints, question):
+        with self._measure_stage(request_id, stage):
+            return self._validate_planned_sql(sql, table_hints, question)
+
+    def _measure_stage(self, request_id, stage):
+        if self.stage_timing is None:
+            from contextlib import nullcontext
+
+            return nullcontext()
+        return self.stage_timing.measure(request_id, stage)
 
     def _success(self, request_id, question, plan, route, tables, primary, sources, *, supplemental=None, limitations=None, diagnostics, audit_base, started):
         warnings = ["RESULT_TRUNCATED"] if primary.truncated else []
@@ -397,6 +431,8 @@ class QueryService:
             answer_guidance=self.catalog.answer_guidance(question, tables, route), diagnostics=diagnostics,
         )
         self.audit.record({**audit_base, "status": "success", "query_type": plan.query_type, "tables": sorted(tables), "row_count": primary.row_count, "result_sets": len(result_sets), "duration_ms": int((time.monotonic() - started) * 1000)})
+        if self.stage_timing is not None:
+            self.stage_timing.record_duration(request_id, "request_total", started, status="success")
         return response
 
     def _query_data(self, result, sources):
@@ -408,6 +444,8 @@ class QueryService:
 
     def _failure(self, request_id, code, message, retryable, audit_base, started, tables=None, stage=None, diagnostics=None):
         self.audit.record({**audit_base, "status": "failed", "error_code": code, "tables": sorted(tables or []), "stage": stage, "duration_ms": int((time.monotonic() - started) * 1000)})
+        if self.stage_timing is not None:
+            self.stage_timing.record_duration(request_id, "request_total", started, status="error")
         return ToolResponse.failure(request_id=request_id, code=code, message=message, retryable=retryable, diagnostics=diagnostics)
 
     def _validate_planned_sql(self, sql, planned_tables, question):
@@ -497,8 +535,11 @@ class QueryService:
         if diagnostics is not None:
             diagnostics["fallback"] = {"attempted": True, "exact_question_match": True, "used": False}
         try:
-            validated = self.guard.validate(example["sql"])
-            result = await self.executor.execute(validated.sql)
+            with self._measure_stage(request_id, "sql_guard_example_fallback"):
+                validated = self.guard.validate(example["sql"])
+            result = await self._execute(
+                request_id, validated, diagnostics, "execution_example_fallback"
+            )
         except (SqlValidationError, QueryExecutionError):
             return None
         if diagnostics is not None:
