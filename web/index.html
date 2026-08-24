@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>能源数据智能查询</title>
+  <link rel="stylesheet" href="/assets/app.css">
+  <link rel="stylesheet" href="/assets/timeline.css">
+  <link rel="stylesheet" href="/assets/responsive.css">
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark">能</span><div><strong>能源数据智能查询</strong><small>张家口市全域数据</small></div></div>
+      <div class="health"><span id="healthDot"></span><span id="healthText">正在检查服务</span></div>
+    </header>
+    <main>
+      <section class="workspace" aria-label="智能查数对话">
+        <div id="conversation" class="conversation" aria-live="polite">
+          <div class="welcome">
+            <p class="eyebrow">数据助手</p>
+            <h1>直接询问能源数据</h1>
+            <p>查询结果来自受控数据库，并经过查询安全检查和结果审核。</p>
+            <div class="suggestions">
+              <button type="button" data-question="张北县已运行风电项目装机容量合计是多少？">张北县风电装机容量</button>
+              <button type="button" data-question="全市新能源项目按类型分布情况如何？">新能源项目类型分布</button>
+              <button type="button" data-question="各县区备案项目数量排名">备案项目县区排名</button>
+            </div>
+          </div>
+        </div>
+        <form id="queryForm" class="composer">
+          <label for="question" class="sr-only">输入查询问题</label>
+          <textarea id="question" maxlength="2000" rows="1" placeholder="例如：张北县已运行风电项目装机容量合计是多少？" required></textarea>
+          <button id="sendButton" type="submit" aria-label="发送查询" title="发送查询">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.4 20.1 21 12 3.4 3.9l.1 6.3L16 12 3.5 13.8z"/></svg>
+          </button>
+        </form>
+        <p class="notice">系统仅执行只读查询。结果请结合数据时间和业务口径使用。</p>
+      </section>
+      <aside class="details" aria-label="运行信息">
+        <div class="details-head"><h2>本次运行</h2><span id="runStatus" class="status idle">待查询</span></div>
+        <div id="runDetails" class="empty-details">
+          <div class="empty-icon">i</div>
+          <p>提交问题后，这里会显示请求编号、数据范围、来源和限制。</p>
+        </div>
+      </aside>
+    </main>
+  </div>
+  <script src="/assets/app.js" defer></script>
+</body>
+</html>

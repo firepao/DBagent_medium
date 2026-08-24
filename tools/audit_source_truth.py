@@ -18,13 +18,18 @@ def _default_data_root() -> Path:
     return MEDIUM_DIR.parent / "data" / "数据入库_v1.0.1_2026.07.17" / "data_1_all"
 
 
+def _default_runtime_root() -> Path:
+    return MEDIUM_DIR.parent / "data" / "数据入库v_1.1_0722" / "query_ready_v2"
+
+
 def build_parser() -> argparse.ArgumentParser:
     root = _default_data_root()
+    runtime_root = _default_runtime_root()
     parser = argparse.ArgumentParser(description="核查源 Excel、SQLite、DDL 与 TableCard 的一致性")
     parser.add_argument("--source-data-dir", type=Path, default=root / "data")
     parser.add_argument("--processed-data-dir", type=Path, default=root / "data_1")
-    parser.add_argument("--sqlite-db-path", type=Path, default=root / "zhangbei_energy_data_data1.sqlite3")
-    parser.add_argument("--ddl-directory", type=Path, default=root / "vanna_table_ddls")
+    parser.add_argument("--sqlite-db-path", type=Path, default=runtime_root / "zhangbei_energy_query_ready_v2.sqlite3")
+    parser.add_argument("--ddl-directory", type=Path, default=runtime_root / "ddl")
     parser.add_argument("--catalog-path", type=Path, default=MEDIUM_DIR / "config" / "catalog.json")
     parser.add_argument("--table-cards-path", type=Path, default=MEDIUM_DIR / "config" / "table_cards.json")
     parser.add_argument("--ddl-registry-path", type=Path, default=MEDIUM_DIR / "config" / "ddl_registry.json")

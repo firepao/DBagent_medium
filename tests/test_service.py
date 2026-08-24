@@ -1,8 +1,95 @@
 import asyncio
 import json
 import sqlite3
+from datetime import date
 
 from app.models import PreExecutionReview, QueryPlan, QueryRequest, ResultReview, ReviewIssue
+
+
+def test_pre_review_normalizes_only_snapshot_time_misinterpretation():
+    from app.service import QueryService
+
+    review = PreExecutionReview(
+        decision="revise",
+        issues=[
+            ReviewIssue(code="DATA_TIME_NOT_IN_QUERY", message="缺少数据时间字段"),
+            ReviewIssue(code="DATA_TIME_SEMANTICS_MISMATCH", message="数据时间语义不一致"),
+        ],
+        required_changes=["增加数据时间"],
+    )
+
+    normalized = QueryService._normalize_pre_review(
+        review, {"authoritative_data_as_of": "2026-07-17"}
+    )
+
+    assert normalized.decision == "pass"
+    assert normalized.issues == []
+    assert normalized.required_changes == []
+
+
+def test_pre_review_keeps_mixed_business_issues_for_revision():
+    from app.service import QueryService
+
+    review = PreExecutionReview(
+        decision="revise",
+        issues=[
+            ReviewIssue(code="DATA_TIME_NOT_IN_QUERY", message="缺少数据时间字段"),
+            ReviewIssue(code="WRONG_SCOPE", message="范围不符合问题"),
+        ],
+        required_changes=["修正范围"],
+    )
+
+    normalized = QueryService._normalize_pre_review(
+        review, {"authoritative_data_as_of": "2026-07-17"}
+    )
+
+    assert normalized.decision == "revise"
+
+
+def test_query_data_normalizes_only_suspicious_current_date(tmp_path):
+    from app.models import SourceInfo
+    from app.service import QueryService
+    from app.executor import ExecutionResult
+
+    service = object.__new__(QueryService)
+    source = SourceInfo(dataset="测试", version="v1", data_as_of="2026-07-17")
+    execution = ExecutionResult(
+        rows=[{"数据时间": date.today().isoformat(), "历史时间": "2026-01-01", "value": 1}],
+        row_count=1,
+        schema=[
+            {"name": "数据时间", "type": "string"},
+            {"name": "历史时间", "type": "string"},
+            {"name": "value", "type": "integer"},
+        ],
+        truncated=False,
+        duration_ms=1,
+    )
+
+    normalized = service._query_data(execution, [source])
+
+    assert normalized.data_as_of == "2026-07-17"
+    assert normalized.rows[0]["数据时间"] == "2026-07-17"
+    assert normalized.rows[0]["历史时间"] == "2026-01-01"
+
+
+def test_query_data_preserves_real_historical_data_time(tmp_path):
+    from app.models import SourceInfo
+    from app.service import QueryService
+    from app.executor import ExecutionResult
+
+    service = object.__new__(QueryService)
+    source = SourceInfo(dataset="测试", version="v1", data_as_of="2026-07-17")
+    execution = ExecutionResult(
+        rows=[{"数据时间": "2025-12-31", "value": 1}],
+        row_count=1,
+        schema=[{"name": "数据时间", "type": "string"}, {"name": "value", "type": "integer"}],
+        truncated=False,
+        duration_ms=1,
+    )
+
+    normalized = service._query_data(execution, [source])
+
+    assert normalized.rows[0]["数据时间"] == "2025-12-31"
 
 
 class FakeLLM:
@@ -16,11 +103,20 @@ class FakeLLM:
         self.generated = list(generated or [])
         self.calls = []
         self.plan_calls = 0
+        self.plan_questions = []
         self.generated_plans = []
         self.planning_context = ""
+        self.last_call_metadata = {
+            "model": "fake-model",
+            "provider": "fake-provider",
+            "input_tokens": 10,
+            "output_tokens": 2,
+            "total_tokens": 12,
+        }
 
     async def plan(self, question, planning_context):
         self.plan_calls += 1
+        self.plan_questions.append(question)
         self.planning_context = planning_context
         if isinstance(self.plan_result, list):
             return self.plan_result.pop(0)
@@ -135,6 +231,20 @@ def build_service(
     return QueryService(catalog, llm, SqlGuard(catalog, 100), SQLiteExecutor(db_path, 2, 100), AuditRepository(tmp_path / "audit.jsonl"), diagnostics_enabled=diagnostics_enabled)
 
 
+def test_query_service_health_blocks_production_without_admin_key(tmp_path):
+    service = build_service(tmp_path, FakeLLM(None, "SELECT 1"))
+    service.deployment_mode = "production"
+    service.admin_api_key = ""
+    service.viewer_api_key = ""
+
+    state = service.health()
+
+    assert state["status"] == "degraded"
+    assert state["management_auth"]["deployment_mode"] == "production"
+    assert state["management_auth"]["mode"] == "production_unconfigured"
+    assert state["management_auth"]["ready"] is False
+
+
 def request(question="张北县电站装机容量是多少？"):
     return QueryRequest(question=question)
 
@@ -157,10 +267,47 @@ def test_service_runs_pre_and_post_review_then_returns_compatible_primary_data(t
     assert response.data.summary == {"total_capacity_mw": 250.0}
     assert response.result_sets[0].id == "primary"
     assert response.coverage.applied_scope == "张家口市全域"
+    assert response.coverage.dimensions == []
+    assert response.coverage.measures == ["total_capacity_mw"]
+    assert response.data.schema_[0]["semantic_label"] == "装机容量合计"
     assert [call[0] for call in llm.calls] == ["generate", "pre", "result"]
 
 
-def test_deterministic_route_skips_planner_but_keeps_query_plan(tmp_path):
+def test_unexpected_agent_exception_is_sanitized(tmp_path):
+    class BrokenLLM(FakeLLM):
+        async def plan(self, question, planning_context):
+            raise RuntimeError("secret prompt / DDL / C:\\private\\database.sqlite3")
+
+    response = asyncio.run(build_service(tmp_path, BrokenLLM(plan(), "SELECT 1")).query(request()))
+
+    assert response.success is False
+    assert response.error.code == "INTERNAL_ERROR"
+    assert "secret prompt" not in response.error.message
+    assert "database.sqlite3" not in response.error.message
+    assert "Traceback" not in response.error.message
+
+
+def test_coverage_keeps_numeric_identifiers_and_rankings_as_dimensions(tmp_path):
+    llm = FakeLLM(
+        plan(),
+        "SELECT id AS project_id, 2026 AS year, 1 AS ranking, capacity_mw FROM stations WHERE id = 1",
+    )
+
+    response = asyncio.run(build_service(tmp_path, llm).query(request("查看项目排名")))
+
+    assert response.success is True
+    assert response.coverage.dimensions == ["project_id", "year", "ranking"]
+    assert response.coverage.measures == ["capacity_mw"]
+
+
+def test_unknown_result_alias_is_not_given_a_guessed_business_label(tmp_path):
+    llm = FakeLLM(plan(), "SELECT SUM(capacity_mw) AS unexplained_value FROM stations")
+    response = asyncio.run(build_service(tmp_path, llm).query(request()))
+    assert response.success is True
+    assert "semantic_label" not in response.data.schema_[0]
+
+
+def test_published_route_never_bypasses_agent_planning(tmp_path):
     from app.catalog import RoutingDecision
 
     llm = FakeLLM(
@@ -177,11 +324,111 @@ def test_deterministic_route_skips_planner_but_keeps_query_plan(tmp_path):
     response = asyncio.run(service.query(request()))
 
     assert response.success is True
-    assert llm.plan_calls == 0
-    assert response.diagnostics["plan"]["planning_mode"] == "deterministic_route"
+    assert llm.plan_calls == 1
+    assert response.diagnostics["plan"]["planning_mode"] == "llm"
     assert llm.generated_plans[0].original_question == request().question
-    assert llm.generated_plans[0].required_outputs == [request().question]
+    assert llm.generated_plans[0].required_outputs == ["张北县电站装机容量"]
     assert llm.generated_plans[0].table_hints == ["stations"]
+
+
+def test_route_tables_do_not_override_agent_selected_tables(tmp_path):
+    from app.catalog import RoutingDecision
+
+    selected = plan().model_copy(update={"table_hints": ["stations"]})
+    llm = FakeLLM(
+        selected,
+        "SELECT SUM(capacity_mw) AS total_capacity_mw FROM stations WHERE county = '张北县'",
+    )
+    service = build_service(tmp_path, llm)
+    route = RoutingDecision(
+        intent_id="legacy_route",
+        action="allow",
+        required_tables=("unpublished_legacy_table",),
+    )
+
+    normalized = service._normalize_plan(selected, request().question, route)
+
+    assert normalized.table_hints == ["stations"]
+
+
+def test_production_query_does_not_call_offline_validation_routes(tmp_path):
+    llm = FakeLLM(
+        plan(),
+        "SELECT SUM(capacity_mw) AS total_capacity_mw FROM stations WHERE county = '张北县'",
+    )
+    service = build_service(tmp_path, llm)
+    service.diagnostics_enabled = True
+
+    def offline_only(*_args, **_kwargs):
+        raise AssertionError("生产查询不得调用离线题集路由或固定示例")
+
+    service.catalog.routing_decision = offline_only
+    service.catalog.concept_clarification = offline_only
+    service.catalog.exact_example = offline_only
+
+    response = asyncio.run(service.query(request()))
+
+    assert response.success is True
+    assert llm.plan_calls == 1
+    assert "fallback" not in response.diagnostics
+
+
+def test_query_events_stream_real_sanitized_stages_and_final_response(tmp_path):
+    llm = FakeLLM(
+        plan(),
+        "SELECT SUM(capacity_mw) AS total_capacity_mw FROM stations WHERE county = '张北县'",
+    )
+    service = build_service(tmp_path, llm)
+    service.catalog.set_managed_rules_provider(
+        lambda: [
+            {
+                "id": "managed:station_capacity:v2",
+                "scope_tables": ["stations"],
+                "content": "不得进入事件的规则正文",
+            }
+        ]
+    )
+
+    async def collect():
+        return [item async for item in service.query_events(request())]
+
+    items = asyncio.run(collect())
+    events = items[:-1]
+    response = items[-1]
+
+    assert response.success is True
+    assert events
+    assert [event.sequence for event in events] == list(range(1, len(events) + 1))
+    assert {event.stage for event in events} >= {
+        "routing",
+        "planning",
+        "sql_generation_initial",
+        "sql_guard_initial",
+        "pre_execution_review_1",
+        "execution_primary",
+        "result_review_1",
+    }
+    assert {event.status for event in events} >= {"started", "completed"}
+    assert all(event.request_id == response.request_id for event in events)
+    assert all(event.duration_ms is None or event.duration_ms >= 0 for event in events)
+    completed_by_stage = {
+        event.stage: event for event in events if event.status == "completed"
+    }
+    assert completed_by_stage["planning"].model == "fake-model"
+    assert completed_by_stage["planning"].provider == "fake-provider"
+    assert completed_by_stage["planning"].total_tokens == 12
+    assert completed_by_stage["planning"].tool == "llm"
+    assert completed_by_stage["sql_guard_initial"].tool == "sql_guard"
+    assert completed_by_stage["sql_guard_initial"].model is None
+    assert completed_by_stage["execution_primary"].tool == "sqlite_readonly"
+    assert all(
+        event.rule_versions == ["managed:station_capacity:v2"] for event in events
+    )
+    serialized = "\n".join(event.model_dump_json() for event in events)
+    assert "SELECT" not in serialized
+    assert "capacity_mw" not in serialized
+    assert "prompt" not in serialized.casefold()
+    assert "不得进入事件的规则正文" not in serialized
 
 
 def test_unique_published_category_replans_instead_of_asking_user(tmp_path):
@@ -212,7 +459,7 @@ def test_unique_published_category_replans_instead_of_asking_user(tmp_path):
     assert "不得再要求用户确认这些数据库内部枚举" in llm.planning_context
 
 
-def test_concept_clarification_stops_before_planning_and_hides_schema_names(tmp_path):
+def test_concept_alternative_is_advisory_context_for_planner(tmp_path):
     llm = FakeLLM(plan(), "SELECT SUM(capacity_mw) FROM stations")
     response = asyncio.run(
         build_service(tmp_path, llm, concept_alternatives=True).query(
@@ -220,15 +467,12 @@ def test_concept_clarification_stops_before_planning_and_hides_schema_names(tmp_
         )
     )
 
-    assert response.success is False
-    assert response.error.code == "CLARIFICATION_REQUIRED"
-    assert "归属上级集团" in response.error.message
-    assert "项目建设方" in response.error.message
-    assert "按归属上级集团汇总已运行集中式新能源电站装机容量" in response.error.message
-    assert "parent_group" not in response.error.message
-    assert "project_builder" not in response.error.message
-    assert response.answer_guidance["response_mode"] == "clarification"
-    assert llm.planning_context == ""
+    assert response.success is True
+    assert response.error is None
+    assert "归属上级集团" in llm.planning_context
+    assert "项目建设方" in llm.planning_context
+    assert "parent_group" not in llm.planning_context
+    assert "project_builder" not in llm.planning_context
 
 
 def test_filing_owner_query_is_not_blocked_by_operating_owner_clarification(tmp_path):
@@ -310,6 +554,8 @@ def test_result_requery_is_generated_by_sql_generator_and_returns_two_result_set
     assert response.success is True
     assert len(response.result_sets) == 2
     assert response.result_sets[1].data.rows == [{"county": "尚义县", "total_capacity_mw": 80.0}, {"county": "张北县", "total_capacity_mw": 250.0}]
+    assert response.coverage.dimensions == ["county"]
+    assert response.coverage.measures == ["total_capacity_mw"]
     assert [call[1] for call in llm.calls if call[0] == "generate"] == ["initial", "result_requery"]
 
 
@@ -328,6 +574,28 @@ def test_pre_review_clarification_is_returned_without_execution(tmp_path):
     assert response.success is False
     assert response.error.code == "CLARIFICATION_REQUIRED"
     assert not [call for call in llm.calls if call[0] == "result"]
+
+
+def test_clarification_followup_reaches_planner_with_bounded_context(tmp_path):
+    llm = FakeLLM(
+        plan(), "SELECT SUM(capacity_mw) AS total_capacity_mw FROM stations WHERE county = '张北县'",
+        pre_reviews=[
+            PreExecutionReview(decision="clarification", clarification="请明确区县。"),
+            PreExecutionReview(decision="pass"),
+        ],
+    )
+    service = build_service(tmp_path, llm)
+    first = asyncio.run(service.query(request("查询电站装机容量")))
+    second = asyncio.run(service.query(QueryRequest(question="张北县", session_id=first.session_id)))
+
+    assert first.error.code == "CLARIFICATION_REQUIRED"
+    assert first.session_id.startswith("ses_")
+    assert second.success is True
+    assert second.session_id == first.session_id
+    assert llm.plan_questions == [
+        "查询电站装机容量",
+        "原问题：查询电站装机容量\n用户补充：张北县",
+    ]
 
 
 def test_result_data_quality_issue_has_dedicated_user_error_code(tmp_path):

@@ -1,0 +1,28 @@
+{
+  "providers": [
+    {
+      "id": "primary",
+      "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+      "api_key_env": "LLM_PRIMARY_API_KEY",
+      "model": "deepseek-v4-flash",
+      "priority": 1,
+      "enabled": true,
+      "reasoning": false
+    },
+    {
+      "id": "fallback_1",
+      "base_url": "https://cn.globalai.chat/v1",
+      "api_key_env": "LLM_FALLBACK_1_API_KEY",
+      "model": "deepseek-v4-flash",
+      "priority": 2,
+      "enabled": true,
+      "reasoning": false
+    }
+  ],
+  "stage_routes": {
+    "planning": ["primary", "fallback_1"],
+    "sql_generation": ["primary", "fallback_1"],
+    "pre_execution_review": ["fallback_1", "primary"],
+    "result_review": ["fallback_1", "primary"]
+  }
+}

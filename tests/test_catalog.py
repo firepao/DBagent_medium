@@ -269,7 +269,7 @@ def test_planning_context_has_all_table_cards_and_sql_context_is_scoped(tmp_path
     assert "容量字段仅可作为测试样例" in planning_context
     assert 'CREATE TABLE "published_station"' in sql_context
     assert "装机容量使用 capacity_mw 聚合" in sql_context
-    assert "候选规则，不得进入运行期" not in sql_context
+    assert "候选规则，不得进入运行期" in sql_context
     assert "容量字段仅可作为测试样例" in sql_context
     assert catalog.validation_case("各区县装机容量排行")["id"] == "Q1"
 
@@ -297,6 +297,27 @@ def test_context_exposes_table_scope_and_full_published_field_semantics(tmp_path
     assert "字段语义" in sql_context
     assert "装机容量（MW）" in sql_context
     assert "已运行电站装机容量，单位为 MW" in sql_context
+
+
+def test_expected_result_contract_exposes_authoritative_snapshot_time(tmp_path) -> None:
+    module = load_catalog_module()
+    db_path, catalog_path, examples_path = build_catalog_files(tmp_path)
+    catalog = module.MetadataCatalog(db_path, catalog_path, examples_path)
+    from app.models import QueryPlan
+
+    plan = QueryPlan(
+        original_question="已运行电站装机容量是多少？",
+        query_type="aggregation",
+        table_hints=["published_station"],
+        required_outputs=["装机容量"],
+        time_requirements=["注明数据时间"],
+    )
+
+    contract = catalog.expected_result_contract(
+        plan.original_question, plan.table_hints, plan
+    )
+
+    assert contract["authoritative_data_as_of"] == "2026-07-17"
 
 
 def test_routing_prefers_exact_validation_intent_then_uses_published_terms(tmp_path) -> None:

@@ -1,0 +1,14 @@
+.rule-detail { padding: 20px 25px 26px; max-height: 72vh; overflow: auto; }
+.rule-detail h3 { margin: 20px 0 8px; font-size: 13px; }
+.rule-detail h3:first-child { margin-top: 0; }
+.rule-detail dl { display: grid; grid-template-columns: 120px 1fr; gap: 7px 14px; margin: 0; }
+.rule-detail dt { color: var(--muted); font-size: 12px; }
+.rule-detail dd { margin: 0; font-size: 12px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.change { border-left: 3px solid #8aab9d; padding: 8px 10px; margin: 8px 0; background: #f6f8f7; }
+.change strong { display: block; font-size: 12px; margin-bottom: 5px; }
+.change del,.change ins { display: block; text-decoration: none; font: 11px/1.5 Consolas,"Microsoft YaHei",sans-serif; overflow-wrap: anywhere; }
+.change del { color: #923d36; }
+.change ins { color: #176447; }
+.audit-list { padding-left: 18px; font-size: 12px; line-height: 1.7; }
+@media(max-width:560px){.rule-detail dl{grid-template-columns:1fr}.rule-detail dd{margin-bottom:7px}}
+.field-picker{border:1px solid #cbd3cf;border-radius:4px;padding:12px}.field-picker legend{font-size:12px;font-weight:600;padding:0 5px}.field-picker>p{margin:0 0 10px;color:var(--muted);font-size:11px;font-weight:400}.field-table{margin:9px 0}.field-table strong{display:block;font-size:12px;margin-bottom:5px}.field-options{display:flex;flex-wrap:wrap;gap:6px 12px}.field-options label{font-weight:400;display:flex;align-items:center;gap:5px}.field-options input{width:auto;margin:0}.field-error{color:#a33a32;font-size:11px;margin:6px 0 0}

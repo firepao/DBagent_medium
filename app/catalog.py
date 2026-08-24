@@ -71,7 +71,11 @@ class MetadataCatalog:
         self._administrative_regions = self._load_optional_json(
             administrative_regions_path, {}
         )
+        self._managed_rules_provider = None
         self._field_semantics_cache: dict[str, list[dict[str, str]]] = {}
+
+    def set_managed_rules_provider(self, provider) -> None:
+        self._managed_rules_provider = provider
 
     @staticmethod
     def _load_json(path: Path) -> Any:
@@ -484,15 +488,29 @@ class MetadataCatalog:
     ) -> str:
         cards: list[dict[str, Any]] = []
         for card in self.table_cards():
-            planning_fields = []
-            for entry in self._field_semantics(
-                card["table"], card.get("important_fields", [])
-            ):
-                planning_entry = dict(entry)
-                planning_entry["description"] = entry["description"].split(
-                    " 当前库画像：", 1
-                )[0]
-                planning_fields.append(planning_entry)
+            categorical_fields = [
+                {
+                    "field": item.get("field"),
+                    "business_label": item.get("business_label"),
+                    "allowed_values": item.get("allowed_values", [])[:20],
+                    "aliases": sorted((item.get("value_aliases") or {}).keys())[:12],
+                }
+                for item in card.get("categorical_fields", [])
+                if item.get("field")
+            ]
+            object_scope = card.get("object_scope") or {}
+            planning_fields = [
+                {
+                    "name": entry.get("name"),
+                    "label": entry.get("label"),
+                    "description": entry.get("description", "").split(
+                        " 当前库画像：", 1
+                    )[0][:120],
+                }
+                for entry in self._field_semantics(
+                    card["table"], card.get("important_fields", [])
+                )[:8]
+            ]
             cards.append(
                 {
                     "table": card["table"],
@@ -504,8 +522,11 @@ class MetadataCatalog:
                     "supported_queries": card.get("supported_queries", []),
                     "important_field_semantics": planning_fields,
                     "data_limitations": card.get("data_limitations", []),
-                    "object_scope": card.get("object_scope"),
-                    "categorical_fields": card.get("categorical_fields", []),
+                    "object_scope": {
+                        "object_terms": object_scope.get("object_terms", []),
+                        "description": object_scope.get("description", ""),
+                    } if object_scope else None,
+                    "categorical_fields": categorical_fields,
                 }
             )
         return "\n".join(
@@ -517,6 +538,23 @@ class MetadataCatalog:
                 json.dumps(self.routing_context(decision), ensure_ascii=False)
                 if decision is not None
                 else "无。",
+                "已发布的业务概念替代建议（仅供 Agent 判断是否需要澄清，不是自动路由或强制口径）：",
+                json.dumps(
+                    [
+                        {
+                            "id": item.get("id"),
+                            "message": item.get("message"),
+                            "suggestions": [
+                                suggestion.get("business_label")
+                                for suggestion in item.get("suggestions", [])
+                            ],
+                        }
+                        for item in self._concept_alternatives
+                        if item.get("status") == "published"
+                        and item.get("runtime_enabled") is True
+                    ],
+                    ensure_ascii=False,
+                ),
             ]
         )
 
@@ -713,6 +751,12 @@ class MetadataCatalog:
             if set(example.get("tables", []))
             and set(example.get("tables", [])).issubset(tables)
         ]
+        if self._managed_rules_provider is not None:
+            applicable.extend(
+                rule
+                for rule in self._managed_rules_provider()
+                if set(rule.get("scope_tables", [])).issubset(tables)
+            )
         exact = [
             example
             for example in applicable
@@ -743,36 +787,15 @@ class MetadataCatalog:
             if set(rule.get("scope_tables", [])).issubset(tables)
         ]
 
-        def select(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
-            exact = (
-                [
-                    item
-                    for item in items
-                    if decision is not None
-                    and decision.intent_id in item.get("source_question_ids", [])
-                ]
-                if decision is not None
-                else []
-            )
-            exact_ids = {item.get("id") for item in exact}
-            terms = self._rank_by_terms(
-                [item for item in items if item.get("id") not in exact_ids],
-                question,
-                3,
-            )
-            return (exact + terms)[:3]
-
-        published = select(
-            [
-                rule
-                for rule in applicable
-                if rule.get("status") == "published"
-                and rule.get("runtime_enabled") is True
-            ]
-        )
-        references = select(
-            [rule for rule in applicable if rule.get("reference_enabled") is True]
-        )
+        published = [
+            rule
+            for rule in applicable
+            if rule.get("status") == "published"
+            and rule.get("runtime_enabled") is True
+        ]
+        references = [
+            rule for rule in applicable if rule.get("reference_enabled") is True
+        ]
         return published, references
 
     def answer_guidance(
@@ -808,6 +831,22 @@ class MetadataCatalog:
     def _published_rules(self, question: str, tables: set[str]) -> list[dict[str, Any]]:
         # Compatibility helper for callers that do not carry a routing decision.
         return self._rules_for_context(question, tables, None)[0]
+
+    def runtime_rule_summaries(self) -> list[dict[str, Any]]:
+        """Return the business-visible subset of built-in effective rules."""
+        return [
+            {
+                "id": str(rule.get("id") or ""),
+                "name": str(rule.get("name") or rule.get("id") or "未命名规则"),
+                "scope_tables": list(rule.get("scope_tables") or []),
+                "content": str(rule.get("content") or ""),
+                "source": "system_config",
+            }
+            for rule in sorted(self._rules, key=lambda item: str(item.get("id") or ""))
+            if rule.get("status") == "published"
+            and rule.get("runtime_enabled") is True
+            and rule.get("content")
+        ]
 
     def build_sql_context(
         self,
@@ -927,6 +966,14 @@ class MetadataCatalog:
                 getattr(plan, "presentation_requirements", [])
             ),
             "scope": self.data_domain()["administrative_scope"],
+            "authoritative_data_as_of": max(
+                (
+                    str(self._datasets[table].get("data_as_of"))
+                    for table in requested
+                    if self._datasets.get(table, {}).get("data_as_of")
+                ),
+                default=None,
+            ),
             "must_not_filter_city_name": True,
             "routing_context": self.routing_context(decision),
         }

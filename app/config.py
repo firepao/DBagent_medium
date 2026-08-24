@@ -1,5 +1,6 @@
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -47,10 +48,20 @@ class Settings(BaseSettings):
     max_result_requery_attempts: int = Field(default=1, ge=0, le=1)
     audit_log_path: Path = Path("runtime/query_audit.jsonl")
     stage_timing_log_path: Path = Path("runtime/stage_timing.jsonl")
+    platform_db_path: Path = Path("runtime/platform.sqlite3")
     query_diagnostics_enabled: bool = Field(
         default=False,
         validation_alias="ENABLE_QUERY_DIAGNOSTICS",
     )
+    admin_api_key: str = Field(default="", validation_alias="ADMIN_API_KEY")
+    viewer_api_key: str = Field(default="", validation_alias="VIEWER_API_KEY")
+    deployment_mode: Literal["development", "production"] = Field(
+        default="development", validation_alias="DEPLOYMENT_MODE"
+    )
+    otel_exporter_endpoint: str = Field(default="", validation_alias="OTEL_EXPORTER_OTLP_ENDPOINT")
+    otel_service_name: str = Field(default="resources-agent", validation_alias="OTEL_SERVICE_NAME")
+    conversation_ttl_seconds: float = Field(default=900.0, gt=0, le=86400)
+    conversation_max_sessions: int = Field(default=1000, ge=1, le=100000)
 
     @property
     def llm_configured(self) -> bool:

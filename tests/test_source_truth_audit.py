@@ -307,3 +307,14 @@ def test_cli_writes_json_and_markdown_reports(tmp_path: Path) -> None:
     assert result.returncode == 1
     assert json.loads(output_json.read_text(encoding="utf-8"))["summary"]["failed_tables"] == 1
     assert "源数据事实核查报告" in output_markdown.read_text(encoding="utf-8")
+
+
+def test_cli_defaults_follow_current_runtime_snapshot() -> None:
+    from tools.audit_source_truth import build_parser
+
+    args = build_parser().parse_args(["--json-output", "audit.json", "--markdown-output", "audit.md"])
+
+    assert args.sqlite_db_path.as_posix().endswith(
+        "数据入库v_1.1_0722/query_ready_v2/zhangbei_energy_query_ready_v2.sqlite3"
+    )
+    assert args.ddl_directory.as_posix().endswith("数据入库v_1.1_0722/query_ready_v2/ddl")

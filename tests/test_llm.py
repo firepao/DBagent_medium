@@ -10,7 +10,7 @@ from app.llm_providers import LLMProvider, LLMProviderPool
 
 
 def settings():
-    return Settings(openai_base_url="https://llm.example.test/v1", openai_api_key="test-key", openai_model="test-model", llm_timeout_seconds=123)
+    return Settings(_env_file=None, openai_base_url="https://llm.example.test/v1", openai_api_key="test-key", openai_model="test-model", llm_timeout_seconds=123)
 
 
 def prompts():
@@ -38,7 +38,11 @@ def test_plan_uses_openai_compatible_request_and_parses_json():
         return httpx.Response(200, json={"choices": [{"message": {"content": json.dumps({"original_question": "查询装机", "query_type": "aggregation", "table_hints": ["stations"], "required_outputs": ["装机结果"], "business_objects": ["电站"], "time_requirements": [], "presentation_requirements": [], "requires_clarification": False, "clarification_question": None})}}]})
     client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
     llm = OpenAIQueryLLM(settings(), client, prompts=prompts())
-    result = asyncio.run(llm.plan("查询装机", "表卡"))
+    async def invoke():
+        result = await llm.plan("查询装机", "表卡")
+        return result, llm.last_call_metadata
+
+    result, metadata = asyncio.run(invoke())
     asyncio.run(client.aclose())
     assert result.table_hints == ["stations"]
     assert result.original_question == "查询装机"
@@ -151,10 +155,58 @@ def test_http_failure_falls_back_to_next_provider():
         prompts=prompts(),
         provider_pool=provider_pool(),
     )
-    result = asyncio.run(llm.plan("查询装机", "表卡"))
+    async def invoke():
+        result = await llm.plan("查询装机", "表卡")
+        return result, llm.last_call_metadata
+
+    result, metadata = asyncio.run(invoke())
     asyncio.run(client.aclose())
     assert result.table_hints == ["stations"]
     assert calls == ["primary.test", "fallback.test"]
+    assert metadata == {
+        "model": "model-2",
+        "provider": "fallback",
+        "input_tokens": None,
+        "output_tokens": None,
+        "total_tokens": None,
+    }
+
+
+def test_successful_provider_exposes_real_usage_metadata():
+    from app.llm import OpenAIQueryLLM
+
+    def handler(_):
+        return httpx.Response(
+            200,
+            json={
+                "choices": [{"message": {"content": "SELECT 1"}}],
+                "usage": {
+                    "prompt_tokens": 12,
+                    "completion_tokens": 3,
+                    "total_tokens": 15,
+                },
+            },
+        )
+
+    client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    llm = OpenAIQueryLLM(
+        settings(), client, prompts=prompts(), provider_pool=provider_pool()
+    )
+    async def invoke():
+        await llm.generate_sql(
+            "问题", QueryPlan(query_type="detail", table_hints=["stations"]), "目录"
+        )
+        return llm.last_call_metadata
+
+    metadata = asyncio.run(invoke())
+    asyncio.run(client.aclose())
+    assert metadata == {
+        "model": "model-1",
+        "provider": "primary",
+        "input_tokens": 12,
+        "output_tokens": 3,
+        "total_tokens": 15,
+    }
 
 
 def test_empty_content_falls_back_to_next_provider():

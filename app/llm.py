@@ -1,5 +1,6 @@
 import asyncio
 import json
+from contextvars import ContextVar
 from pathlib import Path
 from typing import Any, Callable, Mapping, Protocol, TypeVar
 
@@ -94,6 +95,9 @@ class OpenAIQueryLLM:
         self._owns_client = client is None
         self.client = client or httpx.AsyncClient(timeout=settings.llm_timeout_seconds)
         self.trace_repository = trace_repository
+        self._last_call_metadata: ContextVar[dict[str, Any]] = ContextVar(
+            f"llm_call_metadata_{id(self)}", default={}
+        )
         try:
             self.provider_pool = provider_pool or LLMProviderPool.from_settings(
                 settings, base_dir=base_dir
@@ -111,6 +115,10 @@ class OpenAIQueryLLM:
     def is_configured(self) -> bool:
         return True
 
+    @property
+    def last_call_metadata(self) -> dict[str, Any]:
+        return dict(self._last_call_metadata.get())
+
     def _ensure_configured(self) -> None:
         if not self.provider_pool:
             raise LLMConfigurationError("大模型供应商池配置不完整")
@@ -127,7 +135,14 @@ class OpenAIQueryLLM:
         for provider in self.provider_pool.candidates(stage):
             for attempt in range(self.settings.llm_provider_retry_count + 1):
                 try:
-                    normalized = await self._chat_provider(provider, system, user)
+                    normalized, usage = await self._chat_provider(provider, system, user)
+                    self._last_call_metadata.set({
+                        "model": provider.model,
+                        "provider": provider.id,
+                        "input_tokens": usage.get("prompt_tokens"),
+                        "output_tokens": usage.get("completion_tokens"),
+                        "total_tokens": usage.get("total_tokens"),
+                    })
                     validated = validator(normalized) if validator else normalized
                     self.provider_pool.record_success(provider.id)
                     if self.trace_repository is not None:
@@ -182,7 +197,7 @@ class OpenAIQueryLLM:
 
     async def _chat_provider(
         self, provider: LLMProvider, system: str, user: str
-    ) -> str:
+    ) -> tuple[str, dict[str, Any]]:
         request_body: dict[str, Any] = {
             "model": provider.model,
             "messages": [
@@ -215,7 +230,8 @@ class OpenAIQueryLLM:
                 content = reasoning
             else:
                 raise LLMInvalidResponseError("模型接口返回空内容")
-        return content.strip()
+        usage = payload.get("usage")
+        return content.strip(), usage if isinstance(usage, dict) else {}
 
     def _record_error(self, provider: LLMProvider, error_type: str) -> None:
         if self.trace_repository is not None:

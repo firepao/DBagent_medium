@@ -1,10 +1,13 @@
 import hashlib
+import asyncio
 import json
 import re
 import sqlite3
 import time
 import uuid
-from typing import Any
+import logging
+from datetime import date
+from typing import Any, AsyncIterator, Callable
 
 from app.audit import AuditRepository
 from app.catalog import CatalogError, MetadataCatalog
@@ -24,6 +27,11 @@ from app.llm_trace import llm_trace_context
 from app.models import Coverage, QueryData, QueryPlan, QueryRequest, ResultSet, SourceInfo, ToolResponse
 from app.sql_guard import SqlGuard, SqlValidationError, ValidatedSql
 from app.stage_timing import StageTimingRepository
+from app.run_events import RunEvent, RunEventStore, stage_summary
+from app.telemetry import TelemetryBridge
+from app.conversation import ConversationStore
+
+logger = logging.getLogger(__name__)
 
 
 class QueryTotalTimeoutError(RuntimeError):
@@ -50,6 +58,9 @@ class QueryService:
         max_semantic_rewrite_attempts: int = 1,
         max_result_requery_attempts: int = 1,
         total_timeout_seconds: float = 240.0,
+        telemetry: TelemetryBridge | None = None,
+        conversation_store: ConversationStore | None = None,
+        event_store: RunEventStore | None = None,
     ) -> None:
         self.catalog = catalog
         self.llm = llm
@@ -64,10 +75,17 @@ class QueryService:
         )
         self.max_result_requery_attempts = max_result_requery_attempts
         self.total_timeout_seconds = total_timeout_seconds
+        self.telemetry = telemetry or TelemetryBridge()
+        self.conversation_store = conversation_store or ConversationStore()
+        self.event_store = event_store
+        self._request_sessions: dict[str, tuple[str, str]] = {}
         self.evidence_builder = ResultEvidenceBuilder()
+        self._event_sinks: dict[str, Callable[[RunEvent], None]] = {}
+        self._event_sequences: dict[str, int] = {}
+        self._run_metadata: dict[str, dict[str, Any]] = {}
 
-    def _new_diagnostics(self) -> dict[str, Any] | None:
-        if not self.diagnostics_enabled:
+    def _new_diagnostics(self, force: bool = False) -> dict[str, Any] | None:
+        if not self.diagnostics_enabled and not force:
             return None
         return {
             "stage": "routing",
@@ -77,14 +95,16 @@ class QueryService:
             "pre_execution_review": [],
             "execution": [],
             "result_review": [],
-            "fallback": {"attempted": False, "exact_question_match": False, "used": False},
         }
 
     def _normalize_plan(self, plan: QueryPlan, question: str, route) -> QueryPlan:
-        """Bind the immutable request text and enforce the published table boundary."""
+        """Bind the immutable request text and enforce the published table boundary.
+
+        Published routes are advisory context. The planner must select tables from
+        the full published catalog so a validation question cannot become a hidden
+        production router.
+        """
         tables = set(plan.table_hints)
-        if route is not None and route.required_tables:
-            tables.update(route.required_tables)
         if not tables.issubset(self.catalog.allowed_tables):
             raise CatalogError("查询规划引用了未发布的数据表")
         if len(tables) > 4:
@@ -97,68 +117,42 @@ class QueryService:
             }
         )
 
-    async def query(self, request: QueryRequest) -> ToolResponse:
+    async def query(
+        self,
+        request: QueryRequest,
+        event_sink: Callable[[RunEvent], None] | None = None,
+        evaluation_mode: bool = False,
+    ) -> ToolResponse:
         request_id = f"qry_{uuid.uuid4().hex}"
+        session_id = self.conversation_store.session_id(request.session_id)
+        effective_question = self.conversation_store.resolve(session_id, request.question)
+        request = request.model_copy(update={"question": effective_question, "session_id": session_id})
+        self._request_sessions[request_id] = (session_id, effective_question)
+        self._run_metadata[request_id] = {"rule_versions": self._published_rule_ids()}
+        if event_sink is not None:
+            self._event_sinks[request_id] = event_sink
+            self._event_sequences[request_id] = 0
         started = time.monotonic()
         deadline = started + self.total_timeout_seconds
         audit_base = {"request_id": request_id, "question_sha256": hashlib.sha256(request.question.encode("utf-8")).hexdigest()}
-        diagnostics = self._new_diagnostics()
+        diagnostics = self._new_diagnostics(force=evaluation_mode)
         stage = "routing"
         try:
             with self._measure_stage(request_id, stage):
-                route = self.catalog.routing_decision(request.question)
-                concept_clarification = self.catalog.concept_clarification(
-                    request.question
-                )
-            if route is not None and route.action in {"reject_scope", "reject_capability"}:
-                return self._failure(
-                    request_id,
-                    "QUERY_NOT_SUPPORTED" if route.action == "reject_scope" else "CAPABILITY_NOT_SUPPORTED",
-                    route.message or "当前数据范围或已发布口径不支持该查询",
-                    False, audit_base, started, list(route.required_tables), stage, diagnostics,
-                )
+                # Validation cases and lexical routes are offline evaluation assets.
+                # Production planning always starts from the published catalog.
+                route = None
 
-            if concept_clarification is not None:
-                return self._failure(
-                    request_id,
-                    "CLARIFICATION_REQUIRED",
-                    concept_clarification["message"],
-                    False,
-                    audit_base,
-                    started,
-                    list(route.required_tables) if route is not None else [],
-                    stage,
-                    diagnostics,
-                )
-
-            deterministic_route = bool(
-                route is not None
-                and route.action == "allow"
-                and route.required_tables
-            )
-            if deterministic_route:
-                stage = "planning_deterministic_route"
-                with self._measure_stage(request_id, stage):
-                    plan = QueryPlan(
-                        original_question=request.question,
-                        query_type="aggregation",
-                        table_hints=list(route.required_tables),
-                        required_outputs=[request.question],
-                        business_objects=[],
-                        time_requirements=[],
-                        presentation_requirements=[],
+            stage = "planning"
+            self._ensure_within_total_timeout(deadline)
+            self._diag(diagnostics, "plan", {"status": "started"}, stage)
+            with self._measure_stage(request_id, stage):
+                with llm_trace_context(request_id, stage):
+                    plan = await self.llm.plan(
+                        request.question, self.catalog.build_planning_context(route)
                     )
-                planning_mode = "deterministic_route"
-            else:
-                stage = "planning"
-                self._ensure_within_total_timeout(deadline)
-                self._diag(diagnostics, "plan", {"status": "started"}, stage)
-                with self._measure_stage(request_id, stage):
-                    with llm_trace_context(request_id, stage):
-                        plan = await self.llm.plan(
-                            request.question, self.catalog.build_planning_context(route)
-                        )
-                planning_mode = "llm"
+                    self._capture_llm_metadata(request_id)
+            planning_mode = "llm"
             plan = self._normalize_plan(plan, request.question, route)
             audit_base.update(
                 {
@@ -194,6 +188,7 @@ class QueryService:
                     with self._measure_stage(request_id, stage):
                         with llm_trace_context(request_id, stage):
                             plan = await self.llm.plan(request.question, retry_context)
+                            self._capture_llm_metadata(request_id)
                     plan = self._normalize_plan(plan, request.question, route)
                     audit_base["query_plan"] = plan.model_dump(
                         exclude={"original_question"}
@@ -231,6 +226,7 @@ class QueryService:
             stage = "pre_execution_review_1"
             self._ensure_within_total_timeout(deadline)
             review = await self._pre_review(request_id, stage, request.question, plan, context, validated.sql, contract)
+            review = self._normalize_pre_review(review, contract)
             self._append_diag(diagnostics, "pre_execution_review", {"stage": stage, "decision": review.decision}, stage)
             if review.decision != "pass":
                 response, continuation = await self._handle_pre_review(
@@ -312,17 +308,10 @@ class QueryService:
             return self._failure(request_id, "LLM_NOT_CONFIGURED", "模型接口尚未配置。", False, audit_base, started, stage=stage, diagnostics=diagnostics)
         except LLMResponseError as exc:
             self._diag(diagnostics, "stage", stage, stage)
-            if stage in {"planning", "sql_generation_initial"}:
-                fallback = await self._try_exact_example_fallback(request_id, request, audit_base, started, diagnostics)
-                if fallback is not None:
-                    return fallback
             return self._failure(request_id, self._llm_error_code(exc, stage), self._llm_error_message(exc, stage), not isinstance(exc, (LLMPlanSchemaError, LLMReviewSchemaError)), audit_base, started, stage=stage, diagnostics=diagnostics)
         except CatalogError:
             return self._failure(request_id, "QUERY_NOT_SUPPORTED", "查询超出已发布数据范围。", False, audit_base, started, stage=stage, diagnostics=diagnostics)
         except SqlValidationError:
-            fallback = await self._try_exact_example_fallback(request_id, request, audit_base, started, diagnostics) if stage in {"planning", "sql_generation_initial"} else None
-            if fallback is not None:
-                return fallback
             return self._failure(request_id, "SQL_VALIDATION_FAILED", "系统未能形成符合安全要求的数据查询。请明确指标、时间或对象后重试；如持续出现，请提供请求编号排查。", False, audit_base, started, stage=stage, diagnostics=diagnostics)
         except QueryTimeoutError:
             return self._failure(request_id, "QUERY_TIMEOUT", "数据查询执行时间超过限制，未返回未经审核的部分结果。请缩小时间、区县或明细范围后重试。", True, audit_base, started, stage=stage, diagnostics=diagnostics)
@@ -332,6 +321,22 @@ class QueryService:
             return self._failure(request_id, "INTERNAL_ERROR", "数据库查询阶段未能完成。请确认筛选范围后重试；若持续出现，请提供请求编号排查。", False, audit_base, started, stage=stage, diagnostics=diagnostics)
         except Exception:
             return self._failure(request_id, "INTERNAL_ERROR", "查询服务处理过程中出现内部异常，未返回未经验证的数据。请稍后重试；若持续出现，请提供请求编号排查。", False, audit_base, started, stage=stage, diagnostics=diagnostics)
+        finally:
+            self.telemetry.finish(request_id)
+            self._request_sessions.pop(request_id, None)
+            self._event_sinks.pop(request_id, None)
+            self._event_sequences.pop(request_id, None)
+            self._run_metadata.pop(request_id, None)
+
+    async def query_events(self, request: QueryRequest) -> AsyncIterator[RunEvent | ToolResponse]:
+        queue: asyncio.Queue[RunEvent] = asyncio.Queue()
+        task = asyncio.create_task(self.query(request, event_sink=queue.put_nowait))
+        while not task.done() or not queue.empty():
+            try:
+                yield await asyncio.wait_for(queue.get(), timeout=0.1)
+            except TimeoutError:
+                continue
+        yield await task
 
     async def _handle_pre_review(self, request_id, question, plan, context, contract, validated, candidate_sql, review, modifications, audit_base, started, diagnostics):
         if review.decision == "clarification":
@@ -348,6 +353,7 @@ class QueryService:
         )
         self._append_diag(diagnostics, "sql_guard", {"stage": "sql_guard_revision_1", "status": "passed", "tables": sorted(revised.tables)}, "sql_guard_revision_1")
         second = await self._pre_review(request_id, "pre_execution_review_2", question, plan, context, revised.sql, contract)
+        second = self._normalize_pre_review(second, contract)
         self._append_diag(diagnostics, "pre_execution_review", {"stage": "pre_execution_review_2", "decision": second.decision}, "pre_execution_review_2")
         if second.decision != "pass":
             if second.decision == "clarification":
@@ -381,36 +387,157 @@ class QueryService:
     async def _generate_sql(self, request_id, stage, question, plan, context, task_mode, previous_sql=None, feedback=None):
         with self._measure_stage(request_id, stage):
             with llm_trace_context(request_id, stage):
-                return await self.llm.generate_sql(question, plan, context, task_mode=task_mode, previous_sql=previous_sql, feedback=feedback)
+                result = await self.llm.generate_sql(question, plan, context, task_mode=task_mode, previous_sql=previous_sql, feedback=feedback)
+                self._capture_llm_metadata(request_id)
+                return result
 
     async def _pre_review(self, request_id, stage, question, plan, context, sql, contract):
         with self._measure_stage(request_id, stage):
             with llm_trace_context(request_id, stage):
-                return await self.llm.review_before_execution(question, plan, context, sql, contract)
+                result = await self.llm.review_before_execution(question, plan, context, sql, contract)
+                self._capture_llm_metadata(request_id)
+                return result
 
     async def _result_review(self, request_id, stage, question, plan, contract, evidence):
         with self._measure_stage(request_id, stage):
             with llm_trace_context(request_id, stage):
-                return await self.llm.review_result(question, plan, contract, evidence)
+                result = await self.llm.review_result(question, plan, contract, evidence)
+                self._capture_llm_metadata(request_id)
+                return result
+
+    def _capture_llm_metadata(self, request_id: str) -> None:
+        metadata = getattr(self.llm, "last_call_metadata", None)
+        if isinstance(metadata, dict):
+            self._run_metadata.setdefault(request_id, {}).update(metadata)
+
+    def _published_rule_ids(self) -> list[str]:
+        provider = getattr(self.catalog, "_managed_rules_provider", None)
+        if provider is None:
+            return []
+        try:
+            return sorted(
+                str(rule["id"])
+                for rule in provider()
+                if isinstance(rule, dict) and str(rule.get("id", "")).startswith("managed:")
+            )
+        except Exception:
+            return []
 
     async def _execute(
         self, request_id: str, validated: ValidatedSql, diagnostics, stage: str
     ) -> ExecutionResult:
         with self._measure_stage(request_id, stage):
             result = await self.executor.execute(validated.sql)
+        self._apply_result_labels(result, validated.tables)
         self._append_diag(diagnostics, "execution", {"stage": stage, "row_count": result.row_count, "truncated": result.truncated, "duration_ms": result.duration_ms}, stage)
         return result
+
+    def _apply_result_labels(self, result: ExecutionResult, tables: set[str]) -> None:
+        labels = self.catalog.result_field_labels(tables)
+        aggregate_prefixes = {
+            "total_": "合计", "sum_": "合计", "avg_": "平均值",
+            "average_": "平均值", "max_": "最大值", "min_": "最小值",
+        }
+        for column in result.schema:
+            name = str(column.get("name") or "")
+            label = labels.get(name)
+            if label is None:
+                normalized = name.lower()
+                for prefix, suffix in aggregate_prefixes.items():
+                    if normalized.startswith(prefix):
+                        field = name[len(prefix):]
+                        if field in labels:
+                            label = f"{labels[field]}{suffix}"
+                        break
+            if label and label != name:
+                column["semantic_label"] = label
 
     def _timed_validate(self, request_id, stage, sql, table_hints, question):
         with self._measure_stage(request_id, stage):
             return self._validate_planned_sql(sql, table_hints, question)
 
     def _measure_stage(self, request_id, stage):
-        if self.stage_timing is None:
-            from contextlib import nullcontext
+        from contextlib import contextmanager
 
-            return nullcontext()
-        return self.stage_timing.measure(request_id, stage)
+        @contextmanager
+        def measured():
+            started = time.monotonic()
+            self._emit_event(request_id, stage, "started")
+            try:
+                if self.stage_timing is None:
+                    yield
+                else:
+                    with self.stage_timing.measure(request_id, stage):
+                        yield
+            except Exception as exc:
+                self._emit_event(
+                    request_id,
+                    stage,
+                    "failed",
+                    duration_ms=int((time.monotonic() - started) * 1000),
+                    error_type=type(exc).__name__,
+                )
+                raise
+            else:
+                self._emit_event(
+                    request_id,
+                    stage,
+                    "completed",
+                    duration_ms=int((time.monotonic() - started) * 1000),
+                )
+
+        return measured()
+
+    def _emit_event(
+        self,
+        request_id: str,
+        stage: str,
+        status: str,
+        *,
+        duration_ms: int | None = None,
+        error_type: str | None = None,
+    ) -> None:
+        sequence = self._event_sequences.get(request_id, 0) + 1
+        self._event_sequences[request_id] = sequence
+        tool = self._tool_for_stage(stage)
+        llm_metadata = (
+            self._run_metadata.get(request_id, {})
+            if tool == "llm" and status == "completed"
+            else {}
+        )
+        event = RunEvent.create(
+                request_id=request_id,
+                sequence=sequence,
+                stage=stage,
+                status=status,
+                duration_ms=duration_ms,
+                summary=stage_summary(stage, status),
+                error_type=error_type,
+                tool=tool,
+                rule_versions=self._run_metadata.get(request_id, {}).get("rule_versions", []),
+                **{key: llm_metadata.get(key) for key in ("model", "provider", "input_tokens", "output_tokens", "total_tokens")},
+            )
+        if self.event_store is not None:
+            try:
+                self.event_store.append(event)
+            except sqlite3.Error:
+                logger.warning("RunEvent 持久化失败，查询继续运行", exc_info=True)
+        self.telemetry.record(event)
+        sink = self._event_sinks.get(request_id)
+        if sink is not None:
+            sink(event)
+
+    @staticmethod
+    def _tool_for_stage(stage: str) -> str:
+        if stage.startswith(("planning", "sql_generation", "pre_execution_review", "result_review")):
+            return "llm"
+        if stage.startswith("sql_guard"):
+            return "sql_guard"
+        if stage.startswith("execution"):
+            return "sqlite_readonly"
+        if stage == "routing":
+            return "metadata_catalog"
+        return "agent"
 
     def _success(self, request_id, question, plan, route, tables, primary, sources, *, supplemental=None, limitations=None, diagnostics, audit_base, started):
         warnings = ["RESULT_TRUNCATED"] if primary.truncated else []
@@ -421,13 +548,9 @@ class QueryService:
         if supplemental is not None:
             result_sets.append(ResultSet(id="supplemental", purpose="补查", data=self._query_data(supplemental, sources)))
         response = ToolResponse(
-            success=True, request_id=request_id, data=data, result_sets=result_sets, sources=sources,
+            success=True, request_id=request_id, session_id=self._request_sessions.get(request_id, (None,))[0], data=data, result_sets=result_sets, sources=sources,
             warnings=warnings, limitations=list(dict.fromkeys(limitations or [])),
-            coverage=Coverage(
-                applied_scope=self.catalog.data_domain()["administrative_scope"],
-                dimensions=[],
-                measures=[],
-            ),
+            coverage=self._coverage(primary, supplemental),
             answer_guidance=self.catalog.answer_guidance(question, tables, route), diagnostics=diagnostics,
         )
         self.audit.record({**audit_base, "status": "success", "query_type": plan.query_type, "tables": sorted(tables), "row_count": primary.row_count, "result_sets": len(result_sets), "duration_ms": int((time.monotonic() - started) * 1000)})
@@ -435,9 +558,65 @@ class QueryService:
             self.stage_timing.record_duration(request_id, "request_total", started, status="success")
         return response
 
+    def _coverage(self, primary, supplemental=None) -> Coverage:
+        dimensions: list[str] = []
+        measures: list[str] = []
+        for result in (primary, supplemental):
+            if result is None:
+                continue
+            for column in result.schema:
+                name = str(column.get("name") or "").strip()
+                if not name:
+                    continue
+                target = (
+                    dimensions
+                    if self._is_dimension_column(name)
+                    else measures
+                    if column.get("type") in {"integer", "number"}
+                    or column.get("unit")
+                    else dimensions
+                )
+                if name not in target:
+                    target.append(name)
+        return Coverage(
+            applied_scope=self.catalog.data_domain()["administrative_scope"],
+            dimensions=dimensions,
+            measures=measures,
+        )
+
+    @staticmethod
+    def _is_dimension_column(name: str) -> bool:
+        normalized = name.strip().lower()
+        exact = {
+            "id", "rank", "ranking", "row_number", "section_order",
+            "year", "month", "quarter", "序号", "排名", "年份", "年度",
+            "月份", "季度", "编号",
+        }
+        return (
+            normalized in exact
+            or normalized.endswith(("_id", "_rank", "_ranking", "_order"))
+            or any(term in name for term in ("排名", "序号", "编号", "年份", "年度", "月份", "季度"))
+        )
+
     def _query_data(self, result, sources):
         data_as_of = [source.data_as_of for source in sources if source.data_as_of]
-        return QueryData(rows=result.rows, summary=dict(result.rows[0]) if len(result.rows) == 1 else {"row_count": result.row_count, "truncated": result.truncated}, schema_=result.schema, data_as_of=max(data_as_of) if data_as_of else None, result_status="data_found" if result.rows else "no_match", result_reason=None if result.rows else "当前合法筛选条件下未匹配到记录")
+        authoritative_date = max(data_as_of) if data_as_of else None
+        rows = result.rows
+        if authoritative_date:
+            # A model-generated alias such as “数据时间” must not override the
+            # catalog's authoritative snapshot date. Preserve the result shape,
+            # but normalize that presentation field to the trusted source date.
+            today = date.today().isoformat()
+            rows = [
+                {
+                    key: authoritative_date
+                    if "数据时间" in str(key) and str(value).strip() == today
+                    else value
+                    for key, value in row.items()
+                }
+                for row in result.rows
+            ]
+        return QueryData(rows=rows, summary=dict(rows[0]) if len(rows) == 1 else {"row_count": result.row_count, "truncated": result.truncated}, schema_=result.schema, data_as_of=authoritative_date, result_status="data_found" if rows else "no_match", result_reason=None if rows else "当前合法筛选条件下未匹配到记录")
 
     def _sources(self, tables):
         return [SourceInfo(**item) for item in self.catalog.source_info(tables)]
@@ -446,7 +625,13 @@ class QueryService:
         self.audit.record({**audit_base, "status": "failed", "error_code": code, "tables": sorted(tables or []), "stage": stage, "duration_ms": int((time.monotonic() - started) * 1000)})
         if self.stage_timing is not None:
             self.stage_timing.record_duration(request_id, "request_total", started, status="error")
-        return ToolResponse.failure(request_id=request_id, code=code, message=message, retryable=retryable, diagnostics=diagnostics)
+        session_id, question = self._request_sessions.get(request_id, (None, None))
+        if session_id:
+            if code == "CLARIFICATION_REQUIRED" and question:
+                self.conversation_store.require_clarification(session_id, question)
+            else:
+                self.conversation_store.clear(session_id)
+        return ToolResponse.failure(request_id=request_id, code=code, message=message, retryable=retryable, diagnostics=diagnostics, session_id=session_id)
 
     def _validate_planned_sql(self, sql, planned_tables, question):
         validated = self.guard.validate(sql)
@@ -462,6 +647,25 @@ class QueryService:
     @staticmethod
     def _review_feedback(issues, changes):
         return {"issues": [item.model_dump() for item in issues], "required_changes": changes}
+
+    @staticmethod
+    def _normalize_pre_review(review, contract):
+        """Resolve the one known reviewer/contract contradiction deterministically.
+
+        A published snapshot timestamp is authoritative metadata. Some models still
+        request a volatile ``datetime('now')`` result column for a user request to
+        cite the data time. Treat that narrow, fully identified request as satisfied
+        while preserving every other review issue and the SQL Guard boundary.
+        """
+        authoritative = contract.get("authoritative_data_as_of")
+        if not authoritative or review.decision != "revise":
+            return review
+        time_codes = {"DATA_TIME_NOT_IN_QUERY", "DATA_TIME_SEMANTICS_MISMATCH"}
+        if review.issues and all(issue.code in time_codes for issue in review.issues):
+            review.decision = "pass"
+            review.issues = []
+            review.required_changes = []
+        return review
 
     @staticmethod
     def _is_repairable_sql_error(error):
@@ -528,32 +732,6 @@ class QueryService:
         if time.monotonic() >= deadline:
             raise QueryTotalTimeoutError("查询处理超过总时限")
 
-    async def _try_exact_example_fallback(self, request_id, request, audit_base, started, diagnostics):
-        example = self.catalog.exact_example(request.question)
-        if example is None:
-            return None
-        if diagnostics is not None:
-            diagnostics["fallback"] = {"attempted": True, "exact_question_match": True, "used": False}
-        try:
-            with self._measure_stage(request_id, "sql_guard_example_fallback"):
-                validated = self.guard.validate(example["sql"])
-            result = await self._execute(
-                request_id, validated, diagnostics, "execution_example_fallback"
-            )
-        except (SqlValidationError, QueryExecutionError):
-            return None
-        if diagnostics is not None:
-            diagnostics["fallback"]["used"] = True
-        fallback_plan = QueryPlan(
-            original_question=request.question,
-            query_type="aggregation",
-            table_hints=sorted(validated.tables),
-            required_outputs=[request.question],
-        )
-        response = self._success(request_id, request.question, fallback_plan, self.catalog.routing_decision(request.question), validated.tables, result, self._sources(validated.tables), limitations=[], diagnostics=diagnostics, audit_base=audit_base, started=started)
-        response.warnings.insert(0, "LLM_FALLBACK_EXAMPLE")
-        return response
-
     def health(self):
         database_state = "unhealthy"
         if self.executor.db_path.is_file():
@@ -565,6 +743,22 @@ class QueryService:
                 pass
         llm_state = "configured" if getattr(self.llm, "is_configured", False) else "missing"
         response = {"status": "healthy" if database_state == "healthy" and llm_state == "configured" else "degraded", "checks": {"database": database_state, "llm": llm_state}}
+        response["conversation"] = self.conversation_store.health_summary()
+        admin_key = getattr(self, "admin_api_key", "") or ""
+        viewer_key = getattr(self, "viewer_api_key", "") or ""
+        deployment_mode = getattr(self, "deployment_mode", "development") or "development"
+        auth_ready = bool(admin_key)
+        auth_mode = "admin_viewer" if admin_key and viewer_key else ("admin_only" if admin_key else ("viewer_only" if viewer_key else ("production_unconfigured" if deployment_mode == "production" else "development_open")))
+        response["management_auth"] = {
+            "configured": bool(admin_key or viewer_key),
+            "admin_configured": bool(admin_key),
+            "viewer_configured": bool(viewer_key),
+            "mode": auth_mode,
+            "deployment_mode": deployment_mode,
+            "ready": auth_ready if deployment_mode == "production" else True,
+        }
+        if deployment_mode == "production" and not auth_ready:
+            response["status"] = "degraded"
         provider_pool = getattr(self.llm, "provider_pool", None)
         if provider_pool is not None:
             response["llm_providers"] = provider_pool.snapshot()
@@ -574,3 +768,6 @@ class QueryService:
         close = getattr(self.llm, "aclose", None)
         if close is not None:
             await close()
+        shutdown = getattr(self.telemetry, "shutdown", None)
+        if shutdown is not None:
+            shutdown()

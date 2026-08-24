@@ -1,5 +1,57 @@
 # Medium 数据查询服务运行手册
 
+> 平台长期开发目标与阶段验收以 [`../docs/GOAL_AGENT_PLATFORM.md`](../docs/GOAL_AGENT_PLATFORM.md) 为准；模块和运行链路见 [`../docs/ARCHITECTURE.md`](../docs/ARCHITECTURE.md)。当前已提供真实查数工作台 `/app`、规则治理 `/rules` 和评测中心 `/evaluations`。
+
+## Docker Compose 部署
+
+`medium` 目录作为镜像构建上下文，Compose 通过只读 bind mount 提供业务 SQLite 和 DDL，把规则、评测和审计数据保存在 `agent-runtime` 持久卷。容器以非 root 用户运行。这样代码仓库不需要提交业务数据库，部署路径也可替换数据快照。
+
+```powershell
+Copy-Item .env.example .env
+# 编辑 .env，至少设置模型接口；上线时必须设置 ADMIN_API_KEY
+# 如业务数据不在默认相对路径，修改 ENERGY_DB_PATH 和 ENERGY_DDL_PATH
+docker compose up --build -d
+docker compose ps
+Invoke-RestMethod http://127.0.0.1:8030/ready
+```
+
+- `/live`：进程存活探针，不检查外部依赖。
+- `/ready`：就绪探针；业务数据库不可读或模型未配置时返回 HTTP 503。
+- `/health`：供界面展示的组件状态，保留 HTTP 200 兼容旧客户端。
+- `ADMIN_API_KEY` 设置后，规则与评测管理 API 必须携带 `X-Admin-Key`；`VIEWER_API_KEY` 可授予只读访问（GET），不能创建、发布、回滚规则或启动评测；普通查数接口不受影响。
+- `/health` 与 `/ready` 的 `management_auth` 字段会报告 admin/viewer 密钥是否配置及当前模式；`development_open` 只适合本地开发，production 缺少管理员密钥时会显示 `production_unconfigured` 并让 `/ready` 失败。
+- `DEPLOYMENT_MODE=production` 会启用就绪门禁：缺少 `ADMIN_API_KEY` 时 `/ready` 返回 503，Compose healthcheck 不会通过；本地演示可使用默认的 `development`。
+- 设置 `OTEL_EXPORTER_OTLP_ENDPOINT=http://phoenix:6006/v1/traces` 可将脱敏 RunEvent 导出到 Phoenix/任意 OTLP HTTP 接收端；未设置、未安装 OTel 或接收端不可用时，查询仍继续。不会导出 SQL、Prompt、DDL 或结果行。
+- 多轮澄清使用 `session_id` 关联最近一次待补充问题，默认保留 900 秒、最多 1000 个待澄清会话；可通过 `CONVERSATION_TTL_SECONDS` 和 `CONVERSATION_MAX_SESSIONS` 调整。当前存储在单进程内存中，横向扩容前应替换为共享 TTL 存储。
+- `/health` 与 `/ready` 的 `conversation` 字段会明确报告 `backend=memory`、TTL、容量和 `multi_replica_supported=false`；这不是多副本一致性保证，部署多个实例前必须接入 Redis 等共享 TTL 存储。
+- RunEvent 同步持久化到平台 SQLite，可用 `GET /api/v1/query-runs/{request_id}/events` 重放关键阶段；该管理接口需要 `X-Admin-Key`，不存在的 request ID 返回 404。
+
+本机未安装 Docker 时，可继续使用虚拟环境启动方式；但不能据此宣称容器镜像已经完成实构建验证。
+
+部署前可先运行不依赖 Docker 的静态资产预检：
+
+```powershell
+.\\.venv\\Scripts\\python.exe tools\\validate_deployment_assets.py
+```
+
+该检查会核对 Dockerfile 的非 root 用户和启动端口、Compose 健康检查/只读挂载/持久卷、CI 的构建与依赖扫描步骤以及 `.env.example` 关键变量。它不能替代 GitHub runner 上的真实镜像构建、Compose 启动和 Trivy 扫描。
+
+## 平台数据备份与恢复
+
+平台规则、评测运行和发布门禁位于 `runtime/platform.sqlite3`。备份使用 SQLite backup API，恢复是覆盖操作，必须显式确认，并应在停止服务后执行。
+
+```powershell
+.\.venv\Scripts\python.exe tools\platform_db.py verify runtime\platform.sqlite3
+.\.venv\Scripts\python.exe tools\platform_db.py backup runtime\platform.sqlite3 --output backups --keep 7 --max-age-days 30
+# 只校验备份是否可恢复，不写目标数据库
+.\.venv\Scripts\python.exe tools\platform_db.py restore backups\platform-YYYYMMDDTHHMMSSZ.sqlite3 runtime\platform.sqlite3 --dry-run
+.\.venv\Scripts\python.exe tools\platform_db.py restore backups\platform-YYYYMMDDTHHMMSSZ.sqlite3 runtime\platform.sqlite3 --confirm
+```
+
+## 查询工作台
+
+服务启动后访问 `http://127.0.0.1:8030/app`，可直接使用查数对话工作台。页面真实调用 `POST /api/v1/query-energy-data`，展示结构化结果、数据来源、覆盖范围、限制和请求编号；不使用模拟答案。
+
 ## 1. 服务定位
 
 `medium` 是面向 Bit-Crew 的自然语言数据查询服务。Bit-Crew 发送原始问题，服务在内部完成查询规划、渐进元数据加载、LLM 生成 SQLite SQL、语义审核、安全校验、只读执行和审计。
@@ -32,8 +84,8 @@ BitAgent
 | `config/catalog.json` | 已发布表、字段别名、敏感字段排除和来源信息 |
 | `config/table_cards.json` | 全量增强表卡，包含业务覆盖范围、适合的问题类型、关键字段与数据限制，供规划模型选表 |
 | `config/ddl_registry.json` | 发布表到源 DDL 文件、SHA-256 的受控映射 |
-| `config/query_knowledge.json` | 前置路由、业务口径、计算规则的发布状态、待确认辅助规则及后置回答模板 |
-| `config/validation_cases.json` | 客户验证题 Q1-Q40 的意图 ID、支持状态、范围、必选表和数据缺口；仅 `routing_enabled=true` 的精确命中题作为前置路由规则 |
+| `config/query_knowledge.json` | 业务口径、计算规则的发布状态、待确认辅助规则及回答指引；不承担生产问题硬路由 |
+| `config/validation_cases.json` | 客户验证题 Q1-Q40 的期望行为、范围、必选表和数据缺口；仅供离线评测与回归，不参与生产路由 |
 | `config/administrative_regions.json` | 张家口完整行政区名称、各表地址字段映射和县区派生 SQL 模板 |
 | `config/examples.json` | 已验证问答-SQL 示例，仅用于上下文增强 |
 | `config/prompts.json` | 规划、SQL 生成、SQL 语义审核的版本化 System Prompt |
@@ -59,7 +111,7 @@ BitAgent
 
 ### 2.1 渐进加载与规则发布
 
-服务先执行前置路由：题集问题精确命中且 `routing_enabled=true` 时，按其意图 ID 决定必选候选表、数据不足或范围外；未精确命中或尚未启用的题集项，才按 `query_knowledge.json` 中已发布的轻量路由规则匹配。这样可以避免旧题集状态与新业务规则尚未核准一致时，错误阻断查询。允许进入查询后，第一次模型调用会得到全部增强表卡，选择 1 至 4 张已发布表；第二次调用才加载所选表的 DDL、全字段语义、已发布 SQL 规则和最相关的已验证示例。候选 SQL 先经过 AST 白名单校验：未发布字段、越出候选范围或只读查询结构等可修正问题只允许模型修复一次；写操作、多语句和注释等危险问题直接拒绝。SQL 可以使用候选表的子集，但由后续语义审核确认该子集足以回答问题。未确认的计算口径可标记为 `reference_enabled=true`：它会作为“不得执行”的辅助知识帮助模型识别数据缺口和拒答边界，但 `runtime_enabled=false` 时绝不会参与 SQL 生成。成功响应中的 `answer_guidance` 来自同一配置，供 Bit-Crew 后置 LLM 组织结论、口径、异常说明和来源；它不是 SQL 提示词，也不包含真实答案。
+生产查询始终由 Planner 基于全部已发布表卡自主选表。`validation_cases.json` 的题目、意图 ID、`routing_enabled` 和黄金值只供离线评测，生产服务不会调用题集精确匹配、关键词路由或固定示例 SQL。Planner 选择 1 至 4 张已发布表后，SQL 阶段才加载所选表的 DDL、完整字段语义、已发布规则和相关示例作为上下文。候选 SQL 先经过 AST 白名单校验：未发布字段、越出候选范围或只读查询结构等可修正问题只允许模型修复一次；写操作、多语句和注释等危险问题直接拒绝。SQL 可以使用候选表的子集，但由后续语义审核确认该子集足以回答问题。未确认的计算口径可标记为 `reference_enabled=true`：它会作为“不得执行”的辅助知识帮助模型识别数据缺口和拒答边界，但 `runtime_enabled=false` 时绝不会参与 SQL 生成。成功响应中的 `answer_guidance` 来自同一配置，供回答层组织结论、口径、异常说明和来源；它不是 SQL 提示词，也不包含真实答案。
 
 当前已发布的一期口径是：集中式新能源问题中的“装机容量”使用 `t01_operating_renewable_station_profile.grid_capacity_mw`（并网容量）统计。限电率、营收、变电站饱和等候选计算规则需要客户确认单位、阈值和适用范围后才能发布。
 
@@ -88,13 +140,13 @@ TableCard 的 `object_scope` 用来区分业务对象和字段条件。例如，
 
 ### 2.2 源数据事实核查
 
-每次更新 `data`、`data_1`、SQLite、DDL 或 `config/` 后，先运行只读核查：
+每次更新 `data`、`data_1`、SQLite、DDL 或 `config/` 后，先运行只读核查。工具默认使用原始/处理源目录 `数据入库_v1.0.1_2026.07.17/data_1_all` 做来源核对，但使用当前服务运行快照 `数据入库v_1.1_0722/query_ready_v2` 的 SQLite 和 DDL；这是有意保留的“源事实 vs 运行产物”边界：
 
 ```powershell
 & 'C:\Users\nine\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe' `
   tools\audit_source_truth.py `
-  --json-output config\source_truth_audit_2026-07-20.json `
-  --markdown-output docs\source-truth-audit-2026-07-20.md
+  --json-output config\source_truth_audit_current.json `
+  --markdown-output ..\docs\source-truth-audit-current.md
 ```
 
 核查以原始 `data` 的业务语义、`data_1` 的运行源工作簿、SQLite 的运行字段为事实层级，逐表验证来源文件、处理后工作表、DDL 的列顺序/类型/主键属性、TableCard 和已发布规则字段。命令退出码非 `0` 时不得重启服务或发布配置。原始工作表经预处理拆分后如未登记显式映射，报告会标为 `not_mapped`，不会误判为缺失。
@@ -178,6 +230,7 @@ ENABLE_QUERY_DIAGNOSTICS=false
 | `OPENAI_API_KEY` | 是 | 模型密钥，仅保存于本机 `.env` |
 | `OPENAI_MODEL` | 是 | 模型名称 |
 | `LLM_TIMEOUT_SECONDS` | 否 | 单次 LLM 调用超时秒数，默认 `120`；规划、SQL 生成和语义审核分别适用 |
+| `QUERY_TOTAL_TIMEOUT_SECONDS` | 否 | 单次自然语言查询总预算，默认 `240` 秒；覆盖规划、生成、审核、执行和有限补查 |
 | `ENABLE_LLM_TRACE` | 否 | 是否写入仅服务端可读的原始 LLM 输出追踪日志，默认 `false` |
 | `LLM_TRACE_LOG_PATH` | 否 | 原始 LLM 输出追踪日志路径，默认 `./runtime/llm_trace.jsonl` |
 | `SQLITE_DB_PATH` | 是 | SQLite 数据库路径，可使用相对路径 |
@@ -265,6 +318,7 @@ Invoke-RestMethod http://127.0.0.1:8030/health
 | 地址 | 用途 |
 | --- | --- |
 | `GET http://127.0.0.1:8030/health` | 健康检查 |
+| `GET http://127.0.0.1:8030/api/v1/evaluations/readiness` | 评测发布就绪摘要（黄金值覆盖、完整运行和阻塞原因） |
 | `http://127.0.0.1:8030/docs` | Swagger/OpenAPI 页面 |
 | `POST http://127.0.0.1:8030/api/v1/query-energy-data` | 数据查询接口 |
 
@@ -285,7 +339,7 @@ Invoke-RestMethod `
   -Body $body
 ```
 
-正常情况下会返回 `success=true`、`data.summary`、`sources` 和 `request_id`。该请求包含两次模型调用，实际耗时取决于模型接口；当前联调样例约为 8 秒。
+正常情况下会返回 `success=true`、`data.summary`、`sources` 和 `request_id`。完整主链路通常包含规划、SQL 生成、执行前审核和结果审核 4 次模型调用；若触发分类口径重规划、Guard 修复、业务审核修正或结果补查，调用次数会在确定性预算内增加。实际耗时和 Token 以本次 RunEvent 为准，不使用固定估算值。
 
 ## 6. Cloudflare Quick Tunnel 联调
 
@@ -383,7 +437,7 @@ Resolve-DnsName region1.v2.argotunnel.com -Server 8.8.8.8
 | `Content-Type` | `application/json; charset=utf-8` |
 | `Accept` | `application/json` |
 | 鉴权 | 未启用 Cloudflare Access 时关闭 |
-| 超时时间 | `150.0` 秒 |
+| 超时时间 | `240.0` 秒（应不低于 `QUERY_TOTAL_TIMEOUT_SECONDS`） |
 | 失败重试 | 关闭，由后续错误分支最多重试一次 |
 | 异常处理方式 | 调试阶段使用“继续流程”或输出异常变量；不要直接中断且不保留错误信息 |
 
@@ -537,7 +591,7 @@ https://exposed-charger-fits-cocktail.trycloudflare.com/api/v1/query-energy-data
 | `QUERY_TIMEOUT` | SQLite 查询超时 | 最多重试一次或缩小问题范围 |
 | `INTERNAL_ERROR` | 服务内部错误 | 展示 `request_id` 以便排查 |
 
-对于 `config/examples.json` 中精确匹配的已验证问题，若模型规划或 SQL 生成失败，服务会回退执行对应示例 SQL。示例 SQL 仍需经过 SQL 白名单校验和只读执行；响应保持 `success=true`，并在 `warnings` 中标记 `LLM_FALLBACK_EXAMPLE`。近似问法、未收录问题和未通过校验的示例不会触发回退。
+`config/examples.json` 只作为 SQL 生成阶段的上下文示例。模型规划、SQL 生成或审核失败时，服务会返回明确错误，不会按题目精确匹配并执行固定示例 SQL。
 
 ## 9. 常见故障排查
 

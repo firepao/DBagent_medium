@@ -1,0 +1,13 @@
+.timeline { list-style: none; padding: 0; margin: 0; }
+.timeline li { position: relative; padding: 0 0 15px 22px; font-size: 12px; color: #435149; }
+.timeline li::before { content: ""; position: absolute; left: 2px; top: 4px; width: 8px; height: 8px; border-radius: 50%; background: #aab4af; }
+.timeline li::after { content: ""; position: absolute; left: 5px; top: 15px; width: 2px; height: calc(100% - 8px); background: #dce2df; }
+.timeline li:last-child::after { display: none; }
+.timeline li.started::before { background: #397bb5; box-shadow: 0 0 0 3px #397bb520; }
+.timeline li.completed::before { background: #2e9465; }
+.timeline li.failed::before { background: #bd463d; }
+.timeline small { display: block; margin-top: 2px; color: #849089; }
+.event-summary { display: block; overflow-wrap: anywhere; }
+.event-meta { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
+.event-meta span { max-width: 100%; padding: 2px 5px; border: 1px solid #d9e1dd; border-radius: 3px; background: #f5f8f6; color: #59675f; font: 10px/1.4 Consolas, "Microsoft YaHei", sans-serif; overflow-wrap: anywhere; }
+.run-summary { padding-bottom: 16px; border-bottom: 1px solid var(--line); }

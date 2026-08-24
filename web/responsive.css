@@ -1,0 +1,13 @@
+@media (max-width: 900px) {
+  .details {
+    display: block;
+    border-left: 0;
+    border-top: 1px solid var(--line);
+    padding: 20px;
+  }
+
+  .empty-details {
+    margin-top: 36px;
+    margin-bottom: 36px;
+  }
+}

@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field, field_validator
 
 class QueryRequest(BaseModel):
     question: str = Field(min_length=1, max_length=2000)
+    session_id: str | None = Field(default=None, pattern=r"^ses_[a-f0-9]{32}$")
 
     @field_validator("question", mode="before")
     @classmethod
@@ -140,6 +141,7 @@ class ToolResponse(BaseModel):
     data: QueryData | None = None
     sources: list[SourceInfo] = Field(default_factory=list)
     request_id: str
+    session_id: str | None = None
     warnings: list[str] = Field(default_factory=list)
     result_sets: list[ResultSet] = Field(default_factory=list)
     coverage: Coverage | None = None
@@ -157,11 +159,13 @@ class ToolResponse(BaseModel):
         message: str,
         retryable: bool,
         diagnostics: dict[str, Any] | None = None,
+        session_id: str | None = None,
     ) -> "ToolResponse":
         clarification = code == "CLARIFICATION_REQUIRED"
         return cls(
             success=False,
             request_id=request_id,
+            session_id=session_id,
             answer_guidance={
                 "response_mode": "clarification" if clarification else "error",
                 "hard_constraints": [

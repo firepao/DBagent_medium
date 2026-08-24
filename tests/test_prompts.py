@@ -43,3 +43,6 @@ def test_default_prompts_define_two_non_generating_reviewers():
     assert "object_scope" in planner
     assert "对象范围用于选表" in generator
     assert "对象范围词只能选表" in pre
+    assert "authoritative_data_as_of" in pre
+    assert "ResultEvidence.data_as_of 非空" in result
+    assert "只有用户要求逐条记录时间或按时间分组时才需要时间列" in result
