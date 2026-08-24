@@ -18,8 +18,8 @@ services:
       LLM_TRACE_LOG_PATH: /app/runtime/llm_trace.jsonl
     volumes:
       - agent-runtime:/app/runtime
-      - "${ENERGY_DB_PATH:-../data/数据入库v_1.1_0722/query_ready_v2/zhangbei_energy_query_ready_v2.sqlite3}:/data/energy.sqlite3:ro"
-      - "${ENERGY_DDL_PATH:-../data/数据入库v_1.1_0722/query_ready_v2/ddl}:/data/ddl:ro"
+      - "${ENERGY_DB_PATH:-./data/数据入库v_1.1_0722/query_ready_v2/zhangbei_energy_query_ready_v2.sqlite3}:/data/energy.sqlite3:ro"
+      - "${ENERGY_DDL_PATH:-./data/数据入库v_1.1_0722/query_ready_v2/ddl}:/data/ddl:ro"
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8030/ready', timeout=3)"]
       interval: 15s

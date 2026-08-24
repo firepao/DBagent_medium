@@ -8,22 +8,22 @@ from app.executor import SQLiteExecutor
 from app.sql_guard import SqlGuard
 
 
-WORKSPACE_ROOT = Path(__file__).resolve().parents[2]
+REPO_ROOT = Path(__file__).resolve().parents[1]
 LATEST_DATABASE = (
-    WORKSPACE_ROOT
+    REPO_ROOT
     / "data"
     / "数据入库v_1.1_0722"
     / "query_ready_v2"
     / "zhangbei_energy_query_ready_v2.sqlite3"
 )
 DDL_DIRECTORY = (
-    WORKSPACE_ROOT
+    REPO_ROOT
     / "data"
     / "数据入库v_1.1_0722"
     / "query_ready_v2"
     / "ddl"
 )
-MEDIUM_CONFIG = WORKSPACE_ROOT / "medium" / "config"
+MEDIUM_CONFIG = REPO_ROOT / "config"
 
 
 def default_catalog() -> MetadataCatalog:
@@ -34,7 +34,7 @@ def default_catalog() -> MetadataCatalog:
         table_cards_path=MEDIUM_CONFIG / "table_cards.json",
         ddl_registry_path=MEDIUM_CONFIG / "ddl_registry.json",
         query_knowledge_path=MEDIUM_CONFIG / "query_knowledge.json",
-        validation_cases_path=WORKSPACE_ROOT / "medium" / "config" / "validation_cases.json",
+        validation_cases_path=MEDIUM_CONFIG / "validation_cases.json",
         ddl_directory=DDL_DIRECTORY,
     )
 

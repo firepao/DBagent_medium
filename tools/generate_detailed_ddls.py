@@ -12,8 +12,7 @@ from typing import Any
 
 
 MEDIUM_DIR = Path(__file__).resolve().parents[1]
-WORKSPACE_DIR = MEDIUM_DIR.parent
-DEFAULT_DATA_DIR = WORKSPACE_DIR / "data" / "数据入库v_1.1_0722" / "query_ready_v2"
+DEFAULT_DATA_DIR = MEDIUM_DIR / "data" / "数据入库v_1.1_0722" / "query_ready_v2"
 
 FIELD_PATTERN = re.compile(
     r"^-- 字段：(?P<name>[^|]+)\s*\|\s*别名：(?P<label>[^|]+)\s*"

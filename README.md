@@ -96,13 +96,13 @@ BitAgent
 当前 SQLite 默认路径为：
 
 ```text
-../data/数据入库v_1.1_0722/query_ready_v2/zhangbei_energy_query_ready_v2.sqlite3
+data/数据入库v_1.1_0722/query_ready_v2/zhangbei_energy_query_ready_v2.sqlite3
 ```
 
 同一数据包的 DDL 目录为：
 
 ```text
-../data/数据入库v_1.1_0722/query_ready_v2/ddl
+data/数据入库v_1.1_0722/query_ready_v2/ddl
 ```
 
 该版本在 `2026-07-17` 导入了 16 张业务表。服务运行时先校验 DDL 文件的 SHA-256、`CREATE TABLE` 名称和 SQLite 实际字段集；规划阶段加载全部表的业务覆盖范围、适合的问题类型和关键字段语义，SQL 阶段仅注入模型已选表的已发布字段 DDL、字段中文别名、类型、说明、数据限制、规则和示例。敏感或内部字段不会进入提示词。
@@ -214,8 +214,8 @@ OPENAI_MODEL=你的模型名称
 LLM_TIMEOUT_SECONDS=120
 ENABLE_LLM_TRACE=false
 LLM_TRACE_LOG_PATH=./runtime/llm_trace.jsonl
-SQLITE_DB_PATH=../data/数据入库v_1.1_0722/query_ready_v2/zhangbei_energy_query_ready_v2.sqlite3
-DDL_DIRECTORY=../data/数据入库v_1.1_0722/query_ready_v2/ddl
+SQLITE_DB_PATH=data/数据入库v_1.1_0722/query_ready_v2/zhangbei_energy_query_ready_v2.sqlite3
+DDL_DIRECTORY=data/数据入库v_1.1_0722/query_ready_v2/ddl
 QUERY_TIMEOUT_SECONDS=10
 MAX_RESULT_ROWS=100
 AUDIT_LOG_PATH=./runtime/query_audit.jsonl

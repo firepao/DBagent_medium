@@ -3,11 +3,10 @@ import json
 from pathlib import Path
 
 
-MEDIUM_DIR = Path(__file__).resolve().parents[1]
-WORKSPACE_ROOT = MEDIUM_DIR.parent
-CONFIG_DIR = MEDIUM_DIR / "config"
+REPO_ROOT = Path(__file__).resolve().parents[1]
+CONFIG_DIR = REPO_ROOT / "config"
 DDL_DIR = (
-    WORKSPACE_ROOT
+    REPO_ROOT
     / "data"
     / "数据入库v_1.1_0722"
     / "query_ready_v2"

@@ -22,10 +22,10 @@ class Settings(BaseSettings):
     llm_circuit_cooldown_seconds: float = Field(default=60.0, gt=0)
     llm_max_provider_attempts: int = Field(default=3, ge=1, le=10)
     sqlite_db_path: Path = Path(
-        "../data/数据入库v_1.1_0722/query_ready_v2/zhangbei_energy_query_ready_v2.sqlite3"
+        "data/数据入库v_1.1_0722/query_ready_v2/zhangbei_energy_query_ready_v2.sqlite3"
     )
     ddl_directory: Path = Path(
-        "../data/数据入库v_1.1_0722/query_ready_v2/ddl"
+        "data/数据入库v_1.1_0722/query_ready_v2/ddl"
     )
     catalog_path: Path = Path("config/catalog.json")
     examples_path: Path = Path("config/examples.json")

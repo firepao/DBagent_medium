@@ -19,7 +19,7 @@ def _default_data_root() -> Path:
 
 
 def _default_runtime_root() -> Path:
-    return MEDIUM_DIR.parent / "data" / "数据入库v_1.1_0722" / "query_ready_v2"
+    return MEDIUM_DIR / "data" / "数据入库v_1.1_0722" / "query_ready_v2"
 
 
 def build_parser() -> argparse.ArgumentParser:
