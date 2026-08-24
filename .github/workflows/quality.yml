@@ -10,6 +10,10 @@ permissions:
 jobs:
   python:
     runs-on: ubuntu-latest
+    env:
+      OPENAI_BASE_URL: https://example.invalid/v1
+      OPENAI_API_KEY: ci-placeholder
+      OPENAI_MODEL: ci-placeholder
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
