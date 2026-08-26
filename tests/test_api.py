@@ -188,6 +188,17 @@ def test_query_workbench_is_served_and_root_redirects() -> None:
     assert "查询口径" in script.text
     assert "coverage.dimensions" in script.text
     assert "coverage.measures" in script.text
+    assert "platform-strip" in page.text
+    assert "规则管理" in page.text
+    assert "评测中心" in page.text
+    assert "clearConversation" in page.text
+    assert "recentQuestions" in page.text
+    assert "copyRequestId" in page.text
+    assert "/api/v1/rules/runtime" in script.text
+    assert "/api/v1/evaluations/readiness" in script.text
+    assert "sessionStorage.setItem('recentQuestions'" in script.text
+    assert "compactEvents" in script.text
+    assert "runMetrics" in script.text
 
 
 def test_evaluation_workbench_consumes_case_diagnostics_and_comparison_changes() -> None:
