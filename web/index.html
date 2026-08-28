@@ -4,10 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>能源数据智能查询</title>
-  <link rel="stylesheet" href="/assets/app.css">
-  <link rel="stylesheet" href="/assets/timeline.css">
-  <link rel="stylesheet" href="/assets/platform.css">
-  <link rel="stylesheet" href="/assets/responsive.css">
+  <link rel="stylesheet" href="/assets/app.css?v=agent-runtime-20260828">
+  <link rel="stylesheet" href="/assets/timeline.css?v=agent-runtime-20260828">
+  <link rel="stylesheet" href="/assets/platform.css?v=agent-runtime-20260828">
+  <link rel="stylesheet" href="/assets/responsive.css?v=agent-runtime-20260828">
 </head>
 <body>
   <div class="shell">
@@ -37,6 +37,13 @@
             <div id="recentQuestions" class="recent-questions" hidden><div><strong>本次会话最近问题</strong><button id="clearHistory" type="button">清除</button></div><div id="recentQuestionList"></div></div>
           </div>
         </div>
+        <section class="details" aria-label="运行信息">
+          <div class="details-head"><h2>本次运行</h2><div><button id="copyRequestId" type="button" disabled>复制编号</button><button id="cancelRun" type="button" disabled>停止</button><button id="resumeRun" type="button" hidden>继续</button><span id="runStatus" class="status idle">待查询</span></div></div>
+          <div id="runDetails" class="empty-details">
+            <div class="empty-icon">i</div>
+            <p>提交问题后，这里会显示请求编号、数据范围、来源和限制。</p>
+          </div>
+        </section>
         <form id="queryForm" class="composer">
           <label for="question" class="sr-only">输入查询问题</label>
           <textarea id="question" maxlength="2000" rows="1" placeholder="例如：张北县已运行风电项目装机容量合计是多少？" required></textarea>
@@ -46,15 +53,8 @@
         </form>
         <p class="notice">系统仅执行只读查询。结果请结合数据时间和业务口径使用。</p>
       </section>
-      <aside class="details" aria-label="运行信息">
-        <div class="details-head"><h2>本次运行</h2><div><button id="copyRequestId" type="button" disabled>复制编号</button><span id="runStatus" class="status idle">待查询</span></div></div>
-        <div id="runDetails" class="empty-details">
-          <div class="empty-icon">i</div>
-          <p>提交问题后，这里会显示请求编号、数据范围、来源和限制。</p>
-        </div>
-      </aside>
     </main>
   </div>
-  <script src="/assets/app.js" defer></script>
+  <script src="/assets/app.js?v=agent-runtime-20260828" defer></script>
 </body>
 </html>

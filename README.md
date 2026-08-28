@@ -231,6 +231,9 @@ ENABLE_QUERY_DIAGNOSTICS=false
 | `OPENAI_MODEL` | 是 | 模型名称 |
 | `LLM_TIMEOUT_SECONDS` | 否 | 单次 LLM 调用超时秒数，默认 `120`；规划、SQL 生成和语义审核分别适用 |
 | `QUERY_TOTAL_TIMEOUT_SECONDS` | 否 | 单次自然语言查询总预算，默认 `240` 秒；覆盖规划、生成、审核、执行和有限补查 |
+| `AGENT_RUNTIME_ENABLED` | 否 | 是否启用动态 Agent Tool-Loop，默认 `true`；工作台使用 `/api/v2/agent-query/events`，旧 v1 接口保留兼容 |
+| `AGENT_MAX_TURNS` | 否 | Agent 最多决策轮数，默认 `10` |
+| `AGENT_MAX_SQL_QUERIES` | 否 | Agent 最多只读 SQL 执行次数，默认 `4` |
 | `ENABLE_LLM_TRACE` | 否 | 是否写入仅服务端可读的原始 LLM 输出追踪日志，默认 `false` |
 | `LLM_TRACE_LOG_PATH` | 否 | 原始 LLM 输出追踪日志路径，默认 `./runtime/llm_trace.jsonl` |
 | `SQLITE_DB_PATH` | 是 | SQLite 数据库路径，可使用相对路径 |
@@ -340,6 +343,21 @@ Invoke-RestMethod `
 ```
 
 正常情况下会返回 `success=true`、`data.summary`、`sources` 和 `request_id`。完整主链路通常包含规划、SQL 生成、执行前审核和结果审核 4 次模型调用；若触发分类口径重规划、Guard 修复、业务审核修正或结果补查，调用次数会在确定性预算内增加。实际耗时和 Token 以本次 RunEvent 为准，不使用固定估算值。
+
+### 5.4 Agentic Text-to-SQL Loop
+
+工作台默认使用动态工具循环，也可直接调用非流式接口：
+
+```powershell
+$body = @{ question = '统计各区县装机容量' } | ConvertTo-Json -Compress
+Invoke-RestMethod -Method Post `
+  -Uri http://127.0.0.1:8030/api/v2/agent-query `
+  -ContentType 'application/json; charset=utf-8' -Body $body
+```
+
+该接口的决策链是：模型选择工具 → 工具返回真实上下文/错误/结果画像 → 模型自主修正、检查枚举、换表或澄清 → `review_evidence` → `finalize_answer`。第一版只开放 `get_table_context`、`inspect_field_profile`、`execute_readonly_query`、`review_evidence`、`ask_user_question`、`finalize_answer` 六个工具。每次 SQL 仍经过现有 SQLGlot AST Guard 和 SQLite 只读执行器；重复调用、写操作、未发布表字段、空结果直接下结论、未经 Evidence 审核 finalize 都会被确定性阻断。
+
+旧 `/api/v1/query-energy-data` 固定状态机仅用于兼容既有调用方，工作台不再走该路径。当前 Agent 运行在单进程内，返回 `run_id`、`request_id`、工具轨迹、轮次/SQL 预算和可恢复的澄清状态；跨进程 checkpoint、持久化重放和多副本共享会话属于后续阶段。
 
 ## 6. Cloudflare Quick Tunnel 联调
 

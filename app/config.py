@@ -46,6 +46,15 @@ class Settings(BaseSettings):
     max_result_rows: int = Field(default=100, ge=1, le=1000)
     max_sql_modification_attempts: int = Field(default=1, ge=0, le=1)
     max_result_requery_attempts: int = Field(default=1, ge=0, le=1)
+    agent_runtime_enabled: bool = Field(
+        default=True, validation_alias="AGENT_RUNTIME_ENABLED"
+    )
+    agent_max_turns: int = Field(default=10, ge=1, le=30)
+    agent_max_sql_queries: int = Field(default=4, ge=1, le=10)
+    agent_max_llm_calls: int = Field(default=12, ge=1, le=50)
+    agent_max_total_tokens: int = Field(default=80000, ge=1, le=500000)
+    agent_max_wall_time_seconds: float = Field(default=240.0, gt=0, le=3600)
+    agent_max_consecutive_tool_errors: int = Field(default=3, ge=1, le=10)
     audit_log_path: Path = Path("runtime/query_audit.jsonl")
     stage_timing_log_path: Path = Path("runtime/stage_timing.jsonl")
     platform_db_path: Path = Path("runtime/platform.sqlite3")

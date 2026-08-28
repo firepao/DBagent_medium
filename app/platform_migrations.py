@@ -63,6 +63,74 @@ MIGRATIONS: tuple[tuple[int, str], ...] = (
         ALTER TABLE evaluation_runs ADD COLUMN p50_duration_ms REAL NOT NULL DEFAULT 0;
         ALTER TABLE evaluation_runs ADD COLUMN p95_duration_ms REAL NOT NULL DEFAULT 0;
     """),
+    (7, """
+        CREATE TABLE IF NOT EXISTS agent_sessions (
+            session_id TEXT PRIMARY KEY,
+            status TEXT NOT NULL CHECK (status IN ('active','waiting_user','archived')),
+            title TEXT,
+            summary TEXT,
+            summary_version INTEGER NOT NULL DEFAULT 0,
+            catalog_snapshot TEXT NOT NULL,
+            rule_versions_json TEXT NOT NULL,
+            active_run_id TEXT,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            expires_at TEXT
+        );
+        CREATE TABLE IF NOT EXISTS agent_messages (
+            message_id TEXT PRIMARY KEY,
+            session_id TEXT NOT NULL REFERENCES agent_sessions(session_id),
+            run_id TEXT,
+            sequence INTEGER NOT NULL,
+            role TEXT NOT NULL CHECK (role IN ('user','assistant','tool','system')),
+            content TEXT NOT NULL,
+            content_type TEXT NOT NULL,
+            tool_name TEXT,
+            tool_call_id TEXT,
+            parent_message_id TEXT,
+            visibility TEXT NOT NULL CHECK (visibility IN ('model','user','internal')),
+            metadata_json TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            UNIQUE(session_id, sequence)
+        );
+        CREATE INDEX IF NOT EXISTS agent_messages_session_seq
+            ON agent_messages(session_id, sequence);
+        CREATE TABLE IF NOT EXISTS agent_runs (
+            run_id TEXT PRIMARY KEY,
+            session_id TEXT NOT NULL REFERENCES agent_sessions(session_id),
+            request_id TEXT NOT NULL UNIQUE,
+            status TEXT NOT NULL,
+            turn_count INTEGER NOT NULL DEFAULT 0,
+            sql_count INTEGER NOT NULL DEFAULT 0,
+            llm_calls INTEGER NOT NULL DEFAULT 0,
+            total_tokens INTEGER NOT NULL DEFAULT 0,
+            error_code TEXT,
+            checkpoint_sequence INTEGER NOT NULL DEFAULT 0,
+            started_at TEXT NOT NULL,
+            ended_at TEXT
+        );
+        CREATE INDEX IF NOT EXISTS agent_runs_session_time
+            ON agent_runs(session_id, started_at);
+    """),
+    (8, """
+        CREATE TABLE IF NOT EXISTS agent_events (
+            event_id TEXT PRIMARY KEY,
+            run_id TEXT NOT NULL REFERENCES agent_runs(run_id),
+            sequence INTEGER NOT NULL,
+            event_type TEXT NOT NULL,
+            status TEXT NOT NULL,
+            payload_json TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            UNIQUE(run_id, sequence)
+        );
+        CREATE INDEX IF NOT EXISTS agent_events_run_seq ON agent_events(run_id, sequence);
+        CREATE TABLE IF NOT EXISTS agent_checkpoints (
+            run_id TEXT PRIMARY KEY REFERENCES agent_runs(run_id),
+            sequence INTEGER NOT NULL,
+            state_json TEXT NOT NULL,
+            saved_at TEXT NOT NULL
+        );
+    """),
 )
 
 

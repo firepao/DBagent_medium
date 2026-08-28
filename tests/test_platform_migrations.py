@@ -7,8 +7,8 @@ from app import platform_migrations
 
 def test_platform_migration_is_versioned_and_idempotent(tmp_path):
     path = tmp_path / "platform.sqlite3"
-    assert platform_migrations.migrate_platform_database(path) == 6
-    assert platform_migrations.migrate_platform_database(path) == 6
+    assert platform_migrations.migrate_platform_database(path) == 8
+    assert platform_migrations.migrate_platform_database(path) == 8
     with sqlite3.connect(path) as connection:
         version = connection.execute(
             "SELECT MAX(version) FROM platform_schema_migrations"
@@ -18,8 +18,8 @@ def test_platform_migration_is_versioned_and_idempotent(tmp_path):
                 "SELECT name FROM sqlite_master WHERE type = 'table'"
             )
         }
-    assert version == 6
-    assert {"rule_versions", "evaluation_cases", "evaluation_runs"}.issubset(tables)
+    assert version == 8
+    assert {"rule_versions", "evaluation_cases", "evaluation_runs", "agent_sessions", "agent_messages", "agent_runs"}.issubset(tables)
 
 
 def test_changed_historical_migration_is_rejected(tmp_path, monkeypatch):
@@ -47,7 +47,7 @@ def test_v6_adopts_columns_created_by_transitional_component_compatibility(tmp_p
             "ALTER TABLE evaluation_runs ADD COLUMN p95_duration_ms REAL NOT NULL DEFAULT 0"
         )
 
-    assert platform_migrations.migrate_platform_database(path) == 6
+    assert platform_migrations.migrate_platform_database(path) == 8
     with sqlite3.connect(path) as connection:
         assert connection.execute(
             "SELECT COUNT(*) FROM platform_schema_migrations WHERE version = 6"

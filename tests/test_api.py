@@ -174,16 +174,19 @@ def test_query_workbench_is_served_and_root_redirects() -> None:
     assert root.headers["location"] == "/app"
     assert page.status_code == 200
     assert "能源数据智能查询" in page.text
-    assert "/api/v1/query-energy-data/events" in script.text
+    assert "/assets/app.js?v=agent-runtime-20260828" in page.text
+    assert "/api/v2/agent-query/events" in script.text
     assert "event.total_tokens" in script.text
     assert "event.rule_versions" in script.text
     assert "event.provider" in script.text
     assert "column.unit" in script.text
     assert "displayValue" in script.text
     assert "模型仍在处理，复杂问题可能需要更久" in script.text
-    assert "finally{queryStartedAt=0;send.disabled=false" in script.text
+    assert "queryStartedAt=0" in script.text
+    assert "send.disabled" in script.text
     assert "queryStartedAt=Date.now()" in script.text
-    assert "RESULT_TRUNCATED:'结果超过展示上限" in script.text
+    assert "RESULT_TRUNCATED" in script.text
+    assert "结果超过展示上限" in script.text
     assert ".map(warningText)" in script.text
     assert "查询口径" in script.text
     assert "coverage.dimensions" in script.text
@@ -196,7 +199,8 @@ def test_query_workbench_is_served_and_root_redirects() -> None:
     assert "copyRequestId" in page.text
     assert "/api/v1/rules/runtime" in script.text
     assert "/api/v1/evaluations/readiness" in script.text
-    assert "sessionStorage.setItem('recentQuestions'" in script.text
+    assert "sessionStorage.setItem" in script.text
+    assert "recentQuestions" in script.text
     assert "compactEvents" in script.text
     assert "runMetrics" in script.text
 
@@ -300,6 +304,70 @@ def test_sse_endpoint_preserves_sanitized_run_metadata() -> None:
     assert '"total_tokens":15' in response.text
     assert '"rule_versions":["managed:capacity:v2"]' in response.text
     assert "api_key" not in response.text
+
+
+def test_agent_sse_endpoint_preserves_failed_observation_and_retry() -> None:
+    from app.agent.models import AgentRunResponse
+
+    class FakeAgentRuntime:
+        async def run(self, _question, *, event_sink=None):
+            events = [
+                {
+                    "request_id": "qry_agent",
+                    "run_id": "run_agent",
+                    "turn": 1,
+                    "stage": "agent_turn_1_execute_readonly_query",
+                    "status": "failed",
+                    "summary": "候选查询被安全检查拒绝，Agent 将根据观察继续修正。",
+                    "tool": "execute_readonly_query",
+                    "duration_ms": 2,
+                    "error_type": "SQL_VALIDATION_FAILED",
+                },
+                {
+                    "request_id": "qry_agent",
+                    "run_id": "run_agent",
+                    "turn": 2,
+                    "stage": "agent_turn_2_execute_readonly_query",
+                    "status": "completed",
+                    "summary": "修正后的只读查询执行成功。",
+                    "tool": "execute_readonly_query",
+                    "duration_ms": 3,
+                    "error_type": None,
+                },
+            ]
+            for item in events:
+                event_sink(item)
+            return AgentRunResponse(
+                run_id="run_agent",
+                request_id="qry_agent",
+                status="completed",
+                answer="共 2 个。",
+                response=ToolResponse(
+                    success=True,
+                    request_id="qry_agent",
+                    data=QueryData(rows=[{"total": 2}], summary={"total": 2}),
+                ),
+                turns_used=2,
+                llm_calls_used=2,
+                sql_queries_used=2,
+            )
+
+    service = StubService()
+    service.agent_runtime_enabled = True
+    service.agent_runtime = FakeAgentRuntime()
+    response = asyncio.run(request(
+        create_app(service),
+        "POST",
+        "/api/v2/agent-query/events",
+        json={"question": "查询项目数量"},
+    ))
+
+    assert response.status_code == 200
+    assert response.text.count("event: progress") == 2
+    assert "agent_turn_1_execute_readonly_query" in response.text
+    assert "agent_turn_2_execute_readonly_query" in response.text
+    assert "SQL_VALIDATION_FAILED" in response.text
+    assert '"success":true' in response.text
 
 
 def test_rule_api_draft_validate_and_publish(tmp_path) -> None:

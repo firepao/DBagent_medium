@@ -1,7 +1,10 @@
+import asyncio
+import json
 import uuid
 import secrets
 from contextlib import asynccontextmanager
 from pathlib import Path
+from datetime import UTC, datetime
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
@@ -14,6 +17,11 @@ from app.config import get_settings
 from app.executor import SQLiteExecutor
 from app.llm import OpenAIQueryLLM
 from app.models import QueryRequest, ToolResponse
+from app.agent import AgentRunResponse, AgentRuntime, AgentToolRegistry, OpenAIAgentController
+from app.agent.session_runtime import SessionAgentRuntime
+from app.agent.session_store import AgentSessionStore, SessionConflict, SessionNotFound
+from app.agent.contracts import AgentEvent
+from pydantic import BaseModel, Field
 from app.prompts import PromptRegistry
 from app.llm_trace import LLMTraceRepository
 from app.service import QueryService
@@ -42,6 +50,11 @@ from app.evaluation import (
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 WEB_DIR = BASE_DIR / "web"
+
+
+class AgentMessageRequest(BaseModel):
+    text: str = Field(min_length=1, max_length=2000)
+    client_message_id: str | None = Field(default=None, max_length=100)
 
 
 def _resolve_from_base(path: Path) -> Path:
@@ -131,6 +144,25 @@ def build_default_service() -> QueryService:
     service.rule_store = rule_store
     service.evaluation_store = evaluation_store
     service.evaluation_runner = evaluation_runner
+    service.agent_runtime_enabled = settings.agent_runtime_enabled
+    service.agent_runtime = AgentRuntime(
+        catalog,
+        OpenAIAgentController(llm),
+        AgentToolRegistry(catalog, guard, executor),
+        max_turns=settings.agent_max_turns,
+        max_sql_queries=settings.agent_max_sql_queries,
+        max_llm_calls=settings.agent_max_llm_calls,
+        max_total_tokens=settings.agent_max_total_tokens,
+        max_wall_time_seconds=settings.agent_max_wall_time_seconds,
+        max_consecutive_tool_errors=settings.agent_max_consecutive_tool_errors,
+    )
+    service.agent_session_store = AgentSessionStore(
+        platform_db_path, clarification_ttl_seconds=settings.conversation_ttl_seconds
+    )
+    service.agent_session_runtime = SessionAgentRuntime(
+        service.agent_runtime,
+        service.agent_session_store,
+    )
     return service
 
 
@@ -232,6 +264,213 @@ def create_app(service: QueryService | None = None) -> FastAPI:
     )
     async def query_energy_data(payload: QueryRequest) -> ToolResponse:
         return await query_service.query(payload)
+
+    @application.post(
+        "/api/v2/agent-query",
+        response_model=AgentRunResponse,
+        response_model_exclude_none=True,
+    )
+    async def agent_query(payload: QueryRequest) -> AgentRunResponse:
+        runtime = getattr(query_service, "agent_runtime", None)
+        enabled = getattr(query_service, "agent_runtime_enabled", False)
+        if runtime is None or not enabled:
+            raise HTTPException(status_code=503, detail="Agent Runtime 尚未启用")
+        return await runtime.run(payload.question)
+
+    @application.post("/api/v2/agent-query/events")
+    async def agent_query_events(payload: QueryRequest) -> StreamingResponse:
+        runtime = getattr(query_service, "agent_runtime", None)
+        enabled = getattr(query_service, "agent_runtime_enabled", False)
+        if runtime is None or not enabled:
+            raise HTTPException(status_code=503, detail="Agent Runtime 尚未启用")
+
+        async def stream():
+            queue: asyncio.Queue[dict] = asyncio.Queue()
+            task = asyncio.create_task(
+                runtime.run(payload.question, event_sink=queue.put_nowait)
+            )
+            terminal_seen = False
+            while not task.done() or not queue.empty():
+                try:
+                    event = await asyncio.wait_for(queue.get(), timeout=0.1)
+                    yield "event: progress\ndata: " + json.dumps(
+                        event, ensure_ascii=False
+                    ) + "\n\n"
+                except TimeoutError:
+                    continue
+            result = await task
+            response = result.response or ToolResponse.failure(
+                request_id=result.request_id,
+                code=result.error_code or "AGENT_FAILED",
+                message="Agent 查询未能完成。",
+                retryable=False,
+            )
+            yield "event: result\ndata: " + response.model_dump_json(
+                by_alias=True, exclude_none=True
+            ) + "\n\n"
+
+        return StreamingResponse(
+            stream(),
+            media_type="text/event-stream",
+            headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+        )
+
+    def _session_runtime():
+        runtime = getattr(query_service, "agent_session_runtime", None)
+        if runtime is None or not getattr(query_service, "agent_runtime_enabled", False):
+            raise HTTPException(status_code=503, detail="Agent Host 尚未启用")
+        return runtime
+
+    @application.post("/api/v3/agent/sessions")
+    async def create_agent_session() -> dict:
+        runtime = _session_runtime()
+        session = runtime.create_session()
+        return {"session_id": session.session_id, "status": session.status, "catalog_snapshot": session.catalog_snapshot, "created_at": session.created_at, "updated_at": session.updated_at, "message_count": 0}
+
+    @application.get("/api/v3/agent/sessions/{session_id}")
+    async def get_agent_session(session_id: str) -> dict:
+        runtime = _session_runtime()
+        try:
+            session = runtime.get_session(session_id)
+        except SessionNotFound:
+            raise HTTPException(status_code=404, detail="SESSION_NOT_FOUND")
+        messages = runtime.list_messages(session_id, limit=1_000)
+        return {**session.model_dump(mode="json"), "message_count": len(messages)}
+
+    @application.get("/api/v3/agent/sessions/{session_id}/messages")
+    async def list_agent_messages(session_id: str, after: int = 0, limit: int = 200) -> dict:
+        runtime = _session_runtime()
+        try:
+            messages = runtime.list_messages(session_id, after_sequence=max(0, after), limit=min(limit, 1_000))
+        except SessionNotFound:
+            raise HTTPException(status_code=404, detail="SESSION_NOT_FOUND")
+        return {"messages": [message.model_dump(mode="json") for message in messages]}
+
+    @application.get("/api/v3/agent/runs/{run_id}")
+    async def get_agent_run(run_id: str) -> dict:
+        runtime = _session_runtime()
+        try:
+            return runtime.get_run(run_id).model_dump(mode="json")
+        except SessionNotFound:
+            raise HTTPException(status_code=404, detail="RUN_NOT_FOUND")
+
+    @application.get("/api/v3/agent/runs/{run_id}/events")
+    async def list_agent_events(run_id: str, request: Request, after: int = 0, limit: int = 500) -> dict:
+        runtime = _session_runtime()
+        header_after = request.headers.get("last-event-id")
+        if header_after and header_after.isdigit():
+            after = max(after, int(header_after))
+        try:
+            events = runtime.list_events(run_id, after_sequence=max(0, after), limit=min(limit, 2_000))
+        except SessionNotFound:
+            raise HTTPException(status_code=404, detail="RUN_NOT_FOUND")
+        return {"events": [event.model_dump(mode="json") for event in events]}
+
+    @application.post("/api/v3/agent/sessions/{session_id}/messages/events")
+    async def agent_session_message_events(session_id: str, payload: AgentMessageRequest, request: Request, after: int = 0) -> StreamingResponse:
+        runtime = _session_runtime()
+        queue: asyncio.Queue[dict] = asyncio.Queue()
+        try:
+            session = runtime.get_session(session_id)
+        except SessionNotFound:
+            raise HTTPException(status_code=404, detail="SESSION_NOT_FOUND")
+        header_after = request.headers.get("last-event-id")
+        if header_after and header_after.isdigit():
+            after = max(after, int(header_after))
+
+        def sink(item: dict) -> None:
+            event_type = str(item.get("event_type") or ("tool_result" if item.get("tool") else "turn_start"))
+            queue.put_nowait({"event": event_type, "data": item})
+
+        async def stream():
+            try:
+                active = runtime.get_session(session_id)
+                existing = runtime.store.find_message_by_client_id(session_id, payload.client_message_id) if payload.client_message_id else None
+                existing_run = runtime.get_run(existing.run_id) if existing and existing.run_id else None
+                if existing_run is not None:
+                    for event in runtime.list_events(existing_run.run_id, after_sequence=max(0, after), limit=2_000):
+                        yield f"event: {event.event_type}\nid: {event.sequence}\ndata: {json.dumps({**event.model_dump(mode='json'), 'request_id': existing_run.request_id}, ensure_ascii=False)}\n\n"
+                    if existing_run.status in {"completed", "failed", "cancelled"}:
+                        replay = runtime._response_from_run(existing_run)
+                        yield "event: run_end\ndata: " + json.dumps({"run_id": replay.run_id, "request_id": replay.request_id, "status": replay.status, "response": replay.model_dump(mode="json")}, ensure_ascii=False) + "\n\n"
+                        return
+                    if existing_run.status in {"queued", "running"}:
+                        while True:
+                            if await request.is_disconnected():
+                                return
+                            current = runtime.get_run(existing_run.run_id)
+                            if current.status not in {"queued", "running"}:
+                                replay = runtime._response_from_run(current)
+                                yield "event: run_end\ndata: " + json.dumps({"run_id": replay.run_id, "request_id": replay.request_id, "status": replay.status, "response": replay.model_dump(mode="json")}, ensure_ascii=False) + "\n\n"
+                                return
+                            await asyncio.sleep(0.25)
+                if active.active_run_id and active.status in {"waiting_user", "active"}:
+                    active_run = runtime.get_run(active.active_run_id)
+                else:
+                    active_run = None
+                if active_run is not None and active_run.status in {"waiting_user", "paused"}:
+                    task = asyncio.create_task(runtime.resume_run(active_run.run_id, payload.text, event_sink=sink))
+                else:
+                    task = asyncio.create_task(runtime.start_run(session_id, payload.text, client_message_id=payload.client_message_id, event_sink=sink))
+            except SessionConflict:
+                yield "event: error\ndata: {\"code\":\"SESSION_BUSY\"}\n\n"
+                return
+            while not task.done() or not queue.empty():
+                if await request.is_disconnected():
+                    break
+                try:
+                    item = await asyncio.wait_for(queue.get(), timeout=0.1)
+                    terminal_seen = terminal_seen or item.get("event") in {"run_end", "clarification_required", "error"}
+                    event_id = item["data"].get("sequence") if isinstance(item.get("data"), dict) else None
+                    yield f"event: {item['event']}\n" + (f"id: {event_id}\n" if event_id is not None else "") + f"data: {json.dumps(item['data'], ensure_ascii=False)}\n\n"
+                except TimeoutError:
+                    continue
+            if task.done():
+                try:
+                    result = task.result()
+                    # The host persists and emits a terminal event. Only emit
+                    # a synthetic one when an unexpected path produced none.
+                    if not terminal_seen:
+                        yield "event: run_end\ndata: " + json.dumps({"run_id": result.run_id, "request_id": result.request_id, "status": result.status, "response": result.model_dump(mode="json")}, ensure_ascii=False) + "\n\n"
+                except SessionConflict:
+                    yield "event: error\ndata: {\"code\":\"SESSION_BUSY\"}\n\n"
+                except Exception as exc:
+                    yield "event: error\ndata: {\"code\":\"AGENT_FAILED\"}\n\n"
+        return StreamingResponse(stream(), media_type="text/event-stream", headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+    @application.post("/api/v3/agent/sessions/{session_id}/messages", response_model=AgentRunResponse)
+    async def agent_session_message(session_id: str, payload: AgentMessageRequest) -> AgentRunResponse:
+        runtime = _session_runtime()
+        try:
+            session = runtime.get_session(session_id)
+            if session.active_run_id and session.status in {"waiting_user", "active"}:
+                run = runtime.get_run(session.active_run_id)
+                if run.status in {"waiting_user", "paused"}:
+                    return await runtime.resume_run(run.run_id, payload.text)
+            return await runtime.start_run(session_id, payload.text, client_message_id=payload.client_message_id)
+        except SessionNotFound:
+            raise HTTPException(status_code=404, detail="SESSION_NOT_FOUND")
+        except SessionConflict:
+            raise HTTPException(status_code=409, detail="SESSION_BUSY")
+
+    @application.post("/api/v3/agent/runs/{run_id}/resume")
+    async def resume_agent_run(run_id: str, payload: AgentMessageRequest) -> AgentRunResponse:
+        runtime = _session_runtime()
+        try:
+            return await runtime.resume_run(run_id, payload.text)
+        except SessionNotFound:
+            raise HTTPException(status_code=404, detail="RUN_NOT_FOUND")
+        except ValueError as exc:
+            raise HTTPException(status_code=409, detail=str(exc))
+
+    @application.post("/api/v3/agent/runs/{run_id}/cancel")
+    async def cancel_agent_run(run_id: str) -> dict:
+        runtime = _session_runtime()
+        try:
+            run = runtime.cancel_run(run_id)
+            return run.model_dump(mode="json")
+        except SessionNotFound:
+            raise HTTPException(status_code=404, detail="RUN_NOT_FOUND")
 
     @application.post("/api/v1/query-energy-data/events")
     async def query_energy_data_events(payload: QueryRequest) -> StreamingResponse:
