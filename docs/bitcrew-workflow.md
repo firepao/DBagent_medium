@@ -59,7 +59,9 @@ flowchart LR
 
 ### 节点 3：HTTP 查询服务
 
-该节点负责把 BitAgent 的原始问题发送给 Medium 查询服务。节点本身不解析指标、不选择数据库表，也不生成 SQL。Medium 内部按以下顺序处理：全量轻量表卡规划选表 -> 加载所选表的已发布字段 DDL、已发布规则和验证示例 -> 生成 SQL -> 安全校验与只读执行。
+该节点负责把 BitAgent 的原始问题发送给 Medium 查询服务。节点本身不解析指标、不选择数据库表，也不生成 SQL。Medium 内部按以下顺序处理：题集意图精确路由/轻量路由规则 -> 全量轻量表卡规划选表 -> 加载候选表的已发布字段 DDL、已发布 SQL 规则和验证示例 -> 生成 SQL -> 安全校验 -> LLM 业务语义审核 -> SQLite 只读执行。
+
+前置路由可在模型调用前直接返回“当前数据不足”或“超出范围”；对允许查询的问题，它只约束必须进入候选上下文的表。候选 SQL 不必机械引用全部候选表，但只能访问候选范围内的表，且必须经语义审核确认其选表、指标、时间、单位和计算口径足以回答原问题。
 
 表卡中标记的 `data_limitations` 会同时进入规划与 SQL 生成上下文。Bit-Crew 不得绕过该限制改写问题，例如不得将“计划开工时间”当作“备案日期”，也不得要求服务对明确标记为非结构化的容量文本进行可靠汇总。
 
@@ -83,7 +85,7 @@ flowchart LR
 | URL 查询参数 | 无 |
 | 请求体类型 | JSON |
 | 连接超时 | 建议 `10s` |
-| 总请求超时 | 建议 `150s` |
+| 总请求超时 | 建议 `240s`，与服务默认 `QUERY_TOTAL_TIMEOUT_SECONDS` 对齐 |
 | 自动重试 | 关闭，由工作流错误分支控制最多重试一次 |
 | 跟随重定向 | 开启，最多 3 次 |
 
@@ -265,7 +267,7 @@ error = null
 
 ```text
 你是能源数据查询结果解释助手。
-只能依据输入的 data、sources、data_as_of 和 warnings 回答，不得补造数值、来源或时间。
+只能依据输入的 data、sources、data_as_of、warnings 和 answer_guidance 回答，不得补造数值、来源或时间。
 不得修改查询结果、排序、单位和统计口径。
 如果 rows 为空或 warnings 包含 NO_DATA，明确说明当前条件下没有查询到记录。
 回答应先给结论，再说明关键明细，最后列出数据来源和数据时点。
@@ -280,6 +282,7 @@ error = null
   "query_result": "{{query_response.data}}",
   "sources": "{{query_response.sources}}",
   "warnings": "{{query_response.warnings}}",
+  "answer_guidance": "{{query_response.answer_guidance}}",
   "request_id": "{{query_response.request_id}}"
 }
 ```
@@ -355,3 +358,6 @@ retry_count = 1
 5. `查询一个当前目录不支持的企业税收指标。`，验证范围兜底。
 
 每次验证记录：用户问题、最终答案、`request_id`、来源、数据时点、错误码或告警。Bit-Crew 不保存和展示 SQL。
+### 失败响应约束
+
+Bit-Crew 收到 `success=false` 时必须读取 `error.message`、`request_id` 和 `answer_guidance`。后置 LLM 只能转述服务已经确认的业务原因，不得自行补充“可能没有字段”“字段名称不匹配”“数据没有接入”等推测。除非 `error.message` 明确说明需要用户补充某个查询参数，否则不得要求用户补数据库字段。

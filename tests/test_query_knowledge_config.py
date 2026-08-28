@@ -3,15 +3,14 @@ import json
 from pathlib import Path
 
 
-MEDIUM_DIR = Path(__file__).resolve().parents[1]
-WORKSPACE_ROOT = MEDIUM_DIR.parent
-CONFIG_DIR = MEDIUM_DIR / "config"
+REPO_ROOT = Path(__file__).resolve().parents[1]
+CONFIG_DIR = REPO_ROOT / "config"
 DDL_DIR = (
-    WORKSPACE_ROOT
+    REPO_ROOT
     / "data"
-    / "数据入库_v1.0.1_2026.07.17"
-    / "data_1_all"
-    / "vanna_table_ddls"
+    / "数据入库v_1.1_0722"
+    / "query_ready_v2"
+    / "ddl"
 )
 
 
@@ -65,5 +64,51 @@ def test_validation_cases_preserve_supported_and_out_of_scope_questions() -> Non
     by_id = {case["id"]: case for case in cases}
 
     assert by_id["Q1"]["status"] == "supported"
+    assert by_id["Q2"]["status"] == "supported"
+    assert by_id["Q2"]["routing_enabled"] is True
+    assert by_id["Q8"]["status"] == "supported"
+    assert by_id["Q8"]["routing_enabled"] is True
+    for question_id in ("Q4", "Q6", "Q15", "Q17", "Q33", "Q34"):
+        assert by_id[question_id]["status"] == "supported"
+        assert by_id[question_id]["routing_enabled"] is True
+    assert by_id["Q24"]["status"] == "supported"
+    assert by_id["Q24"]["routing_enabled"] is True
     assert by_id["Q16"]["status"] == "not_supported"
     assert by_id["Q38"]["status"] == "out_of_scope"
+
+
+def test_growth_and_curtailment_routes_are_published() -> None:
+    knowledge = load_config("query_knowledge.json")
+    routes = {rule["id"]: rule for rule in knowledge["routing_rules"]}
+    assert routes["route_distributed_pv_growth"]["runtime_enabled"] is True
+    assert routes["route_citywide_capacity_yoy"]["runtime_enabled"] is True
+    assert routes["route_curtailment_metrics"]["runtime_enabled"] is True
+
+    rules = {rule["id"]: rule for rule in knowledge["rules"]}
+    assert rules["distributed_pv_county_growth"]["status"] == "published"
+    assert rules["citywide_installed_capacity_yoy"]["status"] == "published"
+
+
+def test_q24_central_enterprise_rule_is_published() -> None:
+    knowledge = load_config("query_knowledge.json")
+    by_id = {rule["id"]: rule for rule in knowledge["rules"]}
+
+    rule = by_id["q24_parent_group_top5_and_central_enterprise_share"]
+    assert rule["status"] == "published"
+    assert rule["runtime_enabled"] is True
+    assert rule["source_question_ids"] == ["Q24"]
+
+
+def test_customer_confirmed_calculation_rules_are_published() -> None:
+    knowledge = load_config("query_knowledge.json")
+    by_id = {rule["id"]: rule for rule in knowledge["rules"]}
+
+    expected = {
+        "storage_categories_non_additive",
+        "curtailment_rate_and_utilization_hours",
+        "theoretical_revenue_2025",
+        "substation_near_saturation_q17_q33",
+    }
+    assert expected.issubset(by_id)
+    assert all(by_id[rule_id]["status"] == "published" for rule_id in expected)
+    assert all(by_id[rule_id]["runtime_enabled"] is True for rule_id in expected)

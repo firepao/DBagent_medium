@@ -1,0 +1,151 @@
+{
+  "source_dir": "D:\\bitagent_workspace\\resources_agent\\data\\数据入库_v1.0.1_2026.07.17\\data_1_all\\data_1",
+  "built_at": "2026-07-22T05:58:41.012217+00:00",
+  "tables": {
+    "t01_operating_curtailment_monthly": {
+      "rows": 3706,
+      "parse_status": {
+        "district": {
+          "valid": 3706
+        }
+      }
+    },
+    "t01_operating_generation_monthly": {
+      "rows": 3706,
+      "parse_status": {
+        "district": {
+          "valid": 3706
+        }
+      }
+    },
+    "t01_operating_renewable_station_profile": {
+      "rows": 218,
+      "parse_status": {
+        "grid_capacity_mw": {
+          "valid": 218
+        },
+        "storage_capacity_mwh": {
+          "empty": 120,
+          "valid": 98
+        },
+        "start_date": {
+          "valid": 218
+        },
+        "grid_connection_date": {
+          "valid": 218
+        },
+        "district": {
+          "valid": 218
+        }
+      }
+    },
+    "t02_construction_project_station": {
+      "rows": 76,
+      "parse_status": {
+        "project_capacity_mw": {
+          "valid": 76
+        },
+        "district": {
+          "valid": 76
+        }
+      }
+    },
+    "t03_large_scale_enterprise": {
+      "rows": 80,
+      "parse_status": {
+        "district": {
+          "valid": 80
+        }
+      }
+    },
+    "t04_filing_project": {
+      "rows": 218,
+      "parse_status": {
+        "planned_start_date": {
+          "valid": 218
+        },
+        "planned_grid_operation_date": {
+          "valid": 218
+        },
+        "district": {
+          "valid": 218
+        }
+      }
+    },
+    "t05_land_planning_detail": {
+      "rows": 220,
+      "parse_status": {}
+    },
+    "t05_land_planning_merged_catalog": {
+      "rows": 13,
+      "parse_status": {}
+    },
+    "t05_land_polygon_point": {
+      "rows": 400,
+      "parse_status": {}
+    },
+    "t06_grid_side_storage": {
+      "rows": 218,
+      "parse_status": {
+        "grid_capacity_mwh": {
+          "valid": 218
+        }
+      }
+    },
+    "t07_distributed_pv_wind": {
+      "rows": 218,
+      "parse_status": {
+        "installed_capacity_mw": {
+          "valid": 218
+        },
+        "district": {
+          "valid": 218
+        }
+      }
+    },
+    "t08_industrial_commercial_storage": {
+      "rows": 240,
+      "parse_status": {
+        "installed_capacity_mwh": {
+          "valid": 240
+        },
+        "district": {
+          "valid": 240
+        }
+      }
+    },
+    "t09_charging_station": {
+      "rows": 160,
+      "parse_status": {
+        "storage_capacity_mwh": {
+          "not_applicable": 140,
+          "valid": 20
+        },
+        "district": {
+          "valid": 160
+        }
+      }
+    },
+    "t10_power_grid_material": {
+      "rows": 240,
+      "parse_status": {
+        "main_transformer_capacity_count": {
+          "valid": 240
+        },
+        "remaining_access_capacity": {
+          "valid": 240
+        }
+      }
+    },
+    "t11_weather_data_element": {
+      "rows": 5,
+      "parse_status": {}
+    },
+    "t11_weather_grid_sample": {
+      "rows": 240,
+      "parse_status": {}
+    }
+  },
+  "q33_near_saturated_count": 158,
+  "database_sha256": "21215878354a9b03d9d42249050985646874b395de184514524a3a33d15e80dc"
+}

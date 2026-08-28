@@ -1,12 +1,26 @@
 import hashlib
 import json
+import re
 import sqlite3
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 
 class CatalogError(ValueError):
     pass
+
+
+@dataclass(frozen=True)
+class RoutingDecision:
+    """A deterministic, pre-planning decision derived from published configuration."""
+
+    intent_id: str
+    action: str
+    required_tables: tuple[str, ...]
+    message: str | None = None
+    match_type: str = "exact_question"
+    customer_context: dict[str, Any] | None = None
 
 
 class MetadataCatalog:
@@ -20,6 +34,7 @@ class MetadataCatalog:
         ddl_registry_path: str | Path | None = None,
         query_knowledge_path: str | Path | None = None,
         validation_cases_path: str | Path | None = None,
+        administrative_regions_path: str | Path | None = None,
         ddl_directory: str | Path | None = None,
     ) -> None:
         self.db_path = Path(db_path).resolve()
@@ -45,12 +60,22 @@ class MetadataCatalog:
                 table: self._fallback_table_card(table, dataset)
                 for table, dataset in self._datasets.items()
             }
-        self._rules = self._load_optional_json(query_knowledge_path, {}).get(
-            "rules", []
-        )
+        knowledge = self._load_optional_json(query_knowledge_path, {})
+        self._rules = knowledge.get("rules", [])
+        self._routing_rules = knowledge.get("routing_rules", [])
+        self._concept_alternatives = knowledge.get("concept_alternatives", [])
+        self._answer_guidance = knowledge.get("answer_guidance", {})
         self._validation_cases = self._load_optional_json(
             validation_cases_path, {}
         ).get("cases", [])
+        self._administrative_regions = self._load_optional_json(
+            administrative_regions_path, {}
+        )
+        self._managed_rules_provider = None
+        self._field_semantics_cache: dict[str, list[dict[str, str]]] = {}
+
+    def set_managed_rules_provider(self, provider) -> None:
+        self._managed_rules_provider = provider
 
     @staticmethod
     def _load_json(path: Path) -> Any:
@@ -108,6 +133,16 @@ class MetadataCatalog:
         for card in self.table_cards():
             table = card["table"]
             allowed = self.allowed_columns(table)
+            coverage = card.get("coverage")
+            if not isinstance(coverage, str) or not coverage.strip():
+                issues.append(f"{table}.coverage 缺少业务覆盖范围说明")
+            supported_queries = card.get("supported_queries")
+            if not (
+                isinstance(supported_queries, list)
+                and supported_queries
+                and all(isinstance(item, str) and item.strip() for item in supported_queries)
+            ):
+                issues.append(f"{table}.supported_queries 缺少支持问题说明")
             for term, field in card.get("aliases", {}).items():
                 if field not in allowed:
                     issues.append(
@@ -118,6 +153,80 @@ class MetadataCatalog:
                     issues.append(
                         f"{table}.important_fields 引用未发布字段 {field}"
                     )
+            for categorical in card.get("categorical_fields", []):
+                field = categorical.get("field")
+                values = categorical.get("allowed_values", [])
+                aliases = categorical.get("value_aliases", {})
+                if field not in allowed:
+                    issues.append(
+                        f"{table}.categorical_fields 引用未发布字段 {field}"
+                    )
+                    continue
+                if not values or not all(
+                    isinstance(value, str) and value.strip() for value in values
+                ):
+                    issues.append(
+                        f"{table}.categorical_fields.{field} 缺少枚举值"
+                    )
+                    continue
+                invalid_targets = set(aliases.values()) - set(values)
+                if invalid_targets:
+                    issues.append(
+                        f"{table}.categorical_fields.{field} 别名指向未发布枚举: "
+                        + ", ".join(sorted(invalid_targets))
+                    )
+                uri = f"file:{self.db_path.as_posix()}?mode=ro"
+                with sqlite3.connect(uri, uri=True) as connection:
+                    actual_values = {
+                        str(row[0]).strip()
+                        for row in connection.execute(
+                            f'SELECT DISTINCT "{field}" FROM "{table}" '
+                            f'WHERE "{field}" IS NOT NULL AND TRIM(CAST("{field}" AS TEXT)) <> \'\''
+                        )
+                    }
+                if actual_values - set(values):
+                    issues.append(
+                        f"{table}.categorical_fields.{field} 缺少实际枚举值: "
+                        + ", ".join(sorted(actual_values - set(values)))
+                    )
+            object_scope = card.get("object_scope")
+            if object_scope is not None:
+                if object_scope.get("row_scope") not in {"all_rows", "filtered"}:
+                    issues.append(f"{table}.object_scope.row_scope 无效")
+                object_terms = object_scope.get("object_terms", [])
+                if not isinstance(object_terms, list) or not all(
+                    isinstance(term, str) and term.strip() for term in object_terms
+                ):
+                    issues.append(f"{table}.object_scope.object_terms 缺少对象词")
+                for status_filter in object_scope.get("status_filters", []):
+                    field = status_filter.get("field")
+                    if field not in allowed:
+                        issues.append(
+                            f"{table}.object_scope.status_filters 引用未发布字段 {field}"
+                        )
+                    values = status_filter.get("allowed_values", [])
+                    if not isinstance(values, list) or not all(
+                        isinstance(value, str) and value.strip() for value in values
+                    ):
+                        issues.append(
+                            f"{table}.object_scope.status_filters.{field} 缺少枚举值"
+                        )
+                    elif field in allowed:
+                        uri = f"file:{self.db_path.as_posix()}?mode=ro"
+                        with sqlite3.connect(uri, uri=True) as connection:
+                            actual_values = {
+                                str(row[0]).strip()
+                                for row in connection.execute(
+                                    f'SELECT DISTINCT "{field}" FROM "{table}" '
+                                    f'WHERE "{field}" IS NOT NULL AND TRIM(CAST("{field}" AS TEXT)) <> \'\''
+                                )
+                            }
+                        unlisted = actual_values - set(values)
+                        if unlisted:
+                            issues.append(
+                                f"{table}.object_scope.status_filters.{field} "
+                                f"缺少实际枚举值: {', '.join(sorted(unlisted))}"
+                            )
             for section in ("metrics", "dimensions"):
                 for item in card.get(section, []):
                     if not isinstance(item, dict):
@@ -134,8 +243,8 @@ class MetadataCatalog:
         issues: list[str] = []
         for rule in self._rules:
             if not (
-                rule.get("status") == "published"
-                and rule.get("runtime_enabled") is True
+                (rule.get("status") == "published" and rule.get("runtime_enabled") is True)
+                or rule.get("reference_enabled") is True
             ):
                 continue
             for table, fields in rule.get("required_fields", {}).items():
@@ -148,11 +257,260 @@ class MetadataCatalog:
                         issues.append(
                             f"规则 {rule.get('id')} 引用未发布字段 {table}.{field}"
                         )
+        for rule in self._routing_rules:
+            if not (
+                rule.get("status") == "published"
+                and rule.get("runtime_enabled") is True
+            ):
+                continue
+            if rule.get("action", "allow") not in {
+                "allow",
+                "reject_capability",
+                "reject_scope",
+            }:
+                issues.append(f"路由规则 {rule.get('id')} action 无效")
+            for table in rule.get("required_tables", []):
+                if table not in self.allowed_tables:
+                    issues.append(f"路由规则 {rule.get('id')} 引用未发布表 {table}")
+        for alternative in self._concept_alternatives:
+            if not (
+                alternative.get("status") == "published"
+                and alternative.get("runtime_enabled") is True
+            ):
+                continue
+            alternative_id = alternative.get("id") or "未命名概念替代"
+            all_terms = alternative.get("all_terms")
+            if not (
+                isinstance(all_terms, list)
+                and all_terms
+                and all(isinstance(term, str) and term.strip() for term in all_terms)
+            ):
+                issues.append(f"概念替代 {alternative_id} 缺少 all_terms")
+            if not isinstance(alternative.get("message"), str) or not alternative["message"].strip():
+                issues.append(f"概念替代 {alternative_id} 缺少业务化提示")
+            suggestions = alternative.get("suggestions")
+            if not (
+                isinstance(suggestions, list)
+                and suggestions
+                and all(
+                    isinstance(item, dict)
+                    and isinstance(item.get("business_label"), str)
+                    and item["business_label"].strip()
+                    for item in suggestions
+                )
+            ):
+                issues.append(f"概念替代 {alternative_id} 缺少业务口径建议")
         return issues
 
-    def build_planning_context(self) -> str:
+    def concept_clarification(self, question: str) -> dict[str, Any] | None:
+        """Return a published business clarification without exposing schema details.
+
+        Alternatives are deliberately configured rather than inferred from column-name
+        similarity. Every required term must match, and any excluded term cancels the
+        rule, so a nearby concept is never substituted silently.
+        """
+        normalized = question.casefold()
+        for alternative in self._concept_alternatives:
+            if not (
+                alternative.get("status") == "published"
+                and alternative.get("runtime_enabled") is True
+            ):
+                continue
+            all_terms = alternative.get("all_terms", [])
+            none_terms = alternative.get("none_terms", [])
+            if not all_terms or not all(
+                str(term).casefold() in normalized for term in all_terms
+            ):
+                continue
+            if any(str(term).casefold() in normalized for term in none_terms):
+                continue
+            return {
+                "id": str(alternative.get("id") or "concept_clarification"),
+                "message": str(alternative["message"]).strip(),
+                "suggestions": [
+                    {
+                        "business_label": item["business_label"],
+                        "scope": item.get("scope"),
+                    }
+                    for item in alternative.get("suggestions", [])
+                ],
+            }
+        return None
+
+    def region_rule_issues(self) -> list[str]:
+        if not self._administrative_regions:
+            return []
+        issues: list[str] = []
+        areas = self._administrative_regions.get("areas", [])
+        if not areas:
+            issues.append("行政区配置缺少 areas")
+        for area in areas:
+            if not isinstance(area.get("name"), str) or not area["name"].strip():
+                issues.append("行政区配置包含空名称")
+            aliases = area.get("aliases", [])
+            if not isinstance(aliases, list) or not aliases:
+                issues.append(f"行政区 {area.get('name')} 缺少 aliases")
+        for table, field in self._administrative_regions.get(
+            "table_location_fields", {}
+        ).items():
+            if table not in self.allowed_tables:
+                issues.append(f"行政区配置引用未发布表 {table}")
+            elif field not in self.allowed_columns(table):
+                issues.append(f"行政区配置引用未发布字段 {table}.{field}")
+        return issues
+
+    def routing_decision(self, question: str) -> RoutingDecision | None:
+        """Resolve published routing policy before handing table selection to the LLM.
+
+        Exact validation-question matches are intentional: they are the stable intent IDs
+        from the customer question set. Only when no exact intent matches do we use
+        explicitly published lightweight routing terms.
+        """
+        case = self.validation_case(question)
+        if case is not None:
+            customer_context = {
+                key: case[key]
+                for key in (
+                    "source_reference",
+                    "reported_issue",
+                    "missing_data_or_policy",
+                    "customer_note",
+                )
+                if case.get(key)
+            }
+            if case.get("routing_enabled") is not True:
+                return RoutingDecision(
+                    intent_id=str(case.get("id") or "validation_case"),
+                    action="advisory",
+                    required_tables=(),
+                    message=str(case.get("reason") or "") or None,
+                    customer_context=customer_context or None,
+                )
+            status = case.get("status")
+            if status in {
+                "supported",
+                "not_supported",
+                "needs_customer_confirmation",
+                "out_of_scope",
+            }:
+                action = {
+                    "supported": "allow",
+                    "not_supported": "reject_capability",
+                    "needs_customer_confirmation": "reject_capability",
+                    "out_of_scope": "reject_scope",
+                }[status]
+                return RoutingDecision(
+                    intent_id=str(case.get("id") or "validation_case"),
+                    action=action,
+                    required_tables=tuple(case.get("scope_tables") or []),
+                    message=str(case.get("reason") or "") or None,
+                    customer_context=customer_context or None,
+                )
+
+        published = [
+            rule
+            for rule in self._routing_rules
+            if rule.get("status") == "published"
+            and rule.get("runtime_enabled") is True
+        ]
+        matched = self._rank_by_terms(published, question, 1)
+        if not matched:
+            return None
+        rule = matched[0]
+        required_tables = tuple(rule.get("required_tables") or [])
+        if not set(required_tables).issubset(self.allowed_tables):
+            raise CatalogError(f"路由规则 {rule.get('id')} 引用了未发布数据表")
+        return RoutingDecision(
+            intent_id=str(rule.get("id") or "routing_rule"),
+            action=str(rule.get("action") or "allow"),
+            required_tables=required_tables,
+            message=str(rule.get("message") or "") or None,
+            match_type="lightweight_terms",
+        )
+
+    @staticmethod
+    def routing_context(decision: RoutingDecision | None) -> dict[str, Any] | None:
+        if decision is None:
+            return None
+        return {
+            "intent_id": decision.intent_id,
+            "action": decision.action,
+            "required_tables": list(decision.required_tables),
+            "message": decision.message,
+            "match_type": decision.match_type,
+            "customer_context": decision.customer_context,
+        }
+
+    def _region_context(self, tables: set[str]) -> list[dict[str, Any]]:
+        if not self._administrative_regions:
+            return []
+        areas = self._administrative_regions.get("areas", [])
+        mappings = self._administrative_regions.get("table_location_fields", {})
+        table_area_aliases = self._administrative_regions.get("table_area_aliases", {})
+        rules: list[dict[str, Any]] = []
+        for table in sorted(tables):
+            field = mappings.get(table)
+            if not field:
+                continue
+            clauses = []
+            for area in areas:
+                name = area["name"].replace("'", "''")
+                aliases = table_area_aliases.get(table, {}).get(
+                    area["name"], area.get("aliases", [])
+                )
+                for alias in aliases:
+                    escaped = str(alias).replace("'", "''")
+                    clauses.append(
+                        f"WHEN {{location_field}} LIKE '%{escaped}%' THEN '{name}'"
+                    )
+            rules.append(
+                {
+                    "table": table,
+                    "location_field": field,
+                    "derived_dimension": self._administrative_regions.get(
+                        "derived_dimension", "county"
+                    ),
+                    "sql_template": "CASE\n    "
+                    + "\n    ".join(clauses)
+                    + "\n    ELSE '待核实'\nEND",
+                    "default_scope": self._administrative_regions.get(
+                        "default_scope", ""
+                    ),
+                    "unmatched_policy": self._administrative_regions.get(
+                        "unmatched_policy", ""
+                    ),
+                }
+            )
+        return rules
+
+    def build_planning_context(
+        self, decision: RoutingDecision | None = None
+    ) -> str:
         cards: list[dict[str, Any]] = []
         for card in self.table_cards():
+            categorical_fields = [
+                {
+                    "field": item.get("field"),
+                    "business_label": item.get("business_label"),
+                    "allowed_values": item.get("allowed_values", [])[:20],
+                    "aliases": sorted((item.get("value_aliases") or {}).keys())[:12],
+                }
+                for item in card.get("categorical_fields", [])
+                if item.get("field")
+            ]
+            object_scope = card.get("object_scope") or {}
+            planning_fields = [
+                {
+                    "name": entry.get("name"),
+                    "label": entry.get("label"),
+                    "description": entry.get("description", "").split(
+                        " 当前库画像：", 1
+                    )[0][:120],
+                }
+                for entry in self._field_semantics(
+                    card["table"], card.get("important_fields", [])
+                )[:8]
+            ]
             cards.append(
                 {
                     "table": card["table"],
@@ -161,15 +519,79 @@ class MetadataCatalog:
                     "business_terms": sorted(card.get("aliases", {}).keys()),
                     "metrics": card.get("metrics", []),
                     "dimensions": card.get("dimensions", []),
+                    "supported_queries": card.get("supported_queries", []),
+                    "important_field_semantics": planning_fields,
                     "data_limitations": card.get("data_limitations", []),
+                    "object_scope": {
+                        "object_terms": object_scope.get("object_terms", []),
+                        "description": object_scope.get("description", ""),
+                    } if object_scope else None,
+                    "categorical_fields": categorical_fields,
                 }
             )
         return "\n".join(
             [
+                "数据域事实：本服务发布的全部业务数据均属于张家口市全域。用户提到“张家口”“全市”“全域”时，表示使用当前数据集全部记录，不需要 city/city_name 等城市字段，也不得添加地址 LIKE '%张家口%' 条件。只有用户明确指定区县、乡镇、项目或场站时才添加对应筛选。",
                 "以下是全部已发布表的轻量表卡。先选择 1-4 张相关表，不得猜测表名或字段名。",
                 json.dumps(cards, ensure_ascii=False),
+                "本次命中的前置路由规则：",
+                json.dumps(self.routing_context(decision), ensure_ascii=False)
+                if decision is not None
+                else "无。",
+                "已发布的业务概念替代建议（仅供 Agent 判断是否需要澄清，不是自动路由或强制口径）：",
+                json.dumps(
+                    [
+                        {
+                            "id": item.get("id"),
+                            "message": item.get("message"),
+                            "suggestions": [
+                                suggestion.get("business_label")
+                                for suggestion in item.get("suggestions", [])
+                            ],
+                        }
+                        for item in self._concept_alternatives
+                        if item.get("status") == "published"
+                        and item.get("runtime_enabled") is True
+                    ],
+                    ensure_ascii=False,
+                ),
             ]
         )
+
+    def resolved_categorical_values(
+        self, question: str, tables: list[str] | None = None
+    ) -> list[dict[str, str]]:
+        """Resolve user-facing terms to uniquely published categorical values."""
+        normalized = question.casefold()
+        selected = set(tables or self.allowed_tables)
+        matches: dict[tuple[str, str], set[str]] = {}
+        labels: dict[tuple[str, str], str] = {}
+        for table in sorted(selected & self.allowed_tables):
+            card = self._table_cards[table]
+            for categorical in card.get("categorical_fields", []):
+                field = categorical.get("field")
+                if not field:
+                    continue
+                key = (table, field)
+                labels[key] = categorical.get("business_label", field)
+                terms = {
+                    str(value): str(value)
+                    for value in categorical.get("allowed_values", [])
+                }
+                terms.update(categorical.get("value_aliases", {}))
+                for term, value in terms.items():
+                    if term and term.casefold() in normalized:
+                        matches.setdefault(key, set()).add(str(value))
+        return [
+            {
+                "table": table,
+                "field": field,
+                "business_label": labels[(table, field)],
+                "value": next(iter(values)),
+            }
+            for (table, field), values in sorted(matches.items())
+            if len(values) == 1
+        ]
 
     def match_tables(self, question: str, max_tables: int = 4) -> list[str]:
         """仅保留给诊断和离线分析；运行路径不再依赖关键词匹配。"""
@@ -225,6 +647,12 @@ class MetadataCatalog:
 
     def _published_ddl(self, table: str) -> str:
         ddl = self.load_ddl(table)
+        header_lines: list[str] = []
+        for line in ddl.splitlines():
+            if line.startswith("-- 字段：") or line.startswith("CREATE TABLE"):
+                break
+            if line.startswith("-- "):
+                header_lines.append(line)
         with sqlite3.connect(":memory:") as connection:
             connection.executescript(ddl)
             columns = connection.execute(f'PRAGMA table_info("{table}")').fetchall()
@@ -234,7 +662,66 @@ class MetadataCatalog:
             for _, name, column_type, *_ in columns
             if name in published
         ]
-        return f'CREATE TABLE "{table}" (\n    ' + ",\n    ".join(definitions) + "\n);"
+        published_create = (
+            f'CREATE TABLE "{table}" (\n    '
+            + ",\n    ".join(definitions)
+            + "\n);"
+        )
+        return "\n".join([*header_lines, published_create])
+
+    def _field_semantics(
+        self, table: str, fields: list[str] | None = None
+    ) -> list[dict[str, str]]:
+        if table not in self._field_semantics_cache:
+            published = self.allowed_columns(table)
+            if not self._ddl_registry:
+                dataset_aliases = self.dataset(table).get("aliases", {})
+                labels = {field: label for field, label in dataset_aliases.items()}
+                with sqlite3.connect(f"file:{self.db_path.as_posix()}?mode=ro", uri=True) as connection:
+                    columns = connection.execute(f'PRAGMA table_info("{table}")').fetchall()
+                self._field_semantics_cache[table] = [
+                    {
+                        "name": name,
+                        "label": labels.get(name, name),
+                        "type": column_type or "TEXT",
+                        "description": "无补充字段说明。",
+                    }
+                    for _, name, column_type, *_ in columns
+                    if name in published
+                ]
+            else:
+                ddl = self.load_ddl(table)
+                metadata: dict[str, dict[str, str]] = {}
+                pattern = re.compile(
+                    r"^-- 字段：(?P<name>[^|]+)\s*\|\s*别名：(?P<label>[^|]+)\s*"
+                    r"\|\s*类型：(?P<type>[^|]+)\s*\|\s*说明：(?P<description>.+)$"
+                )
+                for line in ddl.splitlines():
+                    matched = pattern.match(line.strip())
+                    if matched:
+                        entry = {
+                            key: value.strip() for key, value in matched.groupdict().items()
+                        }
+                        metadata[entry["name"]] = entry
+                with sqlite3.connect(":memory:") as connection:
+                    connection.executescript(ddl)
+                    columns = connection.execute(f'PRAGMA table_info("{table}")').fetchall()
+                self._field_semantics_cache[table] = [
+                    metadata.get(
+                        name,
+                        {
+                            "name": name,
+                            "label": name,
+                            "type": column_type or "TEXT",
+                            "description": "无补充字段说明。",
+                        },
+                    )
+                    for _, name, column_type, *_ in columns
+                    if name in published
+                ]
+        requested = set(fields or [])
+        entries = self._field_semantics_cache[table]
+        return [entry for entry in entries if not requested or entry["name"] in requested]
 
     @staticmethod
     def _rank_by_terms(
@@ -249,30 +736,124 @@ class MetadataCatalog:
                 if term
             )
 
-        return sorted(items, key=lambda item: (-score(item), item.get("id", "")))[:max_items]
+        ranked = [item for item in items if score(item) > 0]
+        return sorted(ranked, key=lambda item: (-score(item), item.get("id", "")))[:max_items]
 
-    def _selected_examples(self, question: str, tables: set[str]) -> list[dict[str, Any]]:
+    def _selected_examples(
+        self,
+        question: str,
+        tables: set[str],
+        decision: RoutingDecision | None = None,
+    ) -> list[dict[str, Any]]:
         applicable = [
             example
             for example in self._examples
             if set(example.get("tables", []))
             and set(example.get("tables", [])).issubset(tables)
         ]
-        for example in applicable:
-            example.setdefault("terms", [example.get("question", "")])
-        return self._rank_by_terms(applicable, question, 3)
+        if self._managed_rules_provider is not None:
+            applicable.extend(
+                rule
+                for rule in self._managed_rules_provider()
+                if set(rule.get("scope_tables", [])).issubset(tables)
+            )
+        exact = [
+            example
+            for example in applicable
+            if decision is not None
+            and decision.intent_id in example.get("source_question_ids", [])
+        ]
+        exact_ids = {id(example) for example in exact}
+        ranked_examples = [
+            {**example, "terms": example.get("terms") or [example.get("question", "")]}
+            for example in applicable
+            if id(example) not in exact_ids
+        ]
+        if not question.strip():
+            return exact[:3] + ranked_examples[: max(0, 3 - len(exact))]
+        return exact[:3] + self._rank_by_terms(
+            ranked_examples, question, max(0, 3 - len(exact))
+        )
 
-    def _published_rules(self, question: str, tables: set[str]) -> list[dict[str, Any]]:
+    def _rules_for_context(
+        self,
+        question: str,
+        tables: set[str],
+        decision: RoutingDecision | None,
+    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
         applicable = [
             rule
             for rule in self._rules
+            if set(rule.get("scope_tables", [])).issubset(tables)
+        ]
+
+        published = [
+            rule
+            for rule in applicable
             if rule.get("status") == "published"
             and rule.get("runtime_enabled") is True
-            and set(rule.get("scope_tables", [])).issubset(tables)
         ]
-        return self._rank_by_terms(applicable, question, 3)
+        references = [
+            rule for rule in applicable if rule.get("reference_enabled") is True
+        ]
+        return published, references
 
-    def build_sql_context(self, question: str, tables: list[str]) -> str:
+    def answer_guidance(
+        self,
+        question: str,
+        tables: set[str],
+        decision: RoutingDecision | None,
+    ) -> dict[str, Any] | None:
+        default = self._answer_guidance.get("default")
+        if not isinstance(default, dict):
+            return None
+        profiles = self._answer_guidance.get("profiles", [])
+        applicable = [
+            profile
+            for profile in profiles
+            if set(profile.get("scope_tables", [])).issubset(tables)
+        ]
+        exact = [
+            profile
+            for profile in applicable
+            if decision is not None
+            and decision.intent_id in profile.get("source_question_ids", [])
+        ]
+        selected = exact[:1] or self._rank_by_terms(applicable, question, 1)
+        result = {**default}
+        if selected:
+            profile = selected[0]
+            result["profile_id"] = profile.get("id")
+            result["profile_name"] = profile.get("name")
+            result["profile_guidance"] = profile.get("guidance", {})
+        return result
+
+    def _published_rules(self, question: str, tables: set[str]) -> list[dict[str, Any]]:
+        # Compatibility helper for callers that do not carry a routing decision.
+        return self._rules_for_context(question, tables, None)[0]
+
+    def runtime_rule_summaries(self) -> list[dict[str, Any]]:
+        """Return the business-visible subset of built-in effective rules."""
+        return [
+            {
+                "id": str(rule.get("id") or ""),
+                "name": str(rule.get("name") or rule.get("id") or "未命名规则"),
+                "scope_tables": list(rule.get("scope_tables") or []),
+                "content": str(rule.get("content") or ""),
+                "source": "system_config",
+            }
+            for rule in sorted(self._rules, key=lambda item: str(item.get("id") or ""))
+            if rule.get("status") == "published"
+            and rule.get("runtime_enabled") is True
+            and rule.get("content")
+        ]
+
+    def build_sql_context(
+        self,
+        question: str,
+        tables: list[str],
+        decision: RoutingDecision | None = None,
+    ) -> str:
         if not tables:
             raise CatalogError("未选择任何已发布数据表")
         requested = set(tables)
@@ -291,20 +872,154 @@ class MetadataCatalog:
             for table in sorted(requested)
             if self._table_cards[table].get("data_limitations")
         ]
-        rules = self._published_rules(question, requested)
-        examples = self._selected_examples(question, requested)
+        rules, references = self._rules_for_context(question, requested, decision)
+        examples = self._selected_examples(question, requested, decision)
+        region_rules = self._region_context(requested)
         return "\n\n".join(
             [
+                "数据域事实：本服务发布的全部业务数据均属于张家口市全域。“张家口”“全市”“全域”是默认全集范围，不需要城市字段，不得添加地址 LIKE '%张家口%' 条件；仅在用户明确指定区县、乡镇、项目或场站时筛选。",
                 "以下为本次已选表的已发布字段 DDL；不得使用其他表或字段。",
                 *ddl_blocks,
+                "字段语义：",
+                json.dumps(
+                    [
+                        {
+                            "table": table,
+                            "dataset": self._table_cards[table].get("dataset", table),
+                            "description": self._table_cards[table].get("description", ""),
+                            "supported_queries": self._table_cards[table].get("supported_queries", []),
+                            "fields": self._field_semantics(table),
+                        }
+                        for table in sorted(requested)
+                    ],
+                    ensure_ascii=False,
+                ),
                 "数据限制：",
                 json.dumps(limitations, ensure_ascii=False) if limitations else "无",
+                "对象范围与状态筛选约束：对象范围用于选择表，不能自动变成字段筛选；仅当用户明确给出状态字段的已发布枚举值时，才可添加对应状态条件。",
+                json.dumps(
+                    [
+                        {
+                            "table": table,
+                            "object_scope": self._table_cards[table].get("object_scope"),
+                        }
+                        for table in sorted(requested)
+                        if self._table_cards[table].get("object_scope")
+                    ],
+                    ensure_ascii=False,
+                )
+                or "无",
                 "已发布业务规则：",
                 json.dumps(rules, ensure_ascii=False) if rules else "无",
+                "待确认辅助规则：仅用于识别数据缺口和回答边界，严禁据此生成计算 SQL：",
+                json.dumps(references, ensure_ascii=False) if references else "无",
+                "行政区派生规则：县区问题必须使用对应表的 location_field 替换 sql_template 中的 {location_field}；待核实记录不得进入县区排名、占比或增速分母：",
+                json.dumps(region_rules, ensure_ascii=False) if region_rules else "无",
                 "已验证示例：",
                 json.dumps(examples, ensure_ascii=False) if examples else "无",
+                "前置路由约束：",
+                json.dumps(self.routing_context(decision), ensure_ascii=False)
+                if decision is not None
+                else "无",
             ]
         )
+
+    @staticmethod
+    def data_domain() -> dict[str, Any]:
+        """Published scope fact used by every model stage and response."""
+        return {
+            "domain_id": "zhangjiakou_citywide_v1",
+            "administrative_scope": "张家口市全域",
+            "single_city_dataset": True,
+            "city_filter_required": False,
+        }
+
+    def expected_result_contract(
+        self,
+        question: str,
+        tables: list[str],
+        plan: Any,
+        decision: RoutingDecision | None = None,
+    ) -> dict[str, Any]:
+        """Return a bounded semantic contract; it never invents database fields."""
+        requested = set(tables)
+        if not requested.issubset(self.allowed_tables):
+            raise CatalogError("结果契约包含未发布数据表")
+        examples = self._selected_examples(question, requested, decision)
+        example_contract = next(
+            (
+                item.get("expected_result_contract")
+                for item in examples
+                if isinstance(item.get("expected_result_contract"), dict)
+            ),
+            {},
+        )
+        return {
+            "required_dimensions": example_contract.get("required_dimensions", []),
+            "required_measures": example_contract.get("required_measures", []),
+            "required_sections": example_contract.get(
+                "required_sections", list(getattr(plan, "required_outputs", []))
+            ),
+            "business_objects": list(getattr(plan, "business_objects", [])),
+            "time_requirements": list(getattr(plan, "time_requirements", [])),
+            "presentation_requirements": list(
+                getattr(plan, "presentation_requirements", [])
+            ),
+            "scope": self.data_domain()["administrative_scope"],
+            "authoritative_data_as_of": max(
+                (
+                    str(self._datasets[table].get("data_as_of"))
+                    for table in requested
+                    if self._datasets.get(table, {}).get("data_as_of")
+                ),
+                default=None,
+            ),
+            "must_not_filter_city_name": True,
+            "routing_context": self.routing_context(decision),
+        }
+
+    def scope_filter_issues(
+        self, question: str, sql: str, tables: set[str]
+    ) -> list[str]:
+        """Reject object-scope words being silently converted to status predicates.
+
+        This is deliberately driven by TableCard configuration. A user may filter a
+        status field only after naming one of its published enum values; object
+        labels such as "在建项目" select the table and do not imply a status value.
+        """
+        normalized_question = question.casefold()
+        issues: list[str] = []
+        for table in tables:
+            object_scope = self._table_cards[table].get("object_scope") or {}
+            for status_filter in object_scope.get("status_filters", []):
+                field = status_filter.get("field")
+                if not field:
+                    continue
+                predicate = re.compile(
+                    rf"\b{re.escape(field)}\b\s*(?:=|==|!=|<>|LIKE\b|IN\b|NOT\s+IN\b)",
+                    re.IGNORECASE,
+                )
+                if not predicate.search(sql):
+                    continue
+                values = [
+                    str(value).casefold()
+                    for value in status_filter.get("allowed_values", [])
+                ]
+                if status_filter.get("requires_explicit_user_value") and not any(
+                    value in normalized_question for value in values
+                ):
+                    issues.append(
+                        "对象范围词不能自动转换为当前阶段筛选；仅当用户明确给出已发布阶段值时才可筛选该字段"
+                    )
+        return issues
+
+    def result_field_labels(self, tables: set[str]) -> dict[str, str]:
+        """Map physical field names to published labels for result evidence only."""
+        labels: dict[str, str] = {}
+        for table in tables:
+            for field in self._field_semantics(table):
+                labels.setdefault(field["name"], field["label"])
+        return labels
 
     def build_context(self, tables: list[str], max_examples: int = 5) -> str:
         if not tables:
@@ -375,7 +1090,9 @@ class MetadataCatalog:
     def source_info(self, tables: set[str]) -> list[dict[str, Any]]:
         return [
             {
-                "dataset": self.dataset(table).get("dataset", table),
+                "dataset": self.dataset(table).get("dataset")
+                or self._table_cards.get(table, {}).get("dataset")
+                or table,
                 "version": self.dataset(table).get("version"),
                 "data_as_of": self.dataset(table).get("data_as_of"),
             }

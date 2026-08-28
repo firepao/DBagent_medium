@@ -1,29 +1,357 @@
 [
   {
-    "question": "张北县已运行风电项目装机容量合计是多少？",
-    "tables": ["t01_operating_renewable_station_profile"],
+    "question": "电网侧储能项目都分布在哪？",
+    "terms": [
+      "电网侧储能项目都分布在哪",
+      "电网侧储能区县分布",
+      "各区县电网侧储能项目数量"
+    ],
+    "source_question_ids": [
+      "Q19"
+    ],
+    "expected_result_contract": {
+      "required_dimensions": [
+        "区县"
+      ],
+      "required_measures": [
+        "各区县项目数",
+        "全量项目总数",
+        "覆盖区县数"
+      ]
+    },
+    "tables": [
+      "t06_grid_side_storage"
+    ],
+    "query_plan": {
+      "query_type": "distribution",
+      "table_hints": [
+        "t06_grid_side_storage"
+      ]
+    },
+    "sql": "WITH classified AS (SELECT CASE WHEN station_name LIKE '%桥东%' THEN '桥东区' WHEN station_name LIKE '%桥西%' THEN '桥西区' WHEN station_name LIKE '%崇礼%' THEN '崇礼区' WHEN station_name LIKE '%宣化%' THEN '宣化区' WHEN station_name LIKE '%下花园%' THEN '下花园区' WHEN station_name LIKE '%万全%' THEN '万全区' WHEN station_name LIKE '%张北%' THEN '张北县' WHEN station_name LIKE '%康保%' THEN '康保县' WHEN station_name LIKE '%沽源%' THEN '沽源县' WHEN station_name LIKE '%尚义%' THEN '尚义县' WHEN station_name LIKE '%蔚%' THEN '蔚县' WHEN station_name LIKE '%阳原%' THEN '阳原县' WHEN station_name LIKE '%怀安%' THEN '怀安县' WHEN station_name LIKE '%怀来%' THEN '怀来县' WHEN station_name LIKE '%涿鹿%' THEN '涿鹿县' WHEN station_name LIKE '%赤城%' THEN '赤城县' ELSE '待核实' END AS district_name, station_name FROM t06_grid_side_storage), distribution AS (SELECT district_name, COUNT(DISTINCT station_name) AS project_count FROM classified WHERE district_name <> '待核实' GROUP BY district_name) SELECT district_name, project_count, SUM(project_count) OVER () AS total_project_count, COUNT(*) OVER () AS district_count FROM distribution ORDER BY project_count DESC, district_name",
+    "verification": "使用行政区派生规则对全部底层记录分组；当前库应返回16个区县、项目总数218，桥东区和桥西区各4个，其余14个区县各15个；不得把LIMIT或返回行数当作项目总数。"
+  },
+  {
+    "question": "分布式光伏哪个县区跑得最快？",
+    "terms": ["分布式光伏哪个县区跑得最快", "分布式光伏发展最快"],
+    "tables": ["t07_distributed_pv_wind"],
+    "query_plan": {"query_type": "ranking", "table_hints": ["t07_distributed_pv_wind"]},
+    "sql": "WITH bounds AS (SELECT MAX(operation_date) AS as_of FROM t07_distributed_pv_wind WHERE station_type='分布式光伏'), ranked AS (SELECT district_name AS county, ROUND(SUM(installed_capacity_mw),3) AS total_capacity_mw, ROUND(SUM(CASE WHEN operation_date > date(bounds.as_of,'-12 months') AND operation_date <= bounds.as_of THEN installed_capacity_mw ELSE 0 END),3) AS added_12m_mw, SUM(CASE WHEN operation_date > date(bounds.as_of,'-12 months') AND operation_date <= bounds.as_of THEN 1 ELSE 0 END) AS added_12m_count, bounds.as_of FROM t07_distributed_pv_wind CROSS JOIN bounds WHERE station_type='分布式光伏' AND district_name IS NOT NULL AND installed_capacity_mw IS NOT NULL GROUP BY district_name) SELECT county, total_capacity_mw, added_12m_mw, added_12m_count, as_of FROM ranked ORDER BY added_12m_mw DESC, total_capacity_mw DESC, county",
+    "verification": "同时返回累计装机和近12个月新增装机；按新增装机降序判定跑得最快。"
+  },
+  {
+    "question": "和去年同期比，新能源装机增长多少？",
+    "terms": ["和去年同期比", "新能源装机增长", "新能源装机同比"],
+    "tables": ["t01_operating_renewable_station_profile", "t07_distributed_pv_wind"],
+    "query_plan": {"query_type": "comparison", "table_hints": ["t01_operating_renewable_station_profile", "t07_distributed_pv_wind"]},
+    "sql": "WITH bounds AS (SELECT MIN(as_of) AS as_of FROM (SELECT MAX(grid_connection_month) AS as_of FROM t01_operating_renewable_station_profile UNION ALL SELECT MAX(operation_date) FROM t07_distributed_pv_wind)), current_capacity AS (SELECT energy_type AS capacity_type, SUM(grid_capacity_mw) AS capacity_mw FROM t01_operating_renewable_station_profile,bounds WHERE grid_connection_month <= bounds.as_of AND grid_capacity_mw IS NOT NULL GROUP BY energy_type UNION ALL SELECT CASE WHEN station_type='分布式光伏' THEN '光伏' WHEN station_type='分散式风电' THEN '风电' ELSE station_type END, SUM(installed_capacity_mw) FROM t07_distributed_pv_wind,bounds WHERE operation_date <= bounds.as_of AND installed_capacity_mw IS NOT NULL GROUP BY station_type), prior_capacity AS (SELECT energy_type AS capacity_type, SUM(grid_capacity_mw) AS capacity_mw FROM t01_operating_renewable_station_profile,bounds WHERE grid_connection_month <= date(bounds.as_of,'-12 months') AND grid_capacity_mw IS NOT NULL GROUP BY energy_type UNION ALL SELECT CASE WHEN station_type='分布式光伏' THEN '光伏' WHEN station_type='分散式风电' THEN '风电' ELSE station_type END, SUM(installed_capacity_mw) FROM t07_distributed_pv_wind,bounds WHERE operation_date <= date(bounds.as_of,'-12 months') AND installed_capacity_mw IS NOT NULL GROUP BY station_type), totals AS (SELECT '本期' AS period, ROUND(SUM(capacity_mw),3) AS capacity_mw FROM current_capacity UNION ALL SELECT '上年同期', ROUND(SUM(capacity_mw),3) FROM prior_capacity) SELECT period, capacity_mw, (SELECT as_of FROM bounds) AS as_of FROM totals UNION ALL SELECT '同比增量', ROUND((SELECT SUM(capacity_mw) FROM current_capacity)-(SELECT SUM(capacity_mw) FROM prior_capacity),3), (SELECT as_of FROM bounds) FROM bounds UNION ALL SELECT '同比增速', ROUND(((SELECT SUM(capacity_mw) FROM current_capacity)-(SELECT SUM(capacity_mw) FROM prior_capacity))*100.0/NULLIF((SELECT SUM(capacity_mw) FROM prior_capacity),0),3), (SELECT as_of FROM bounds) FROM bounds",
+    "verification": "按两表共同最新月份累计装机与上年同期比较，题集示意答案不写入SQL。"
+  },
+  {
+    "question": "全市新能源总装机现在是多少？分类型多少？",
+    "terms": [
+      "全市新能源总装机",
+      "分类型多少"
+    ],
+    "tables": [
+      "t01_operating_renewable_station_profile",
+      "t07_distributed_pv_wind"
+    ],
     "query_plan": {
       "query_type": "aggregation",
-      "table_hints": ["t01_operating_renewable_station_profile"]
+      "table_hints": [
+        "t01_operating_renewable_station_profile",
+        "t07_distributed_pv_wind"
+      ]
     },
-    "sql": "SELECT SUM(CAST(grid_capacity_mw AS REAL)) AS total_capacity_mw FROM t01_operating_renewable_station_profile WHERE project_location LIKE '%张北县%' AND energy_type = '风电'"
+    "sql": "WITH capacity_components AS (SELECT energy_type AS capacity_type, grid_capacity_mw AS capacity_mw FROM t01_operating_renewable_station_profile WHERE grid_capacity_mw IS NOT NULL UNION ALL SELECT CASE WHEN station_type = '分散式风电' THEN '风电' WHEN station_type = '分布式光伏' THEN '光伏' ELSE station_type END AS capacity_type, installed_capacity_mw AS capacity_mw FROM t07_distributed_pv_wind WHERE installed_capacity_mw IS NOT NULL), result_rows AS (SELECT '总计' AS result_level, '全市新能源' AS capacity_type, ROUND(SUM(capacity_mw), 3) AS capacity_mw FROM capacity_components UNION ALL SELECT '分类型' AS result_level, capacity_type, ROUND(SUM(capacity_mw), 3) AS capacity_mw FROM capacity_components GROUP BY capacity_type) SELECT result_level, capacity_type, capacity_mw FROM result_rows ORDER BY CASE WHEN result_level = '总计' THEN 0 ELSE 1 END, capacity_type",
+    "verification": "基于当前SQLite与源表格式核验；标准答案仅为示意值。"
+  },
+  {
+    "question": "哪个县区新能源装机最多？",
+    "terms": [
+      "哪个县区新能源装机最多",
+      "县区新能源装机"
+    ],
+    "tables": [
+      "t01_operating_renewable_station_profile"
+    ],
+    "query_plan": {
+      "query_type": "ranking",
+      "table_hints": [
+        "t01_operating_renewable_station_profile"
+      ]
+    },
+    "sql": "SELECT district_name AS county, ROUND(SUM(grid_capacity_mw), 3) AS total_capacity_mw FROM t01_operating_renewable_station_profile WHERE district_name IS NOT NULL AND grid_capacity_mw IS NOT NULL GROUP BY district_name ORDER BY SUM(grid_capacity_mw) DESC, district_name LIMIT 1",
+    "verification": "项目位置字段218条均可唯一匹配完整县区名称；仅统计已运行集中式并网容量。"
+  },
+  {
+    "question": "哪个县区分布式光伏装机量最高？",
+    "terms": [
+      "哪个县区分布式光伏装机量最高",
+      "分布式光伏县区装机"
+    ],
+    "tables": [
+      "t07_distributed_pv_wind"
+    ],
+    "query_plan": {
+      "query_type": "ranking",
+      "table_hints": [
+        "t07_distributed_pv_wind"
+      ]
+    },
+    "sql": "SELECT district_name AS county, ROUND(SUM(installed_capacity_mw), 3) AS total_capacity_mw FROM t07_distributed_pv_wind WHERE station_type = '分布式光伏' AND district_name IS NOT NULL AND installed_capacity_mw IS NOT NULL GROUP BY district_name ORDER BY SUM(installed_capacity_mw) DESC, district_name LIMIT 1",
+    "verification": "电站位置字段218条均可唯一匹配完整县区名称；装机容量字段均符合数值+MW。"
+  },
+  {
+    "question": "哪些县区新能源开发滞后，需要督导？",
+    "terms": [
+      "新能源开发滞后",
+      "计划逾期",
+      "需要督导"
+    ],
+    "tables": [
+      "t02_construction_project_station"
+    ],
+    "query_plan": {
+      "query_type": "ranking",
+      "table_hints": [
+        "t02_construction_project_station"
+      ]
+    },
+    "sql": "SELECT district_name AS county, COUNT(*) AS overdue_project_count FROM t02_construction_project_station WHERE district_name IS NOT NULL AND grid_connection_date IS NOT NULL AND date(grid_connection_date) < date('2026-07-15') GROUP BY district_name ORDER BY overdue_project_count DESC, district_name",
+    "verification": "基于客户确认的计划逾期口径和表02数据截至日2026-07-15核验。结果仅代表计划节点逾期筛查，不代表停工、违规或备案后未开工。"
+  },
+  {
+    "question": "在建项目开工时间",
+    "terms": [
+      "在建项目开工时间",
+      "开工时间",
+      "项目开工日期"
+    ],
+    "tables": [
+      "t02_construction_project_station"
+    ],
+    "query_plan": {
+      "query_type": "list",
+      "table_hints": [
+        "t02_construction_project_station"
+      ]
+    },
+    "sql": "SELECT project_name, start_date, current_progress, grid_connection_date FROM t02_construction_project_station WHERE start_date IS NOT NULL AND TRIM(start_date) <> '' ORDER BY date(start_date) DESC, project_name",
+    "verification": "源 Excel 日期单元格已在入库时规范化为 YYYY-MM-DD 文本；本查询仅展示表内项目开工时间及关联进度、预计并网时间。"
+  },
+  {
+    "question": "张北县已运行风电项目装机容量合计是多少？",
+    "tables": [
+      "t01_operating_renewable_station_profile"
+    ],
+    "query_plan": {
+      "query_type": "aggregation",
+      "table_hints": [
+        "t01_operating_renewable_station_profile"
+      ]
+    },
+    "sql": "SELECT SUM(grid_capacity_mw) AS total_capacity_mw FROM t01_operating_renewable_station_profile WHERE district_name = '张北县' AND energy_type = '风电'"
   },
   {
     "question": "未取得电力接入批复的在建项目有哪些？",
-    "tables": ["t02_construction_project_station"],
+    "terms": [
+      "接入意见函",
+      "没拿到接入意见函",
+      "未取得电力接入批复",
+      "电力接入批复",
+      "接入批复"
+    ],
+    "source_question_ids": [
+      "Q18"
+    ],
+    "expected_result_contract": {
+      "required_measures": [
+        "项目名称",
+        "项目容量（功率）",
+        "电力接入批复"
+      ],
+      "required_sections": [
+        "未取得或办理中项目清单"
+      ]
+    },
+    "tables": [
+      "t02_construction_project_station"
+    ],
     "query_plan": {
       "query_type": "list",
-      "table_hints": ["t02_construction_project_station"]
+      "table_hints": [
+        "t02_construction_project_station"
+      ]
     },
-    "sql": "SELECT project_name, project_capacity_mw, grid_access_approval FROM t02_construction_project_station WHERE grid_access_approval IN ('否', '办理中') LIMIT 100"
+    "sql": "SELECT project_name, project_capacity_mw, grid_access_approval FROM t02_construction_project_station WHERE grid_access_approval = '办理中' LIMIT 100"
   },
   {
     "question": "各变电站剩余接入容量情况",
-    "tables": ["t10_power_grid_material"],
+    "tables": [
+      "t10_power_grid_material"
+    ],
     "query_plan": {
       "query_type": "list",
-      "table_hints": ["t10_power_grid_material"]
+      "table_hints": [
+        "t10_power_grid_material"
+      ]
     },
-    "sql": "SELECT station_name_substation, voltage_level_kv, remaining_access_capacity FROM t10_power_grid_material LIMIT 100"
+    "sql": "SELECT station_name_substation, voltage_level_kv, remaining_access_capacity_mw FROM t10_power_grid_material LIMIT 100"
+  },
+  {
+    "question": "储能装机现状？电网侧、电源侧、工商业各多少？",
+    "terms": [
+      "储能装机现状",
+      "电网侧储能",
+      "电源侧储能",
+      "工商业储能"
+    ],
+    "source_question_ids": [
+      "Q4"
+    ],
+    "expected_result_contract": {
+      "required_dimensions": ["储能类别"],
+      "required_measures": ["储能功率MW", "储能能量MWh", "功率占比", "能量占比"],
+      "required_sections": ["三类分项", "合计"]
+    },
+    "tables": [
+      "t01_operating_renewable_station_profile",
+      "t06_grid_side_storage",
+      "t08_industrial_commercial_storage"
+    ],
+    "query_plan": {
+      "query_type": "aggregation",
+      "table_hints": [
+        "t01_operating_renewable_station_profile",
+        "t06_grid_side_storage",
+        "t08_industrial_commercial_storage"
+      ]
+    },
+    "sql": "WITH components AS (SELECT 1 AS sort_order, '电源侧' AS storage_category, SUM(storage_power_mw) AS power_mw, SUM(storage_energy_mwh) AS energy_mwh FROM t01_operating_renewable_station_profile UNION ALL SELECT 2, '电网侧', SUM(storage_power_mw), SUM(storage_energy_mwh) FROM t06_grid_side_storage UNION ALL SELECT 3, '工商业', SUM(storage_power_mw), SUM(storage_energy_mwh) FROM t08_industrial_commercial_storage), detailed AS (SELECT sort_order, storage_category, power_mw, energy_mwh, ROUND(power_mw * 100.0 / NULLIF(SUM(power_mw) OVER (), 0), 3) AS power_share_pct, ROUND(energy_mwh * 100.0 / NULLIF(SUM(energy_mwh) OVER (), 0), 3) AS energy_share_pct FROM components) SELECT sort_order, storage_category, ROUND(power_mw, 3) AS power_mw, ROUND(energy_mwh, 3) AS energy_mwh, power_share_pct, energy_share_pct FROM detailed UNION ALL SELECT 4, '合计', ROUND(SUM(power_mw), 3), ROUND(SUM(energy_mwh), 3), 100.0, 100.0 FROM components ORDER BY sort_order",
+    "verification": "MW和MWh分别汇总并分别计算占比；题集标准答案仅为示意值。"
+  },
+  {
+    "question": "全市新能源行业2025年总营收？",
+    "terms": ["2025年总营收", "新能源行业营收", "理论发电收入"],
+    "source_question_ids": ["Q6"],
+    "expected_result_contract": {
+      "required_measures": ["场站数", "2025年度发电量（万kWh）", "理论发电收入（亿元）"],
+      "required_sections": ["计算结果", "折算口径说明"]
+    },
+    "tables": ["t01_operating_generation_monthly"],
+    "query_plan": {
+      "query_type": "aggregation",
+      "table_hints": ["t01_operating_generation_monthly"]
+    },
+    "sql": "SELECT COUNT(DISTINCT station_name) AS station_count, SUM(metric_value) AS generation_10k_kwh, ROUND(SUM(metric_value) * 3720.0 / 100000000.0, 6) AS theoretical_revenue_100m_yuan FROM t01_operating_generation_monthly WHERE time_period BETWEEN '2025-01' AND '2025-12' AND metric_name = '发电量' AND metric_unit = '万kwh'",
+    "verification": "3720按元/万kWh解释，结果是理论发电收入，不等同于财务报表营业收入。"
+  },
+  {
+    "question": "当前新能源消纳情况？弃风弃光率？",
+    "terms": ["新能源消纳", "弃风率", "弃光率", "限电率"],
+    "source_question_ids": ["Q15"],
+    "expected_result_contract": {
+      "required_dimensions": ["能源类型"],
+      "required_measures": ["发电量", "限电量", "限电率", "利用率"],
+      "required_sections": ["当前共同数据期", "分能源类型结果"]
+    },
+    "tables": [
+      "t01_operating_renewable_station_profile",
+      "t01_operating_generation_monthly",
+      "t01_operating_curtailment_monthly"
+    ],
+    "query_plan": {
+      "query_type": "aggregation",
+      "table_hints": [
+        "t01_operating_renewable_station_profile",
+        "t01_operating_generation_monthly",
+        "t01_operating_curtailment_monthly"
+      ]
+    },
+    "sql": "WITH generation_totals AS (SELECT profile.energy_type, SUM(g.metric_value) AS generation_10k_kwh FROM t01_operating_generation_monthly AS g JOIN t01_operating_renewable_station_profile AS profile ON profile.station_name = g.station_name WHERE g.time_period BETWEEN '2026-01' AND '2026-05' AND g.metric_name = '发电量' AND g.metric_unit = '万kwh' GROUP BY profile.energy_type), curtailment_totals AS (SELECT profile.energy_type, SUM(c.metric_value) AS curtailed_10k_kwh FROM t01_operating_curtailment_monthly AS c JOIN t01_operating_renewable_station_profile AS profile ON profile.station_name = c.station_name WHERE c.time_period BETWEEN '2026-01' AND '2026-05' AND c.metric_name = '限电量' AND c.metric_unit = '万kwh' GROUP BY profile.energy_type) SELECT generation_totals.energy_type, generation_totals.generation_10k_kwh, curtailment_totals.curtailed_10k_kwh, ROUND(curtailment_totals.curtailed_10k_kwh * 100.0 / NULLIF(generation_totals.generation_10k_kwh + curtailment_totals.curtailed_10k_kwh, 0), 3) AS curtailment_rate_pct, ROUND(generation_totals.generation_10k_kwh * 100.0 / NULLIF(generation_totals.generation_10k_kwh + curtailment_totals.curtailed_10k_kwh, 0), 3) AS utilization_rate_pct FROM generation_totals JOIN curtailment_totals ON generation_totals.energy_type = curtailment_totals.energy_type ORDER BY generation_totals.energy_type",
+    "verification": "当前共同完整数据期为2026-01至2026-05；风光储一体化单列，不拆入弃风率或弃光率。"
+  },
+  {
+    "question": "等效利用小时最高、限电率最低的场站TOP5？",
+    "terms": ["等效利用小时最高", "限电率最低", "场站TOP5"],
+    "source_question_ids": ["Q34"],
+    "expected_result_contract": {
+      "required_dimensions": ["场站名称"],
+      "required_measures": ["等效利用小时", "限电率"],
+      "required_sections": ["利用小时TOP5", "限电率最低TOP5"]
+    },
+    "tables": [
+      "t01_operating_renewable_station_profile",
+      "t01_operating_generation_monthly",
+      "t01_operating_curtailment_monthly"
+    ],
+    "query_plan": {
+      "query_type": "ranking",
+      "table_hints": [
+        "t01_operating_renewable_station_profile",
+        "t01_operating_generation_monthly",
+        "t01_operating_curtailment_monthly"
+      ]
+    },
+    "sql": "WITH generation AS (SELECT station_name, SUM(metric_value) AS generation_10k_kwh FROM t01_operating_generation_monthly WHERE time_period BETWEEN '2025-01' AND '2025-12' AND metric_name = '发电量' AND metric_unit = '万kwh' GROUP BY station_name), curtailment AS (SELECT station_name, SUM(metric_value) AS curtailed_10k_kwh FROM t01_operating_curtailment_monthly WHERE time_period BETWEEN '2025-01' AND '2025-12' AND metric_name = '限电量' AND metric_unit = '万kwh' GROUP BY station_name), metrics AS (SELECT profile.station_name, profile.energy_type, ROUND(generation.generation_10k_kwh * 10.0 / NULLIF(profile.grid_capacity_mw, 0), 3) AS equivalent_hours, ROUND(curtailment.curtailed_10k_kwh * 100.0 / NULLIF(generation.generation_10k_kwh + curtailment.curtailed_10k_kwh, 0), 6) AS curtailment_rate_pct, ROW_NUMBER() OVER (ORDER BY generation.generation_10k_kwh * 10.0 / NULLIF(profile.grid_capacity_mw, 0) DESC, profile.station_name) AS hours_rank, ROW_NUMBER() OVER (ORDER BY curtailment.curtailed_10k_kwh * 100.0 / NULLIF(generation.generation_10k_kwh + curtailment.curtailed_10k_kwh, 0), profile.station_name) AS curtailment_rank FROM t01_operating_renewable_station_profile AS profile JOIN generation ON generation.station_name = profile.station_name JOIN curtailment ON curtailment.station_name = profile.station_name WHERE profile.grid_capacity_mw IS NOT NULL) SELECT 1 AS section_order, '利用小时TOP5' AS result_section, station_name, energy_type, equivalent_hours, curtailment_rate_pct, hours_rank AS ranking FROM metrics WHERE hours_rank <= 5 UNION ALL SELECT 2, '限电率最低TOP5', station_name, energy_type, equivalent_hours, curtailment_rate_pct, curtailment_rank FROM metrics WHERE curtailment_rank <= 5 ORDER BY section_order, ranking",
+    "verification": "2025年度发电量由万kWh乘10换算为MWh；限电率先汇总分子分母后计算。"
+  },
+  {
+    "question": "哪些变电站已接近饱和？是否已有扩容计划？",
+    "terms": ["接近饱和", "接入容量快饱和", "扩容计划"],
+    "source_question_ids": ["Q33"],
+    "tables": [
+      "t10_power_grid_material"
+    ],
+    "sql": "SELECT station_name_substation, voltage_level_kv, remaining_bay_count, remaining_access_capacity_mw, expansion_plan FROM t10_power_grid_material WHERE remaining_bay_count <= 1 OR remaining_access_capacity_mw <= 10 ORDER BY voltage_level_kv DESC, station_name_substation"
+  },
+  {
+    "question": "哪些变电站接入容量快饱和了？",
+    "terms": ["接入容量快饱和", "接近饱和", "剩余接入容量"],
+    "source_question_ids": ["Q17"],
+    "tables": [
+      "t10_power_grid_material"
+    ],
+    "sql": "SELECT station_name_substation, voltage_level_kv, remaining_bay_count, remaining_access_capacity_mw, expansion_plan FROM t10_power_grid_material WHERE remaining_bay_count <= 1 OR remaining_access_capacity_mw <= 10 ORDER BY voltage_level_kv DESC, station_name_substation"
+  },
+  {
+    "question": "装机最多的5家业主单位？央企占比多少？",
+    "terms": [
+      "装机最多的5家业主单位",
+      "业主单位装机排名",
+      "上级集团装机排名",
+      "央企占比"
+    ],
+    "source_question_ids": [
+      "Q24"
+    ],
+    "expected_result_contract": {
+      "required_dimensions": [
+        "归属上级集团"
+      ],
+      "required_measures": [
+        "集团装机容量（MW）",
+        "央企装机容量（MW）",
+        "全部集团装机容量（MW）",
+        "央企装机占比（%）"
+      ],
+      "required_sections": [
+        "装机容量TOP5",
+        "央企装机占比"
+      ]
+    },
+    "tables": [
+      "t01_operating_renewable_station_profile"
+    ],
+    "query_plan": {
+      "query_type": "ranking",
+      "table_hints": [
+        "t01_operating_renewable_station_profile"
+      ]
+    },
+    "sql": "WITH group_capacity AS (SELECT parent_group, SUM(grid_capacity_mw) AS capacity_mw FROM t01_operating_renewable_station_profile WHERE parent_group IS NOT NULL AND grid_capacity_mw IS NOT NULL GROUP BY parent_group), ranked AS (SELECT parent_group, capacity_mw, ROW_NUMBER() OVER (ORDER BY capacity_mw DESC, parent_group) AS ranking FROM group_capacity), totals AS (SELECT SUM(capacity_mw) AS total_capacity_mw, SUM(CASE WHEN parent_group IN ('国家能源集团','中国大唐集团','中国广核集团','国家电投集团','中国核工业集团','中国节能环保集团','中国华能集团','中国三峡集团','华润集团','中国华电集团') THEN capacity_mw ELSE 0 END) AS central_capacity_mw FROM group_capacity) SELECT 1 AS section_order, 'TOP5' AS result_section, parent_group, ROUND(capacity_mw, 3) AS capacity_mw, ranking, NULL AS central_capacity_mw, NULL AS total_capacity_mw, NULL AS central_share_pct FROM ranked WHERE ranking <= 5 UNION ALL SELECT 2 AS section_order, '央企占比' AS result_section, NULL AS parent_group, NULL AS capacity_mw, NULL AS ranking, ROUND(central_capacity_mw, 3) AS central_capacity_mw, ROUND(total_capacity_mw, 3) AS total_capacity_mw, ROUND(central_capacity_mw * 100.0 / NULLIF(total_capacity_mw, 0), 3) AS central_share_pct FROM totals ORDER BY section_order, ranking",
+    "verification": "按客户确认的归属上级集团口径及10家央企名单验证；题集标准答案不作为数据库事实。"
   }
 ]

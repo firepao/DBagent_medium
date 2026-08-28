@@ -1,45 +1,626 @@
 {
-  "version": "题集v1-2026-07-20",
+  "version": "题集v1-客户备注同步-2026-07-21",
   "cases": [
-    {"id": "Q1", "question": "全市新能源总装机现在是多少？分类型多少？", "status": "supported", "scope_tables": ["t01_operating_renewable_station_profile", "t07_distributed_pv_wind"], "reason": "集中式一期装机使用已发布并网容量口径；分布式需独立汇总。"},
-    {"id": "Q2", "question": "和去年同期比，新能源装机增长多少？", "status": "not_supported", "scope_tables": ["t01_operating_renewable_station_profile"], "reason": "缺少可用于历史装机快照的完整数据。"},
-    {"id": "Q3", "question": "十五五新能源装机目标完成进度？", "status": "not_supported", "scope_tables": ["t01_operating_renewable_station_profile", "t02_construction_project_station"], "reason": "目标规划文件未发布到运行期知识。"},
-    {"id": "Q4", "question": "储能装机现状？电网侧、电源侧、工商业各多少？", "status": "needs_customer_confirmation", "scope_tables": ["t01_operating_renewable_station_profile", "t06_grid_side_storage", "t08_industrial_commercial_storage"], "reason": "三表容量字段和单位口径尚未统一。"},
-    {"id": "Q5", "question": "充换电基础设施规模？", "status": "supported", "scope_tables": ["t09_charging_station"], "reason": "可统计站点和充电桩；覆盖率需以行政区台账为准。"},
-    {"id": "Q6", "question": "全市新能源行业2025年总营收？", "status": "needs_customer_confirmation", "scope_tables": ["t01_operating_generation_monthly"], "reason": "年度发电量乘 3720 的单位、价格和适用范围未确认。"},
-    {"id": "Q7", "question": "哪个县区新能源装机最多？", "status": "supported", "scope_tables": ["t01_operating_renewable_station_profile"], "reason": "按项目位置聚合已运行集中式电站并网容量。"},
-    {"id": "Q8", "question": "分布式光伏哪个县区跑得最快？", "status": "supported", "scope_tables": ["t07_distributed_pv_wind"], "reason": "可按位置和投运日期统计；增长口径需限定时间范围。"},
-    {"id": "Q9", "question": "哪些县区新能源开发滞后，需要督导？", "status": "needs_customer_confirmation", "scope_tables": ["t02_construction_project_station"], "reason": "项目滞后判定规则待确认。"},
-    {"id": "Q10", "question": "哪个县区分布式光伏装机量最高？", "status": "supported", "scope_tables": ["t07_distributed_pv_wind"], "reason": "按位置聚合分布式光伏装机容量。"},
-    {"id": "Q11", "question": "在建项目总规模？什么时候能投运？", "status": "supported", "scope_tables": ["t02_construction_project_station"], "reason": "按项目容量和预计并网日期聚合。"},
-    {"id": "Q12", "question": "备案库里还有多少项目没开工？", "status": "needs_customer_confirmation", "scope_tables": ["t04_filing_project"], "reason": "仅有 planned_start_date（计划开工时间），没有实际开工状态或实际开工日期，不能将计划时间等同于未开工。"},
-    {"id": "Q13", "question": "最近3个月新增备案多少？", "status": "not_supported", "scope_tables": ["t04_filing_project"], "reason": "t04_filing_project 没有 filing_date（备案日期）字段；planned_start_date 是计划开工时间，不能替代备案日期。"},
-    {"id": "Q14", "question": "某具体项目现在什么进度？", "status": "supported", "scope_tables": ["t02_construction_project_station"], "reason": "按项目名称精确查询当前进度。"},
-    {"id": "Q15", "question": "当前新能源消纳情况？弃风弃光率？", "status": "needs_customer_confirmation", "scope_tables": ["t01_operating_generation_monthly", "t01_operating_curtailment_monthly"], "reason": "限电率计算口径待确认。"},
-    {"id": "Q16", "question": "外送通道情况如何？", "status": "not_supported", "scope_tables": ["t10_power_grid_material"], "reason": "当前数据无外送电量和通道能力字段。"},
-    {"id": "Q17", "question": "哪些变电站接入容量快饱和了？", "status": "needs_customer_confirmation", "scope_tables": ["t10_power_grid_material"], "reason": "接近饱和判定公式与阈值待确认。"},
-    {"id": "Q18", "question": "哪些在建项目还没拿到接入意见函？", "status": "supported", "scope_tables": ["t02_construction_project_station"], "reason": "按电力接入批复字段筛选。"},
-    {"id": "Q19", "question": "电网侧储能项目都分布在哪？", "status": "supported", "scope_tables": ["t06_grid_side_storage"], "reason": "可按项目和接入站统计。"},
-    {"id": "Q20", "question": "电源侧配储项目是多少？", "status": "supported", "scope_tables": ["t01_operating_renewable_station_profile"], "reason": "按配储字段列示集中式新能源电站。"},
-    {"id": "Q21", "question": "工商业储能近一年增长情况？", "status": "supported", "scope_tables": ["t08_industrial_commercial_storage"], "reason": "按投运日期、容量聚合。"},
-    {"id": "Q22", "question": "张家口风光资源整体水平怎么样？", "status": "supported", "scope_tables": ["t11_weather_data_element", "t11_weather_grid_sample"], "reason": "可查询已收录气象要素和格点样本。"},
-    {"id": "Q23", "question": "今年以来有哪些极端天气影响发电？", "status": "not_supported", "scope_tables": ["t11_weather_data_element"], "reason": "无极端天气事件定义和发电影响数据。"},
-    {"id": "Q24", "question": "装机最多的5家业主单位？央企占比多少？", "status": "needs_customer_confirmation", "scope_tables": ["t01_operating_renewable_station_profile"], "reason": "业主口径及央国企名单需发布为可审计规则。"},
-    {"id": "Q25", "question": "规上企业2025年税收贡献？带动就业多少？", "status": "not_supported", "scope_tables": ["t03_large_scale_enterprise"], "reason": "无税收和从业人数数据。"},
-    {"id": "Q26", "question": "在张家口投100万千瓦风电，大概要投多少钱？年发多少电？", "status": "not_supported", "scope_tables": [], "reason": "无投资单价和可发布的资源测算口径。"},
-    {"id": "Q27", "question": "全市已运行集中式新能源电站的并网容量合计多少？", "status": "supported", "scope_tables": ["t01_operating_renewable_station_profile"], "reason": "可按能源类型和配储字段聚合。"},
-    {"id": "Q28", "question": "全市分布式光伏与风电投运规模多少？", "status": "supported", "scope_tables": ["t07_distributed_pv_wind"], "reason": "可统计项目数量、装机和发电量。"},
-    {"id": "Q29", "question": "在建项目中前置手续尚未办结的有哪些？", "status": "supported", "scope_tables": ["t02_construction_project_station"], "reason": "以建设用地批复、电力接入批复和并网手续字段筛选。"},
-    {"id": "Q30", "question": "全域候选土地图斑按选址判定分几类？", "status": "not_supported", "scope_tables": [], "reason": "土地规划表尚未发布到本数据查询服务目录。"},
-    {"id": "Q31", "question": "算力数据中心选址，哪几个县区电力最有保障？", "status": "not_supported", "scope_tables": ["t01_operating_renewable_station_profile", "t10_power_grid_material"], "reason": "需要明确确定性的选址评分规则，不由 Text-to-SQL 自行推断。"},
-    {"id": "Q32", "question": "全市已收资变电站按电压等级分几档？", "status": "supported", "scope_tables": ["t10_power_grid_material"], "reason": "按电压等级聚合主变容量与剩余接入容量。"},
-    {"id": "Q33", "question": "哪些变电站已接近饱和？是否已有扩容计划？", "status": "needs_customer_confirmation", "scope_tables": ["t10_power_grid_material"], "reason": "阈值和饱和定义待确认。"},
-    {"id": "Q34", "question": "等效利用小时最高、限电率最低的场站TOP5？", "status": "needs_customer_confirmation", "scope_tables": ["t01_operating_generation_monthly", "t01_operating_curtailment_monthly"], "reason": "限电率计算口径待确认。"},
-    {"id": "Q35", "question": "对比张家口和承德或锡林郭勒的新能源开发优势差距？", "status": "out_of_scope", "scope_tables": [], "reason": "当前数据仅覆盖张家口市内。"},
-    {"id": "Q36", "question": "生成新能源装机增长趋势及风光储占比图。", "status": "not_supported", "scope_tables": [], "reason": "图表交付由后续图表节点消费已查询数据。"},
-    {"id": "Q37", "question": "生成新能源运行月度简报Word。", "status": "not_supported", "scope_tables": [], "reason": "报告交付由后续文档节点消费已查询数据。"},
-    {"id": "Q38", "question": "张家口未来5年的气温会上升多少？", "status": "out_of_scope", "scope_tables": [], "reason": "仅有历史气象数据，不含气候预测模型。"},
-    {"id": "Q39", "question": "某央企集团2025年全国新能源装机？", "status": "out_of_scope", "scope_tables": [], "reason": "当前数据仅统计张家口市内项目。"},
-    {"id": "Q40", "question": "张家口氢能产业发展现状？", "status": "out_of_scope", "scope_tables": [], "reason": "本期收资模板未包含氢能数据。"}
-  ]
+    {
+      "id": "Q1",
+      "question": "全市新能源总装机现在是多少？分类型多少？",
+      "status": "supported",
+      "routing_enabled": true,
+      "scope_tables": [
+        "t01_operating_renewable_station_profile",
+        "t07_distributed_pv_wind"
+      ],
+      "reason": "按客户备注，表01并网容量等同集中式装机容量；全市口径同时纳入表07分布式光伏与分散式风电。风电、光伏分别跨两表归类汇总，风光储一体化不可拆分并单列。",
+      "question_set_question": "全市新能源总装机现在是多少？分类型多少？",
+      "source_reference": "表01 装机容量字段 + 表07 分布式部分汇总",
+      "reported_issue": "表01中有\"并网容量\"、\"配储容量\"两个字段，无\"装机容量\"字段",
+      "missing_data_or_policy": null,
+      "customer_note": "并网容量就是装机容量",
+      "standard_answer_is_example": true
+    },
+    {
+      "id": "Q2",
+      "question": "和去年同期比，新能源装机增长多少？",
+      "status": "supported",
+      "routing_enabled": true,
+      "scope_tables": [
+        "t01_operating_renewable_station_profile",
+        "t07_distributed_pv_wind"
+      ],
+      "reason": "按并网/投运月份构造历史累计装机，在数据最新有效月份与上年同期月份比较；同时覆盖集中式和分布式风光。",
+      "question_set_question": "和去年同期比，新能源装机增长多少？",
+      "source_reference": "表01 投运时间字段按月切片",
+      "reported_issue": "缺少装机相关数据的字段",
+      "missing_data_or_policy": null,
+      "customer_note": "并网容量据说装机容量",
+      "standard_answer_is_example": true
+    },
+    {
+      "id": "Q3",
+      "question": "十五五新能源装机目标完成进度？",
+      "status": "not_supported",
+      "scope_tables": [
+        "t01_operating_renewable_station_profile",
+        "t02_construction_project_station"
+      ],
+      "reason": "目标规划文件未发布到运行期知识。",
+      "question_set_question": "\"十四五\"新能源装机目标完成进度？",
+      "source_reference": "表01 已运行 + 表02 在建；目标值来自《张家口可再生能源示范区\"十四五\"规划》",
+      "reported_issue": null,
+      "missing_data_or_policy": "《张家口可再生能源示范区\"十四五\"规划》",
+      "customer_note": "改成“十五五规划”，张家口计划装机8600万",
+      "standard_answer_is_example": true
+    },
+    {
+      "id": "Q4",
+      "question": "储能装机现状？电网侧、电源侧、工商业各多少？",
+      "status": "supported",
+      "routing_enabled": true,
+      "scope_tables": [
+        "t01_operating_renewable_station_profile",
+        "t06_grid_side_storage",
+        "t08_industrial_commercial_storage"
+      ],
+      "reason": "按表01、表06、表08分别统计电源侧、电网侧、工商业储能的功率（MW）和能量（MWh），总量和占比均按三类对应字段计算。",
+      "question_set_question": "储能装机现状？电网侧/电源侧/工商业各多少？",
+      "source_reference": "表06 + 表01 配储字段 + 表08",
+      "reported_issue": "所谓\"储能装机现状\"是否为：表01 配储容量；表06 并网容量；表08 装机容量 ？\n三表字段不统一，不确定业务应该统计哪个字段",
+      "missing_data_or_policy": null,
+      "customer_note": "并网容量和装机容量一个意思",
+      "standard_answer_is_example": true
+    },
+    {
+      "id": "Q5",
+      "question": "充换电基础设施规模？",
+      "status": "supported",
+      "scope_tables": [
+        "t09_charging_station"
+      ],
+      "reason": "可统计站点和充电桩；覆盖率需以行政区台账为准。",
+      "question_set_question": "充换电基础设施规模？县乡覆盖率？",
+      "source_reference": "表09",
+      "reported_issue": "缺少表 09文件",
+      "missing_data_or_policy": "表9",
+      "customer_note": "已补充",
+      "standard_answer_is_example": true
+    },
+    {
+      "id": "Q6",
+      "question": "全市新能源行业2025年总营收？",
+      "status": "supported",
+      "routing_enabled": true,
+      "scope_tables": [
+        "t01_operating_generation_monthly"
+      ],
+      "reason": "按表01月度发电量统计2025年1月至12月总发电量，再乘客户确认的3720折算系数；结果表述为按确认电价折算的理论发电收入，不等同于财务报表营业收入。",
+      "question_set_question": "全市新能源行业2025年总营收？",
+      "source_reference": "表03  改为表01",
+      "reported_issue": "表03缺少\"营收\"字段",
+      "missing_data_or_policy": null,
+      "customer_note": "计算方法为：2025年1月至2025年12月发电量总和乘以3720，为总营收",
+      "standard_answer_is_example": true
+    },
+    {
+      "id": "Q7",
+      "question": "哪个县区新能源装机最多？",
+      "status": "supported",
+      "scope_tables": [
+        "t01_operating_renewable_station_profile"
+      ],
+      "reason": "按项目位置聚合已运行集中式电站并网容量。",
+      "question_set_question": "哪个县区新能源装机最多？",
+      "source_reference": "表01 按县区聚合",
+      "reported_issue": null,
+      "missing_data_or_policy": null,
+      "customer_note": null,
+      "standard_answer_is_example": true
+    },
+    {
+      "id": "Q8",
+      "question": "分布式光伏哪个县区跑得最快？",
+      "status": "supported",
+      "routing_enabled": true,
+      "scope_tables": [
+        "t07_distributed_pv_wind"
+      ],
+      "reason": "表07全体记录均为已投运分布式项目；按项目类型精确筛选分布式光伏，返回各县区累计装机和以数据最新有效日期为截止日的近12个月新增装机，按新增装机量判定发展最快。",
+      "question_set_question": "分布式光伏哪个县区跑得最快？",
+      "source_reference": "表07",
+      "reported_issue": null,
+      "missing_data_or_policy": null,
+      "customer_note": null,
+      "standard_answer_is_example": true
+    },
+    {
+      "id": "Q9",
+      "question": "哪些县区新能源开发滞后，需要督导？",
+      "status": "supported",
+      "routing_enabled": true,
+      "scope_tables": [
+        "t02_construction_project_station"
+      ],
+      "reason": "按客户确认口径：在建项目当前阶段进展非“已完成”，且预计并网时间早于表02数据截至日，判定为计划逾期；按建设地点派生县区后汇总。",
+      "question_set_question": "哪些县区新能源开发滞后，需要督导？",
+      "source_reference": "表02 在建状态字段 + 表04 备案时间差计算 改为表02",
+      "reported_issue": "表 02 缺少\"在建状态\"字段",
+      "missing_data_or_policy": null,
+      "customer_note": "按照当前项目进度字段，判断延期方法：“当前进展阶段”值为非已完成且晚于计划并网日期，判定为滞后",
+      "standard_answer_is_example": true
+    },
+    {
+      "id": "Q10",
+      "question": "哪个县区分布式光伏装机量最高？",
+      "status": "supported",
+      "scope_tables": [
+        "t07_distributed_pv_wind"
+      ],
+      "reason": "按位置聚合分布式光伏装机容量。",
+      "question_set_question": "哪个县区分布式光伏开发率（按屋顶资源）最高？调整为哪个县区分布式光伏装机量最高？",
+      "source_reference": "表07 + 屋顶资源台账  改为表07",
+      "reported_issue": "1.屋顶资源台账缺失；\n2.开发率如何计算",
+      "missing_data_or_policy": "屋顶资源台账",
+      "customer_note": "修改了问题",
+      "standard_answer_is_example": true
+    },
+    {
+      "id": "Q11",
+      "question": "在建项目总规模？什么时候能投运？",
+      "status": "supported",
+      "scope_tables": [
+        "t02_construction_project_station"
+      ],
+      "reason": "按项目容量和预计并网日期聚合。",
+      "question_set_question": "在建项目总规模？什么时候能投运？",
+      "source_reference": "表02",
+      "reported_issue": "表 02 中未找到可以体现\"规模\"的字段",
+      "missing_data_or_policy": null,
+      "customer_note": "总规模等于装机容量综合",
+      "standard_answer_is_example": true
+    },
+    {
+      "id": "Q12",
+      "question": "备案库里还有多少项目没开工？",
+      "status": "needs_customer_confirmation",
+      "routing_enabled": true,
+      "scope_tables": [
+        "t04_filing_project"
+      ],
+      "reason": "仅有 planned_start_date（计划开工时间），没有实际开工状态或实际开工日期，不能将计划时间等同于未开工。",
+      "question_set_question": "备案库里还有多少项目没开工？",
+      "source_reference": "表04",
+      "reported_issue": null,
+      "missing_data_or_policy": null,
+      "customer_note": null,
+      "standard_answer_is_example": true
+    },
+    {
+      "id": "Q13",
+      "question": "最近3个月新增备案多少？",
+      "status": "not_supported",
+      "routing_enabled": true,
+      "scope_tables": [
+        "t04_filing_project"
+      ],
+      "reason": "t04_filing_project 没有 filing_date（备案日期）字段；planned_start_date 是计划开工时间，不能替代备案日期。",
+      "question_set_question": "最近3个月新增备案多少？",
+      "source_reference": "表04 备案时间筛选",
+      "reported_issue": null,
+      "missing_data_or_policy": null,
+      "customer_note": null,
+      "standard_answer_is_example": true
+    },
+    {
+      "id": "Q14",
+      "question": "某具体项目现在什么进度？",
+      "status": "supported",
+      "scope_tables": [
+        "t02_construction_project_station"
+      ],
+      "reason": "按项目名称精确查询当前进度。",
+      "question_set_question": "某具体项目（如\"康保百兆瓦风储一体化项目\"）现在啥进度？",
+      "source_reference": "表02 项目名称+状态字段精确匹配",
+      "reported_issue": null,
+      "missing_data_or_policy": null,
+      "customer_note": null,
+      "standard_answer_is_example": true
+    },
+    {
+      "id": "Q15",
+      "question": "当前新能源消纳情况？弃风弃光率？",
+      "status": "supported",
+      "routing_enabled": true,
+      "scope_tables": [
+        "t01_operating_renewable_station_profile",
+        "t01_operating_generation_monthly",
+        "t01_operating_curtailment_monthly"
+      ],
+      "reason": "按同一场站、同一月份汇总发电量和限电量后计算限电率；不平均各场站百分比。",
+      "question_set_question": "当前新能源消纳情况？弃风弃光率？",
+      "source_reference": "表10 调度运行数据",
+      "reported_issue": "表 10 中没有\"消纳\"、\"弃风弃光率\"等业务字段，需要说明专业知识的计算方法",
+      "missing_data_or_policy": null,
+      "customer_note": "例：5月份其弃风/弃光=5月份限电量/(5月份限电量+5月份发电量）  ",
+      "standard_answer_is_example": true
+    },
+    {
+      "id": "Q16",
+      "question": "外送通道情况如何？",
+      "status": "not_supported",
+      "routing_enabled": true,
+      "scope_tables": [
+        "t10_power_grid_material"
+      ],
+      "reason": "当前数据无外送电量和通道能力字段。",
+      "question_set_question": "外送通道情况如何？",
+      "source_reference": "表10 输变电设备字段",
+      "reported_issue": "表 10 缺少\"外送电量\"字段",
+      "missing_data_or_policy": "表10外送电量字段",
+      "customer_note": "此项先不处理，无相关数据",
+      "standard_answer_is_example": true
+    },
+    {
+      "id": "Q17",
+      "question": "哪些变电站接入容量快饱和了？",
+      "status": "supported",
+      "routing_enabled": true,
+      "scope_tables": [
+        "t10_power_grid_material"
+      ],
+      "reason": "按剩余间隔数量≤1或剩余可接入容量≤10MW判定接近饱和；不将MW与MVA相除。",
+      "question_set_question": "哪些变电站接入容量快饱和了？",
+      "source_reference": "表10 变电站容量+接入电源字段",
+      "reported_issue": "接入电源类型及占比有多个来源：电网、新能源等，以谁为标准衡量还是sum汇总？",
+      "missing_data_or_policy": null,
+      "customer_note": "判定方法：剩余可接入容量字段/主变容量字段>90%，即判断为容量快饱和",
+      "standard_answer_is_example": true
+    },
+    {
+      "id": "Q18",
+      "question": "哪些在建项目还没拿到接入意见函？",
+      "status": "supported",
+      "routing_enabled": true,
+      "scope_tables": [
+        "t02_construction_project_station"
+      ],
+      "reason": "表02全表即在建项目范围；按电力接入批复字段筛选“否”或“办理中”。",
+      "question_set_question": "哪些在建项目还没拿到接入意见函？",
+      "source_reference": "表02 接入审批字段",
+      "reported_issue": "①、没有接入审批字段；\n②、是指电力接入审批还是建设用地批复？",
+      "missing_data_or_policy": null,
+      "customer_note": "电力接入批复字段",
+      "standard_answer_is_example": true
+    },
+    {
+      "id": "Q19",
+      "question": "电网侧储能项目都分布在哪？",
+      "status": "supported",
+      "scope_tables": [
+        "t06_grid_side_storage"
+      ],
+      "reason": "可按项目和接入站统计。",
+      "question_set_question": "电网侧储能项目都分布在哪？",
+      "source_reference": "表06",
+      "reported_issue": null,
+      "missing_data_or_policy": null,
+      "customer_note": null,
+      "standard_answer_is_example": true
+    },
+    {
+      "id": "Q20",
+      "question": "电源侧配储项目是多少？",
+      "status": "supported",
+      "scope_tables": [
+        "t01_operating_renewable_station_profile"
+      ],
+      "reason": "按配储字段列示集中式新能源电站。",
+      "question_set_question": "电源侧配储比例平均是多少？合规吗？\n调整为电源侧配储项目是多少？",
+      "source_reference": "表01 配储字段",
+      "reported_issue": "1.平均比例如何计算；\n2.合规的标准如何确定",
+      "missing_data_or_policy": "合规的标准",
+      "customer_note": "已调整问题",
+      "standard_answer_is_example": true
+    },
+    {
+      "id": "Q21",
+      "question": "工商业储能近一年增长情况？",
+      "status": "supported",
+      "scope_tables": [
+        "t08_industrial_commercial_storage"
+      ],
+      "reason": "按投运日期、容量聚合。",
+      "question_set_question": "工商业储能近一年增长情况？",
+      "source_reference": "表08",
+      "reported_issue": null,
+      "missing_data_or_policy": null,
+      "customer_note": null,
+      "standard_answer_is_example": true
+    },
+    {
+      "id": "Q22",
+      "question": "张家口风光资源整体水平怎么样？",
+      "status": "supported",
+      "scope_tables": [
+        "t11_weather_data_element",
+        "t11_weather_grid_sample"
+      ],
+      "reason": "可查询已收录气象要素和格点样本。",
+      "question_set_question": "张家口风光资源整体水平怎么样？",
+      "source_reference": "表11",
+      "reported_issue": null,
+      "missing_data_or_policy": null,
+      "customer_note": null,
+      "standard_answer_is_example": true
+    },
+    {
+      "id": "Q23",
+      "question": "今年以来有哪些极端天气影响发电？",
+      "status": "not_supported",
+      "routing_enabled": true,
+      "scope_tables": [
+        "t11_weather_data_element"
+      ],
+      "reason": "无极端天气事件定义和发电影响数据。",
+      "question_set_question": "今年以来有哪些极端天气影响发电？",
+      "source_reference": "表11 极端天气字段",
+      "reported_issue": "表 11 没有\"极端天气\"字段，极端天气的定义可以约定一下",
+      "missing_data_or_policy": null,
+      "customer_note": "此项目先不进行回答",
+      "standard_answer_is_example": true
+    },
+    {
+      "id": "Q24",
+      "question": "装机最多的5家业主单位？央企占比多少？",
+      "status": "supported",
+      "routing_enabled": true,
+      "scope_tables": [
+        "t01_operating_renewable_station_profile"
+      ],
+      "reason": "本题按归属上级集团统计；装机容量使用已运行集中式新能源电站并网容量（MW）。",
+      "question_set_question": "装机最多的5家业主单位？央企占比多少？",
+      "source_reference": "表01 归属上级集团 + 并网容量",
+      "reported_issue": null,
+      "missing_data_or_policy": null,
+      "customer_note": "央企（10 家）：\n国家能源集团、中国大唐集团、中国广核集团、国家电投集团、中国核工业集团、中国节能环保集团、中国华能集团、中国三峡集团、华润集团、中国华电集团\n地方国企（3 家）：\n北京能源集团（北京市属）、河北建投集团（河北省属）、河北交投集团（河北省属）",
+      "standard_answer_is_example": true
+    },
+    {
+      "id": "Q25",
+      "question": "规上企业2025年税收贡献？带动就业多少？",
+      "status": "not_supported",
+      "routing_enabled": true,
+      "scope_tables": [
+        "t03_large_scale_enterprise"
+      ],
+      "reason": "无税收和从业人数数据。",
+      "question_set_question": "规上企业2025年税收贡献？带动就业多少？",
+      "source_reference": "表03 纳税+从业人数字段",
+      "reported_issue": "03表没有税收也没有从业人数字段；",
+      "missing_data_or_policy": null,
+      "customer_note": null,
+      "standard_answer_is_example": true
+    },
+    {
+      "id": "Q26",
+      "question": "在张家口投100万千瓦风电，大概要投多少钱？年发多少电？",
+      "status": "not_supported",
+      "scope_tables": [],
+      "reason": "无投资单价和可发布的资源测算口径。",
+      "question_set_question": "在张家口投100万千瓦风电，大概要投多少钱？年发多少电？",
+      "source_reference": "表01 投资额+发电量字段均值",
+      "reported_issue": null,
+      "missing_data_or_policy": null,
+      "customer_note": null,
+      "standard_answer_is_example": true
+    },
+    {
+      "id": "Q27",
+      "question": "全市已运行集中式新能源电站的并网容量合计多少？",
+      "status": "supported",
+      "scope_tables": [
+        "t01_operating_renewable_station_profile"
+      ],
+      "reason": "可按能源类型和配储字段聚合。",
+      "question_set_question": "零碳示范区目标完成进度？\n全市已运行集中式新能源电站的并网容量合计多少？风电、光伏各占多少？配储比例如何？",
+      "source_reference": "《张家口可再生能源示范区发展规划》+ 表01 + 能源消费台账\n表01（并网容量、能源类型、是否配储、配储容量字段聚合）\n",
+      "reported_issue": "①、缺少能源消费台账信息表；\n②、缺少《张家口可再生能源示范区发展规划》",
+      "missing_data_or_policy": "①、缺少《张家口可再生能源示范区发展规划》\n②、能源消费台账",
+      "customer_note": "已调整问答",
+      "standard_answer_is_example": true
+    },
+    {
+      "id": "Q28",
+      "question": "全市分布式光伏与风电投运规模多少？",
+      "status": "supported",
+      "scope_tables": [
+        "t07_distributed_pv_wind"
+      ],
+      "reason": "可统计项目数量、装机和发电量。",
+      "question_set_question": "整县推进光伏目前进展？\n全市分布式光伏与风电投运规模多少？2025 年总发电量、上网电量分别是多少？",
+      "source_reference": "表07",
+      "reported_issue": "①、答案中的试点是如何得出的？07表中没有试点的字样，试点的判断标准是什么？\n②、开发率是如何计算的，涉及的表和字段是什么？",
+      "missing_data_or_policy": null,
+      "customer_note": "已调整问答",
+      "standard_answer_is_example": true
+    },
+    {
+      "id": "Q29",
+      "question": "在建项目中前置手续尚未办结的有哪些？",
+      "status": "supported",
+      "scope_tables": [
+        "t02_construction_project_station"
+      ],
+      "reason": "以建设用地批复、电力接入批复和并网手续字段筛选。",
+      "question_set_question": "当前有哪些项目存在风险？\n在建项目中，前置手续（建设用地批复 / 电力接入批复 / 并网手续）尚未办结的有哪些？合计多少个、多少 MW？",
+      "source_reference": "表02 + 表04 + 表05 交叉计算\n表02（建设用地批复、电力接入批复、并网手续进度、项目容量字段）",
+      "reported_issue": "存在风险的衡量标准是什么？",
+      "missing_data_or_policy": null,
+      "customer_note": "已调整问答",
+      "standard_answer_is_example": true
+    },
+    {
+      "id": "Q30",
+      "question": "全域候选土地图斑按选址判定分几类？",
+      "status": "not_supported",
+      "scope_tables": [],
+      "reason": "土地规划表尚未发布到本数据查询服务目录。",
+      "question_set_question": "土地合规风险大的项目有哪些？\n全域候选土地图斑按选址判定分几类？红线不可选、审慎、可利用、优先推荐各多少块？合计多少亩？",
+      "source_reference": "表05 土地规划信息字段\n表05 Sheet2（大类分组、选址判定、图层名称、估算面积字段）",
+      "reported_issue": "不清楚风险标准逻辑是什么？",
+      "missing_data_or_policy": null,
+      "customer_note": "已调整问答",
+      "standard_answer_is_example": true
+    },
+    {
+      "id": "Q31",
+      "question": "算力数据中心选址，哪几个县区电力最有保障？",
+      "status": "not_supported",
+      "scope_tables": [
+        "t01_operating_renewable_station_profile",
+        "t10_power_grid_material"
+      ],
+      "reason": "需要明确确定性的选址评分规则，不由 Text-to-SQL 自行推断。",
+      "question_set_question": "算力数据中心选址，哪几个县区电力最有保障？",
+      "source_reference": "表01 装机 + 表10 电网容量综合分析\n",
+      "reported_issue": null,
+      "missing_data_or_policy": null,
+      "customer_note": null,
+      "standard_answer_is_example": true
+    },
+    {
+      "id": "Q32",
+      "question": "全市已收资变电站按电压等级分几档？",
+      "status": "supported",
+      "scope_tables": [
+        "t10_power_grid_material"
+      ],
+      "reason": "按电压等级聚合主变容量与剩余接入容量。",
+      "question_set_question": "用电负荷高峰时段，新能源出力能覆盖多少？\n全市已收资变电站按电压等级分几档？各档合计主变容量、剩余可接入容量分别是多少？",
+      "source_reference": "表10 调度曲线 + 表06 储能出力\n表10（电压等级、主变容量、剩余可接入容量字段聚合）\n",
+      "reported_issue": "①、表中没有用电负载相关数据；②、表10 没有调度曲线的相关信息；③、表6没有储能出力信息",
+      "missing_data_or_policy": null,
+      "customer_note": "已调整问答",
+      "standard_answer_is_example": true
+    },
+    {
+      "id": "Q33",
+      "question": "哪些变电站已接近饱和？是否已有扩容计划？",
+      "status": "supported",
+      "routing_enabled": true,
+      "scope_tables": [
+        "t10_power_grid_material"
+      ],
+      "reason": "按剩余间隔数量≤1或剩余可接入容量≤10MW筛选，并展示扩容计划原文；不使用负荷预测台账推断饱和。",
+      "question_set_question": "如果要新增500万千瓦光伏，电网消纳够吗？\n哪些变电站已接近饱和（剩余间隔≤1 或剩余可接入容量≤10 MW）？是否已有扩容计划？\n",
+      "source_reference": "表10 通道余量 + 表01 装机+负荷预测台账\n 表10（剩余间隔数量、剩余可接入容量、扩容计划字段）",
+      "reported_issue": "①、缺少负荷预测台账；②、表10没有通道余量的相关字段",
+      "missing_data_or_policy": null,
+      "customer_note": "已调整问答",
+      "standard_answer_is_example": true
+    },
+    {
+      "id": "Q34",
+      "question": "等效利用小时最高、限电率最低的场站TOP5？",
+      "status": "supported",
+      "routing_enabled": true,
+      "scope_tables": [
+        "t01_operating_renewable_station_profile",
+        "t01_operating_generation_monthly",
+        "t01_operating_curtailment_monthly"
+      ],
+      "reason": "按2025年完整年度数据计算等效利用小时和限电率，分别降序/升序取TOP5；场站容量来自表01，发电量和限电量按场站及月份关联。",
+      "question_set_question": "哪些项目同时具备\"高利用率+低弃风弃光+高税收贡献\"特征？可作为示范？\n： 已运行集中式电站中，等效利用小时最高、限电率最低的场站 TOP5 分别是哪些？可作为标杆推广。",
+      "source_reference": "表01 + 表03 + 表10 多表联查\n 表01（并网容量、发电量、限电量字段联算）",
+      "reported_issue": "①、高利用率+低弃风弃光+高税收贡献这个特征具体的判定指标，涉及的具体数值以及计算方式；②、这个多表联查如何查，逻辑是什么？",
+      "missing_data_or_policy": null,
+      "customer_note": "已调整问答",
+      "standard_answer_is_example": true
+    },
+    {
+      "id": "Q35",
+      "question": "对比张家口和承德或锡林郭勒的新能源开发优势差距？",
+      "status": "out_of_scope",
+      "routing_enabled": true,
+      "scope_tables": [],
+      "reason": "当前数据仅覆盖张家口市内。",
+      "question_set_question": "对比张家口和承德/锡林郭勒，我们的新能源开发还有什么优势/差距？",
+      "source_reference": "本平台不覆盖跨域数据",
+      "reported_issue": null,
+      "missing_data_or_policy": null,
+      "customer_note": null,
+      "standard_answer_is_example": true
+    },
+    {
+      "id": "Q36",
+      "question": "生成新能源装机增长趋势及风光储占比图。",
+      "status": "not_supported",
+      "scope_tables": [],
+      "reason": "图表交付由后续图表节点消费已查询数据。",
+      "question_set_question": "请生成一张图，展示2024-2026年全市新能源装机增长趋势及风/光/储占比变化。",
+      "source_reference": "表01 + 表06 + 表08 按月聚合",
+      "reported_issue": null,
+      "missing_data_or_policy": null,
+      "customer_note": null,
+      "standard_answer_is_example": true
+    },
+    {
+      "id": "Q37",
+      "question": "生成新能源运行月度简报Word。",
+      "status": "not_supported",
+      "scope_tables": [],
+      "reason": "报告交付由后续文档节点消费已查询数据。",
+      "question_set_question": "帮我生成《2026年1-5月张家口新能源运行月度简报》，要能直接发给市领导。",
+      "source_reference": "表01-11 全维度聚合，套用《新能源月报-市领导版》模板",
+      "reported_issue": null,
+      "missing_data_or_policy": "《新能源月报-市领导版》模板",
+      "customer_note": null,
+      "standard_answer_is_example": true
+    },
+    {
+      "id": "Q38",
+      "question": "张家口未来5年的气温会上升多少？",
+      "status": "out_of_scope",
+      "routing_enabled": true,
+      "scope_tables": [],
+      "reason": "仅有历史气象数据，不含气候预测模型。",
+      "question_set_question": "张家口未来5年的气温会上升多少？",
+      "source_reference": "—",
+      "reported_issue": null,
+      "missing_data_or_policy": null,
+      "customer_note": null,
+      "standard_answer_is_example": true
+    },
+    {
+      "id": "Q39",
+      "question": "某央企集团2025年全国新能源装机？",
+      "status": "out_of_scope",
+      "routing_enabled": true,
+      "scope_tables": [],
+      "reason": "当前数据仅统计张家口市内项目。",
+      "question_set_question": "某央企集团2025年全国新能源装机？",
+      "source_reference": "—",
+      "reported_issue": null,
+      "missing_data_or_policy": null,
+      "customer_note": null,
+      "standard_answer_is_example": true
+    },
+    {
+      "id": "Q40",
+      "question": "张家口氢能产业发展现状？",
+      "status": "out_of_scope",
+      "routing_enabled": true,
+      "scope_tables": [],
+      "reason": "本期收资模板未包含氢能数据。",
+      "question_set_question": "张家口氢能产业发展现状？",
+      "source_reference": "—",
+      "reported_issue": null,
+      "missing_data_or_policy": null,
+      "customer_note": null,
+      "standard_answer_is_example": true
+    }
+  ],
+  "source": {
+    "workbook": "AI智能体需求_智能问答智能体题集v1_问题确认1(1).xlsx",
+    "sheet": "验收题集v1",
+    "precedence": "客户备注/回复用于业务语义确认，优先于题集示意答案；不得覆盖源数据事实、字段缺失、单位冲突和安全规则。"
+  }
 }

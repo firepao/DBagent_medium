@@ -80,8 +80,42 @@ class SQLiteExecutor:
                 (row[name] for row in rows if row.get(name) is not None),
                 None,
             )
-            result.append({"name": name, "type": SQLiteExecutor._json_type(value)})
+            column = {"name": name, "type": SQLiteExecutor._json_type(value)}
+            unit = SQLiteExecutor._infer_unit(name)
+            if unit is not None:
+                column["unit"] = unit
+            result.append(column)
         return result
+
+    @staticmethod
+    def _infer_unit(name: str) -> str | None:
+        """Infer only units encoded unambiguously in a result column name.
+
+        SQL aliases are part of the public result contract. Keeping this mapping
+        deliberately conservative avoids asking an LLM to guess a display unit.
+        """
+        normalized = name.strip().lower()
+        suffix_units = (
+            ("_100m_yuan", "亿元"),
+            ("_10k_kwh", "万kWh"),
+            ("_mwh", "MWh"),
+            ("_mva", "MVA"),
+            ("_mw", "MW"),
+            ("_kv", "kV"),
+            ("_pct", "%"),
+        )
+        for suffix, unit in suffix_units:
+            if normalized.endswith(suffix):
+                return unit
+        chinese_units = (
+            (("装机容量", "并网容量", "接入容量"), "MW"),
+            (("电压等级",), "kV"),
+            (("占比", "百分比", "增速", "限电率", "利用率"), "%"),
+        )
+        for terms, unit in chinese_units:
+            if any(term in name for term in terms):
+                return unit
+        return None
 
     @staticmethod
     def _json_type(value: Any) -> str:

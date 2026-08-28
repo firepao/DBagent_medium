@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Agent 评测</title><link rel="stylesheet" href="/assets/evals.css"><link rel="stylesheet" href="/assets/eval-details.css"></head>
+<body>
+<header class="topbar"><a class="brand" href="/app"><span>能</span><strong>能源数据 Agent</strong></a><nav><a href="/app">查数工作台</a><a href="/rules">规则管理</a><a class="active" href="/evaluations">评测中心</a></nav></header>
+<main><section class="heading"><div><p>质量门禁</p><h1>Agent 评测中心</h1><span>题集用于行为、选表和结果回归，不以固定题目路由生产请求。</span></div><div><button id="runSelected">运行指定题目</button> <button id="runBaseline" class="primary">运行全量评测</button></div></section>
+<section class="stats"><div><strong id="caseCount">-</strong><span>评测题目</span></div><div><strong id="goldenCount">-</strong><span>黄金数值标注</span></div><div><strong id="lastRate">-</strong><span>最近行为通过率</span><small id="lastTime" class="last-time"></small></div><div><strong id="releaseReadiness">-</strong><span>发布就绪</span><small id="readinessReason" class="last-time"></small></div></section>
+<section><div class="run-head"><h2>黄金答案</h2><div><button id="bulkGolden">批量标注</button> <button id="manageGolden">逐题标注</button></div></div><p class="empty">只录入经业务确认的结果字段和值。题集重新导入不会覆盖人工标注。</p></section>
+<section><h2>运行历史</h2><div id="runs" class="runs"><p class="empty">正在加载…</p></div></section></main>
+<dialog id="compareDialog"><form method="dialog"><h2>版本对比</h2><label>基线运行<select id="baselineRun"></select></label><label>候选运行<select id="candidateRun"></select></label><div id="comparison"></div><button value="cancel">关闭</button></form></dialog>
+<dialog id="goldenDialog"><form id="goldenForm"><h2>黄金数值标注</h2><label>评测题<select id="goldenCase"></select></label><label>期望值 JSON<textarea id="goldenValues" rows="6" placeholder='{"total_capacity_mw": 1150}'></textarea></label><p id="goldenError" class="bad"></p><div><button type="button" id="closeGolden">关闭</button><button class="primary" type="submit">保存标注</button></div></form></dialog>
+<dialog id="bulkGoldenDialog"><form id="bulkGoldenForm"><h2>批量黄金数值标注</h2><p>填写题号到期望值对象的 JSON 映射；整批校验通过后才会保存。</p><label>批量 JSON<textarea id="bulkGoldenValues" rows="14" placeholder='{"Q1":{"total_capacity_mw":1150},"Q2":{"count":3}}'></textarea></label><p id="bulkGoldenError" class="bad"></p><div><button type="button" id="closeBulkGolden">关闭</button><button class="primary" type="submit">批量保存</button></div></form></dialog>
+<dialog id="selectedRunDialog"><form id="selectedRunForm"><h2>运行指定评测题</h2><p>输入 1-40 个题号，用逗号分隔。适合复测失败样本；发布前仍应运行全量评测。</p><label>题号<input id="selectedCaseIds" placeholder="Q1, Q7, Q35"></label><p id="selectedRunError" class="bad"></p><div><button type="button" id="closeSelectedRun">关闭</button><button class="primary" type="submit">开始运行</button></div></form></dialog>
+<dialog id="runDetailDialog"><div class="detail-head"><div><h2 id="runDetailTitle">评测运行详情</h2><p id="runDetailMeta"></p></div><button type="button" id="closeRunDetail">关闭</button></div><div id="runDetailContent" class="run-detail"><p>正在加载…</p></div></dialog>
+<script src="/assets/evals.js" defer></script>
+<script src="/assets/eval-details.js" defer></script>
+</body></html>

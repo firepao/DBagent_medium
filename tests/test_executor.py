@@ -52,6 +52,25 @@ def test_executor_opens_database_read_only(tmp_path) -> None:
     assert count == 3
 
 
+def test_executor_exposes_only_unambiguous_result_units(tmp_path) -> None:
+    module = load_executor_module()
+    db_path = build_database(tmp_path)
+    executor = module.SQLiteExecutor(db_path, timeout_seconds=2, max_rows=10)
+
+    result = asyncio.run(executor.execute(
+        'SELECT 1780.0 AS "装机容量合计", 12.5 AS curtailment_rate_pct, name FROM stations LIMIT 1'
+    ))
+
+    assert result.schema == [
+        {"name": "装机容量合计", "type": "number", "unit": "MW"},
+        {"name": "curtailment_rate_pct", "type": "number", "unit": "%"},
+        {"name": "name", "type": "string"},
+    ]
+
+    assert module.SQLiteExecutor._infer_unit("项目容量") is None
+    assert module.SQLiteExecutor._infer_unit("储能容量") is None
+
+
 def test_executor_interrupts_query_after_timeout(tmp_path) -> None:
     module = load_executor_module()
     db_path = build_database(tmp_path)

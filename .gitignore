@@ -3,3 +3,7 @@
 __pycache__/
 *.py[cod]
 runtime/
+backups/
+tmp/
+*.zip
+config/source_truth_audit_*.json

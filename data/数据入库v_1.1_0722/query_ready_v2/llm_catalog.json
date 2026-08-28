@@ -1,0 +1,3783 @@
+{
+  "version": "query-ready-v2",
+  "tables": [
+    {
+      "table": "t01_operating_curtailment_monthly",
+      "dataset": "已运行新能源集中式电站限电量月度数据",
+      "description": "集中式电站按场站和月份记录的限电量时间序列。",
+      "coverage": "仅覆盖表01对应场站的月度限电量。",
+      "keywords": [
+        "限电量",
+        "弃风",
+        "弃光",
+        "弃风弃光",
+        "限电率",
+        "消纳"
+      ],
+      "supported_queries": [
+        "月度限电量汇总",
+        "场站限电量排名",
+        "限电率的限电量分子"
+      ],
+      "limitations": [
+        "指标单位为万kWh；限电率需与同月发电量按场站关联后计算。"
+      ],
+      "fields": [
+        {
+          "name": "id",
+          "label": "主键ID",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "自增主键。",
+          "source_column": "id",
+          "derived": false
+        },
+        {
+          "name": "source_file",
+          "label": "来源文件",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "原始 Excel 文件名。",
+          "source_column": "source_file",
+          "derived": false
+        },
+        {
+          "name": "source_sheet",
+          "label": "来源工作表",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "原始 Excel 工作表名称。",
+          "source_column": "source_sheet",
+          "derived": false
+        },
+        {
+          "name": "excel_row",
+          "label": "Excel行号",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "数据在原始 Excel 工作表中的行号。",
+          "source_column": "excel_row",
+          "derived": false
+        },
+        {
+          "name": "source_row_no",
+          "label": "源行号",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "已运行新能源集中式电站限电量时间序列表中的“源行号”字段，来源表头路径：源行号。",
+          "source_column": "source_row_no",
+          "derived": false
+        },
+        {
+          "name": "serial_no",
+          "label": "序号",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "已运行新能源集中式电站限电量时间序列表中的“序号”字段，来源表头路径：序号。",
+          "source_column": "serial_no",
+          "derived": false
+        },
+        {
+          "name": "station_name",
+          "label": "场站名称",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "已运行新能源集中式电站限电量时间序列表中的“场站名称”字段，来源表头路径：场站名称。",
+          "source_column": "station_name",
+          "derived": false
+        },
+        {
+          "name": "station_type",
+          "label": "电站类型",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "已运行新能源集中式电站限电量时间序列表中的“电站类型”字段，来源表头路径：电站类型。",
+          "source_column": "station_type",
+          "derived": false
+        },
+        {
+          "name": "parent_station_name",
+          "label": "接入上级站名称",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "已运行新能源集中式电站限电量时间序列表中的“接入上级站名称”字段，来源表头路径：接入上级站名称。",
+          "source_column": "parent_station_name",
+          "derived": false
+        },
+        {
+          "name": "project_location",
+          "label": "项目位置",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "已运行新能源集中式电站限电量时间序列表中的“项目位置”字段，来源表头路径：项目位置。",
+          "source_column": "project_location",
+          "derived": false
+        },
+        {
+          "name": "time_period",
+          "label": "时间周期",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "已运行新能源集中式电站限电量时间序列表中的“时间周期”字段，来源表头路径：时间周期。",
+          "source_column": "time_period",
+          "derived": false
+        },
+        {
+          "name": "time_granularity",
+          "label": "时间粒度",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "已运行新能源集中式电站限电量时间序列表中的“时间粒度”字段，来源表头路径：时间粒度。",
+          "source_column": "time_granularity",
+          "derived": false
+        },
+        {
+          "name": "metric_name",
+          "label": "指标名称",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "已运行新能源集中式电站限电量时间序列表中的“指标名称”字段，来源表头路径：指标名称。",
+          "source_column": "metric_name",
+          "derived": false
+        },
+        {
+          "name": "metric_unit",
+          "label": "指标单位",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "已运行新能源集中式电站限电量时间序列表中的“指标单位”字段，来源表头路径：指标单位。",
+          "source_column": "metric_unit",
+          "derived": false
+        },
+        {
+          "name": "metric_value",
+          "label": "指标值",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "已运行新能源集中式电站限电量时间序列表中的“指标值”字段，来源表头路径：指标值。",
+          "source_column": "metric_value",
+          "derived": false
+        },
+        {
+          "name": "source_column_no",
+          "label": "来源列号",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "已运行新能源集中式电站限电量时间序列表中的“来源列号”字段，来源表头路径：来源列号。",
+          "source_column": "source_column_no",
+          "derived": false
+        },
+        {
+          "name": "source_column_name",
+          "label": "来源列名",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "已运行新能源集中式电站限电量时间序列表中的“来源列名”字段，来源表头路径：来源列名。",
+          "source_column": "source_column_name",
+          "derived": false
+        },
+        {
+          "name": "district_name",
+          "label": "区县",
+          "sqlite_type": "TEXT",
+          "semantic_type": "administrative_district",
+          "unit": null,
+          "description": "从地址或乡镇文本按张家口完整区县名称确定性提取；未命中或歧义时为空。",
+          "source_column": "project_location",
+          "derived": true
+        },
+        {
+          "name": "district_parse_status",
+          "label": "区县解析状态",
+          "sqlite_type": "TEXT",
+          "semantic_type": "parse_status",
+          "unit": null,
+          "description": "地址解析状态：valid、empty、unmatched 或 ambiguous。",
+          "source_column": "project_location",
+          "derived": true
+        }
+      ]
+    },
+    {
+      "table": "t01_operating_generation_monthly",
+      "dataset": "已运行新能源集中式电站发电量月度数据",
+      "description": "集中式电站按场站和月份记录的发电量时间序列。",
+      "coverage": "仅覆盖表01对应场站的月度发电量，不是装机容量表。",
+      "keywords": [
+        "月度发电量",
+        "发电量",
+        "新能源发电",
+        "利用小时",
+        "场站发电"
+      ],
+      "supported_queries": [
+        "月度或年度发电量汇总",
+        "场站发电量排名",
+        "等效利用小时的发电量分子"
+      ],
+      "limitations": [
+        "指标单位为万kWh；计算利用小时还需关联同口径的并网容量。"
+      ],
+      "fields": [
+        {
+          "name": "id",
+          "label": "主键ID",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "自增主键。",
+          "source_column": "id",
+          "derived": false
+        },
+        {
+          "name": "source_file",
+          "label": "来源文件",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "原始 Excel 文件名。",
+          "source_column": "source_file",
+          "derived": false
+        },
+        {
+          "name": "source_sheet",
+          "label": "来源工作表",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "原始 Excel 工作表名称。",
+          "source_column": "source_sheet",
+          "derived": false
+        },
+        {
+          "name": "excel_row",
+          "label": "Excel行号",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "数据在原始 Excel 工作表中的行号。",
+          "source_column": "excel_row",
+          "derived": false
+        },
+        {
+          "name": "source_row_no",
+          "label": "源行号",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "已运行新能源集中式电站发电量时间序列表中的“源行号”字段，来源表头路径：源行号。",
+          "source_column": "source_row_no",
+          "derived": false
+        },
+        {
+          "name": "serial_no",
+          "label": "序号",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "已运行新能源集中式电站发电量时间序列表中的“序号”字段，来源表头路径：序号。",
+          "source_column": "serial_no",
+          "derived": false
+        },
+        {
+          "name": "station_name",
+          "label": "场站名称",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "已运行新能源集中式电站发电量时间序列表中的“场站名称”字段，来源表头路径：场站名称。",
+          "source_column": "station_name",
+          "derived": false
+        },
+        {
+          "name": "station_type",
+          "label": "电站类型",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "已运行新能源集中式电站发电量时间序列表中的“电站类型”字段，来源表头路径：电站类型。",
+          "source_column": "station_type",
+          "derived": false
+        },
+        {
+          "name": "parent_station_name",
+          "label": "接入上级站名称",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "已运行新能源集中式电站发电量时间序列表中的“接入上级站名称”字段，来源表头路径：接入上级站名称。",
+          "source_column": "parent_station_name",
+          "derived": false
+        },
+        {
+          "name": "project_location",
+          "label": "项目位置",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "已运行新能源集中式电站发电量时间序列表中的“项目位置”字段，来源表头路径：项目位置。",
+          "source_column": "project_location",
+          "derived": false
+        },
+        {
+          "name": "time_period",
+          "label": "时间周期",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "已运行新能源集中式电站发电量时间序列表中的“时间周期”字段，来源表头路径：时间周期。",
+          "source_column": "time_period",
+          "derived": false
+        },
+        {
+          "name": "time_granularity",
+          "label": "时间粒度",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "已运行新能源集中式电站发电量时间序列表中的“时间粒度”字段，来源表头路径：时间粒度。",
+          "source_column": "time_granularity",
+          "derived": false
+        },
+        {
+          "name": "metric_name",
+          "label": "指标名称",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "已运行新能源集中式电站发电量时间序列表中的“指标名称”字段，来源表头路径：指标名称。",
+          "source_column": "metric_name",
+          "derived": false
+        },
+        {
+          "name": "metric_unit",
+          "label": "指标单位",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "已运行新能源集中式电站发电量时间序列表中的“指标单位”字段，来源表头路径：指标单位。",
+          "source_column": "metric_unit",
+          "derived": false
+        },
+        {
+          "name": "metric_value",
+          "label": "指标值",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "已运行新能源集中式电站发电量时间序列表中的“指标值”字段，来源表头路径：指标值。",
+          "source_column": "metric_value",
+          "derived": false
+        },
+        {
+          "name": "source_column_no",
+          "label": "来源列号",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "已运行新能源集中式电站发电量时间序列表中的“来源列号”字段，来源表头路径：来源列号。",
+          "source_column": "source_column_no",
+          "derived": false
+        },
+        {
+          "name": "source_column_name",
+          "label": "来源列名",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "已运行新能源集中式电站发电量时间序列表中的“来源列名”字段，来源表头路径：来源列名。",
+          "source_column": "source_column_name",
+          "derived": false
+        },
+        {
+          "name": "district_name",
+          "label": "区县",
+          "sqlite_type": "TEXT",
+          "semantic_type": "administrative_district",
+          "unit": null,
+          "description": "从地址或乡镇文本按张家口完整区县名称确定性提取；未命中或歧义时为空。",
+          "source_column": "project_location",
+          "derived": true
+        },
+        {
+          "name": "district_parse_status",
+          "label": "区县解析状态",
+          "sqlite_type": "TEXT",
+          "semantic_type": "parse_status",
+          "unit": null,
+          "description": "地址解析状态：valid、empty、unmatched 或 ambiguous。",
+          "source_column": "project_location",
+          "derived": true
+        }
+      ]
+    },
+    {
+      "table": "t01_operating_renewable_station_profile",
+      "dataset": "已运行新能源集中式电站项目画像",
+      "description": "已运行集中式风电、光伏和风光储一体化电站的项目画像、并网容量、配储、并网时间、地址和集团信息。",
+      "coverage": "仅覆盖已运行集中式新能源电站；并网容量按客户题集口径等同于装机容量。",
+      "keywords": [
+        "集中式",
+        "已运行",
+        "并网容量",
+        "装机容量",
+        "风电",
+        "光伏",
+        "风光储一体化",
+        "配储",
+        "业主",
+        "集团"
+      ],
+      "supported_queries": [
+        "集中式新能源装机及类型结构",
+        "集中式项目、集团和配储清单",
+        "按并网月份的历史装机切片"
+      ],
+      "limitations": [
+        "风光储一体化容量不能拆分到风电或光伏。",
+        "开工和并网时间仅到月粒度。"
+      ],
+      "fields": [
+        {
+          "name": "id",
+          "label": "主键ID",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "自增主键。",
+          "source_column": "id",
+          "derived": false
+        },
+        {
+          "name": "source_file",
+          "label": "来源文件",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "原始 Excel 文件名。",
+          "source_column": "source_file",
+          "derived": false
+        },
+        {
+          "name": "source_sheet",
+          "label": "来源工作表",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "原始 Excel 工作表名称。",
+          "source_column": "source_sheet",
+          "derived": false
+        },
+        {
+          "name": "excel_row",
+          "label": "Excel行号",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "数据在原始 Excel 工作表中的行号。",
+          "source_column": "excel_row",
+          "derived": false
+        },
+        {
+          "name": "serial_no",
+          "label": "序号",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "已运行新能源集中式电站指标体系表中的“序号”字段，来源表头路径：序号。",
+          "source_column": "serial_no",
+          "derived": false
+        },
+        {
+          "name": "station_name",
+          "label": "场站名称",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "已运行新能源集中式电站指标体系表中的“场站名称”字段，来源表头路径：场站名称。",
+          "source_column": "station_name",
+          "derived": false
+        },
+        {
+          "name": "energy_type",
+          "label": "能源类型",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "已运行新能源集中式电站指标体系表中的“能源类型”字段，来源表头路径：能源类型。",
+          "source_column": "energy_type",
+          "derived": false
+        },
+        {
+          "name": "station_type",
+          "label": "电站类型",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "已运行新能源集中式电站指标体系表中的“电站类型”字段，来源表头路径：电站类型。",
+          "source_column": "station_type",
+          "derived": false
+        },
+        {
+          "name": "grid_capacity_mw_raw",
+          "label": "并网容量（MW)（原文）",
+          "sqlite_type": "TEXT",
+          "semantic_type": "raw_text",
+          "unit": null,
+          "description": "已运行新能源集中式电站指标体系表中的“并网容量（MW)”字段，来源表头路径：并网容量（MW)。单位或口径：MW。 原始文本保留列，不直接用于数值或日期计算。",
+          "source_column": "grid_capacity_mw",
+          "derived": false
+        },
+        {
+          "name": "has_storage",
+          "label": "是否配储",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "已运行新能源集中式电站指标体系表中的“是否配储”字段，来源表头路径：是否配储。",
+          "source_column": "has_storage",
+          "derived": false
+        },
+        {
+          "name": "storage_capacity_mwh_raw",
+          "label": "配储容量（MW/MWH)（原文）",
+          "sqlite_type": "TEXT",
+          "semantic_type": "raw_text",
+          "unit": null,
+          "description": "已运行新能源集中式电站指标体系表中的“配储容量（MW/MWH)”字段，来源表头路径：配储容量（MW/MWH)。单位或口径：MW/MWH。 原始文本保留列，不直接用于数值或日期计算。",
+          "source_column": "storage_capacity_mwh",
+          "derived": false
+        },
+        {
+          "name": "voltage_level_kv",
+          "label": "电压等级(kV)",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "已运行新能源集中式电站指标体系表中的“电压等级(kV)”字段，来源表头路径：电压等级(kV)。单位或口径：kV。",
+          "source_column": "voltage_level_kv",
+          "derived": false
+        },
+        {
+          "name": "parent_station_name",
+          "label": "接入上级站名称",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "已运行新能源集中式电站指标体系表中的“接入上级站名称”字段，来源表头路径：接入上级站名称。",
+          "source_column": "parent_station_name",
+          "derived": false
+        },
+        {
+          "name": "total_investment_tenk_yuan",
+          "label": "总投资额（万元）",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "已运行新能源集中式电站指标体系表中的“总投资额（万元）”字段，来源表头路径：总投资额（万元）。单位或口径：万元。",
+          "source_column": "total_investment_tenk_yuan",
+          "derived": false
+        },
+        {
+          "name": "mechanism_energy_capacity_pct",
+          "label": "机制电量容量（百分比）",
+          "sqlite_type": "REAL",
+          "semantic_type": "real",
+          "unit": null,
+          "description": "已运行新能源集中式电站指标体系表中的“机制电量容量（百分比）”字段，来源表头路径：机制电量容量（百分比）。单位或口径：百分比。",
+          "source_column": "mechanism_energy_capacity_pct",
+          "derived": false
+        },
+        {
+          "name": "mechanism_price_mw",
+          "label": "机制价格（元/MW)",
+          "sqlite_type": "REAL",
+          "semantic_type": "real",
+          "unit": null,
+          "description": "已运行新能源集中式电站指标体系表中的“机制价格（元/MW)”字段，来源表头路径：机制价格（元/MW)。单位或口径：元/MW。",
+          "source_column": "mechanism_price_mw",
+          "derived": false
+        },
+        {
+          "name": "start_date_raw",
+          "label": "开工时间（原文）",
+          "sqlite_type": "TEXT",
+          "semantic_type": "raw_text",
+          "unit": null,
+          "description": "已运行新能源集中式电站指标体系表中的“开工时间”字段，来源表头路径：开工时间。 原始文本保留列，不直接用于数值或日期计算。",
+          "source_column": "start_date",
+          "derived": false
+        },
+        {
+          "name": "grid_connection_date_raw",
+          "label": "并网时间（原文）",
+          "sqlite_type": "TEXT",
+          "semantic_type": "raw_text",
+          "unit": null,
+          "description": "已运行新能源集中式电站指标体系表中的“并网时间”字段，来源表头路径：并网时间。 原始文本保留列，不直接用于数值或日期计算。",
+          "source_column": "grid_connection_date",
+          "derived": false
+        },
+        {
+          "name": "project_location",
+          "label": "项目位置",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "已运行新能源集中式电站指标体系表中的“项目位置”字段，来源表头路径：项目位置。",
+          "source_column": "project_location",
+          "derived": false
+        },
+        {
+          "name": "booster_station_coordinate_degree",
+          "label": "升压站坐标(经纬度）",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "已运行新能源集中式电站指标体系表中的“升压站坐标(经纬度）”字段，来源表头路径：升压站坐标(经纬度）。单位或口径：经纬度。",
+          "source_column": "booster_station_coordinate_degree",
+          "derived": false
+        },
+        {
+          "name": "pv_wind_coordinate_turbine",
+          "label": "光伏区及风机坐标 （光伏区/储能提供拐点坐标，风场提供风机机位点坐标）",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "已运行新能源集中式电站指标体系表中的“光伏区及风机坐标 （光伏区/储能提供拐点坐标，风场提供风机机位点坐标）”字段，来源表头路径：光伏区及风机坐标 （光伏区/储能提供拐点坐标，风场提供风机机位点坐标）。单位或口径：光伏区/储能提供拐点坐标，风场提供风机机位点坐标。",
+          "source_column": "pv_wind_coordinate_turbine",
+          "derived": false
+        },
+        {
+          "name": "project_builder",
+          "label": "项目建设方",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "已运行新能源集中式电站指标体系表中的“项目建设方”字段，来源表头路径：项目建设方。",
+          "source_column": "project_builder",
+          "derived": false
+        },
+        {
+          "name": "parent_group",
+          "label": "归属上级集团",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "已运行新能源集中式电站指标体系表中的“归属上级集团”字段，来源表头路径：归属上级集团。",
+          "source_column": "parent_group",
+          "derived": false
+        },
+        {
+          "name": "contact",
+          "label": "项目联系人及联系方式",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "已运行新能源集中式电站指标体系表中的“项目联系人及联系方式”字段，来源表头路径：项目联系人及联系方式。",
+          "source_column": "contact",
+          "derived": false
+        },
+        {
+          "name": "grid_capacity_mw",
+          "label": "并网容量/装机容量",
+          "sqlite_type": "REAL",
+          "semantic_type": "quantity",
+          "unit": "MW",
+          "description": "集中式并网容量/装机容量，单位 MW。",
+          "source_column": "grid_capacity_mw",
+          "derived": true
+        },
+        {
+          "name": "grid_capacity_mw_parse_status",
+          "label": "并网容量（MW)解析状态",
+          "sqlite_type": "TEXT",
+          "semantic_type": "parse_status",
+          "unit": null,
+          "description": "派生字段解析状态：valid、empty、unparseable 或 unexpected_unit。",
+          "source_column": "grid_capacity_mw",
+          "derived": true
+        },
+        {
+          "name": "storage_power_mw",
+          "label": "储能功率",
+          "sqlite_type": "REAL",
+          "semantic_type": "power",
+          "unit": "MW",
+          "description": "电源侧配储容量，原文按 MW/MWh 对填写。",
+          "source_column": "storage_capacity_mwh",
+          "derived": true
+        },
+        {
+          "name": "storage_energy_mwh",
+          "label": "储能能量",
+          "sqlite_type": "REAL",
+          "semantic_type": "energy",
+          "unit": "MWh",
+          "description": "电源侧配储容量，原文按 MW/MWh 对填写。",
+          "source_column": "storage_capacity_mwh",
+          "derived": true
+        },
+        {
+          "name": "storage_capacity_mwh_parse_status",
+          "label": "配储容量（MW/MWH)解析状态",
+          "sqlite_type": "TEXT",
+          "semantic_type": "parse_status",
+          "unit": null,
+          "description": "派生字段解析状态：valid、empty、unparseable 或 unexpected_unit。",
+          "source_column": "storage_capacity_mwh",
+          "derived": true
+        },
+        {
+          "name": "start_month",
+          "label": "开工月份",
+          "sqlite_type": "TEXT",
+          "semantic_type": "month_date",
+          "unit": null,
+          "description": "开工月份规范化为当月第一日，仅表示月份。",
+          "source_column": "start_date",
+          "derived": true
+        },
+        {
+          "name": "start_date_parse_status",
+          "label": "开工时间解析状态",
+          "sqlite_type": "TEXT",
+          "semantic_type": "parse_status",
+          "unit": null,
+          "description": "派生字段解析状态：valid、empty、unparseable 或 unexpected_unit。",
+          "source_column": "start_date",
+          "derived": true
+        },
+        {
+          "name": "grid_connection_month",
+          "label": "并网月份",
+          "sqlite_type": "TEXT",
+          "semantic_type": "month_date",
+          "unit": null,
+          "description": "并网月份规范化为当月第一日，仅表示月份。",
+          "source_column": "grid_connection_date",
+          "derived": true
+        },
+        {
+          "name": "grid_connection_date_parse_status",
+          "label": "并网时间解析状态",
+          "sqlite_type": "TEXT",
+          "semantic_type": "parse_status",
+          "unit": null,
+          "description": "派生字段解析状态：valid、empty、unparseable 或 unexpected_unit。",
+          "source_column": "grid_connection_date",
+          "derived": true
+        },
+        {
+          "name": "district_name",
+          "label": "区县",
+          "sqlite_type": "TEXT",
+          "semantic_type": "administrative_district",
+          "unit": null,
+          "description": "从地址或乡镇文本按张家口完整区县名称确定性提取；未命中或歧义时为空。",
+          "source_column": "project_location",
+          "derived": true
+        },
+        {
+          "name": "district_parse_status",
+          "label": "区县解析状态",
+          "sqlite_type": "TEXT",
+          "semantic_type": "parse_status",
+          "unit": null,
+          "description": "地址解析状态：valid、empty、unmatched 或 ambiguous。",
+          "source_column": "project_location",
+          "derived": true
+        }
+      ]
+    },
+    {
+      "table": "t02_construction_project_station",
+      "dataset": "在建新能源及储能项目",
+      "description": "在建项目的规模、建设地点、当前进展、前置手续和计划并网时间。",
+      "coverage": "仅覆盖在建项目，不代表已运行或备案项目。",
+      "keywords": [
+        "在建",
+        "项目进度",
+        "开工时间",
+        "预计并网",
+        "接入批复",
+        "建设用地",
+        "并网手续",
+        "延期"
+      ],
+      "supported_queries": [
+        "在建项目数量和规模",
+        "项目进度与预计并网时间",
+        "前置手续未办结项目",
+        "按已发布规则筛查计划逾期项目"
+      ],
+      "limitations": [
+        "项目容量可能同时含 MW/MWh，必须分开统计。",
+        "计划逾期不是停工或违规认定。"
+      ],
+      "fields": [
+        {
+          "name": "id",
+          "label": "主键ID",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "自增主键。",
+          "source_column": "id",
+          "derived": false
+        },
+        {
+          "name": "source_file",
+          "label": "来源文件",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "原始 Excel 文件名。",
+          "source_column": "source_file",
+          "derived": false
+        },
+        {
+          "name": "source_sheet",
+          "label": "来源工作表",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "原始 Excel 工作表名称。",
+          "source_column": "source_sheet",
+          "derived": false
+        },
+        {
+          "name": "excel_row",
+          "label": "Excel行号",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "数据在原始 Excel 工作表中的行号。",
+          "source_column": "excel_row",
+          "derived": false
+        },
+        {
+          "name": "serial_no",
+          "label": "序号",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "在建新能源及储能项目表中的“序号”字段，来源表头路径：序号。",
+          "source_column": "serial_no",
+          "derived": false
+        },
+        {
+          "name": "project_name",
+          "label": "项目名称",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "在建新能源及储能项目表中的“项目名称”字段，来源表头路径：项目名称。",
+          "source_column": "project_name",
+          "derived": false
+        },
+        {
+          "name": "project_type",
+          "label": "项目类型",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "在建新能源及储能项目表中的“项目类型”字段，来源表头路径：项目类型。",
+          "source_column": "project_type",
+          "derived": false
+        },
+        {
+          "name": "serial_no_2",
+          "label": "备案编号",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "在建新能源及储能项目表中的“备案编号”字段，来源表头路径：备案编号。",
+          "source_column": "serial_no_2",
+          "derived": false
+        },
+        {
+          "name": "project_capacity_mw_raw",
+          "label": "项目容量 新能源（MW) 储能（MW)（原文）",
+          "sqlite_type": "TEXT",
+          "semantic_type": "raw_text",
+          "unit": null,
+          "description": "在建新能源及储能项目表中的“项目容量 新能源（MW) 储能（MW)”字段，来源表头路径：项目容量 新能源（MW) 储能（MW)。单位或口径：MW；MW。 原始文本保留列，不直接用于数值或日期计算。",
+          "source_column": "project_capacity_mw",
+          "derived": false
+        },
+        {
+          "name": "total_investment_tenk_yuan",
+          "label": "总投资额（万元）",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "在建新能源及储能项目表中的“总投资额（万元）”字段，来源表头路径：总投资额（万元）。单位或口径：万元。",
+          "source_column": "total_investment_tenk_yuan",
+          "derived": false
+        },
+        {
+          "name": "construction_location",
+          "label": "建设地点（具体到村级）",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "在建新能源及储能项目表中的“建设地点（具体到村级）”字段，来源表头路径：建设地点（具体到村级）。单位或口径：具体到村级。",
+          "source_column": "construction_location",
+          "derived": false
+        },
+        {
+          "name": "booster_station_coordinate",
+          "label": "升压站位置区域坐标（经纬坐标）",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "在建新能源及储能项目表中的“升压站位置区域坐标（经纬坐标）”字段，来源表头路径：升压站位置区域坐标（经纬坐标）。单位或口径：经纬坐标。",
+          "source_column": "booster_station_coordinate",
+          "derived": false
+        },
+        {
+          "name": "pv_wind_coordinate_turbine",
+          "label": "光伏区及风机坐标 （光伏区/储能提供拐点坐标，风场提供风机机位点坐标）",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "在建新能源及储能项目表中的“光伏区及风机坐标 （光伏区/储能提供拐点坐标，风场提供风机机位点坐标）”字段，来源表头路径：光伏区及风机坐标 （光伏区/储能提供拐点坐标，风场提供风机机位点坐标）。单位或口径：光伏区/储能提供拐点坐标，风场提供风机机位点坐标。",
+          "source_column": "pv_wind_coordinate_turbine",
+          "derived": false
+        },
+        {
+          "name": "grid_voltage_level_kv",
+          "label": "项目并网电压等级（kV）",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "在建新能源及储能项目表中的“项目并网电压等级（kV）”字段，来源表头路径：项目并网电压等级（kV）。单位或口径：kV。",
+          "source_column": "grid_voltage_level_kv",
+          "derived": false
+        },
+        {
+          "name": "grid_parent_station",
+          "label": "项目并网上级站",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "在建新能源及储能项目表中的“项目并网上级站”字段，来源表头路径：项目并网上级站。",
+          "source_column": "grid_parent_station",
+          "derived": false
+        },
+        {
+          "name": "construction_unit",
+          "label": "建设单位",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "在建新能源及储能项目表中的“建设单位”字段，来源表头路径：建设单位。",
+          "source_column": "construction_unit",
+          "derived": false
+        },
+        {
+          "name": "current_progress",
+          "label": "当前阶段进展",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "在建新能源及储能项目表中的“当前阶段进展”字段，来源表头路径：当前阶段进展。",
+          "source_column": "current_progress",
+          "derived": false
+        },
+        {
+          "name": "land_approval",
+          "label": "建设用地批复",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "在建新能源及储能项目表中的“建设用地批复”字段，来源表头路径：建设用地批复。",
+          "source_column": "land_approval",
+          "derived": false
+        },
+        {
+          "name": "grid_access_approval",
+          "label": "电力接入批复",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "在建新能源及储能项目表中的“电力接入批复”字段，来源表头路径：电力接入批复。",
+          "source_column": "grid_access_approval",
+          "derived": false
+        },
+        {
+          "name": "site_project_progress",
+          "label": "光伏/风电/储能场区工程进度",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "在建新能源及储能项目表中的“光伏/风电/储能场区工程进度”字段，来源表头路径：光伏/风电/储能场区工程进度。",
+          "source_column": "site_project_progress",
+          "derived": false
+        },
+        {
+          "name": "booster_station_progress",
+          "label": "升压站工程进度",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "在建新能源及储能项目表中的“升压站工程进度”字段，来源表头路径：升压站工程进度。",
+          "source_column": "booster_station_progress",
+          "derived": false
+        },
+        {
+          "name": "outgoing_line_progress",
+          "label": "外送线路进度",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "在建新能源及储能项目表中的“外送线路进度”字段，来源表头路径：外送线路进度。",
+          "source_column": "outgoing_line_progress",
+          "derived": false
+        },
+        {
+          "name": "grid_connection_procedure_progress",
+          "label": "并网手续进度",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "在建新能源及储能项目表中的“并网手续进度”字段，来源表头路径：并网手续进度。",
+          "source_column": "grid_connection_procedure_progress",
+          "derived": false
+        },
+        {
+          "name": "start_date",
+          "label": "项目开工时间",
+          "sqlite_type": "TEXT",
+          "semantic_type": "date",
+          "unit": null,
+          "description": "在建新能源及储能项目表中的“项目开工时间”字段，来源表头路径：项目开工时间。日期字段，Excel 序列值已尽量标准化为 YYYY-MM-DD。",
+          "source_column": "start_date",
+          "derived": false
+        },
+        {
+          "name": "grid_connection_date",
+          "label": "预计并网时间",
+          "sqlite_type": "TEXT",
+          "semantic_type": "date",
+          "unit": null,
+          "description": "在建新能源及储能项目表中的“预计并网时间”字段，来源表头路径：预计并网时间。日期字段，Excel 序列值已尽量标准化为 YYYY-MM-DD。",
+          "source_column": "grid_connection_date",
+          "derived": false
+        },
+        {
+          "name": "contact",
+          "label": "联系人及联系方式",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "在建新能源及储能项目表中的“联系人及联系方式”字段，来源表头路径：联系人及联系方式。",
+          "source_column": "contact",
+          "derived": false
+        },
+        {
+          "name": "remarks",
+          "label": "备注 (表中未提及的可自行备注）",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "在建新能源及储能项目表中的“备注 (表中未提及的可自行备注）”字段，来源表头路径：备注 (表中未提及的可自行备注）。单位或口径：表中未提及的可自行备注。",
+          "source_column": "remarks",
+          "derived": false
+        },
+        {
+          "name": "project_capacity_mw",
+          "label": "项目容量（功率）",
+          "sqlite_type": "REAL",
+          "semantic_type": "power",
+          "unit": "MW",
+          "description": "在建项目规模；原文可按 MW/MWh 对填写，分别保存功率与能量。",
+          "source_column": "project_capacity_mw",
+          "derived": true
+        },
+        {
+          "name": "project_capacity_mwh",
+          "label": "项目容量（能量）",
+          "sqlite_type": "REAL",
+          "semantic_type": "energy",
+          "unit": "MWh",
+          "description": "在建项目规模；原文可按 MW/MWh 对填写，分别保存功率与能量。",
+          "source_column": "project_capacity_mw",
+          "derived": true
+        },
+        {
+          "name": "project_capacity_mw_parse_status",
+          "label": "项目容量 新能源（MW) 储能（MW)解析状态",
+          "sqlite_type": "TEXT",
+          "semantic_type": "parse_status",
+          "unit": null,
+          "description": "派生字段解析状态：valid、empty、unparseable 或 unexpected_unit。",
+          "source_column": "project_capacity_mw",
+          "derived": true
+        },
+        {
+          "name": "district_name",
+          "label": "区县",
+          "sqlite_type": "TEXT",
+          "semantic_type": "administrative_district",
+          "unit": null,
+          "description": "从地址或乡镇文本按张家口完整区县名称确定性提取；未命中或歧义时为空。",
+          "source_column": "construction_location",
+          "derived": true
+        },
+        {
+          "name": "district_parse_status",
+          "label": "区县解析状态",
+          "sqlite_type": "TEXT",
+          "semantic_type": "parse_status",
+          "unit": null,
+          "description": "地址解析状态：valid、empty、unmatched 或 ambiguous。",
+          "source_column": "construction_location",
+          "derived": true
+        }
+      ]
+    },
+    {
+      "table": "t03_large_scale_enterprise",
+      "dataset": "规上企业信息",
+      "description": "规上企业的基础信息、年度用能及配套光伏、储能情况。",
+      "coverage": "不含税收、就业人数、营收或实时负荷。",
+      "keywords": [
+        "规上企业",
+        "企业用电",
+        "企业用热",
+        "企业用气",
+        "配套光伏",
+        "配套储能"
+      ],
+      "supported_queries": [
+        "规上企业数量和类型",
+        "年度用能汇总",
+        "企业配套光伏和储能情况"
+      ],
+      "limitations": [
+        "不能回答税收贡献、就业人数或行业营收。"
+      ],
+      "fields": [
+        {
+          "name": "id",
+          "label": "主键ID",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "自增主键。",
+          "source_column": "id",
+          "derived": false
+        },
+        {
+          "name": "source_file",
+          "label": "来源文件",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "原始 Excel 文件名。",
+          "source_column": "source_file",
+          "derived": false
+        },
+        {
+          "name": "source_sheet",
+          "label": "来源工作表",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "原始 Excel 工作表名称。",
+          "source_column": "source_sheet",
+          "derived": false
+        },
+        {
+          "name": "excel_row",
+          "label": "Excel行号",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "数据在原始 Excel 工作表中的行号。",
+          "source_column": "excel_row",
+          "derived": false
+        },
+        {
+          "name": "serial_no",
+          "label": "序号",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "规上企业信息表中的“序号”字段，来源表头路径：序号。",
+          "source_column": "serial_no",
+          "derived": false
+        },
+        {
+          "name": "enterprise_name",
+          "label": "企业名称",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "规上企业信息表中的“企业名称”字段，来源表头路径：企业名称。",
+          "source_column": "enterprise_name",
+          "derived": false
+        },
+        {
+          "name": "enterprise_location",
+          "label": "企业位置",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "规上企业信息表中的“企业位置”字段，来源表头路径：企业位置。",
+          "source_column": "enterprise_location",
+          "derived": false
+        },
+        {
+          "name": "enterprise_type",
+          "label": "企业类型",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "规上企业信息表中的“企业类型”字段，来源表头路径：企业类型。",
+          "source_column": "enterprise_type",
+          "derived": false
+        },
+        {
+          "name": "voltage_level_supply_kv",
+          "label": "供电电压等级(kV)",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "规上企业信息表中的“供电电压等级(kV)”字段，来源表头路径：供电电压等级(kV)。单位或口径：kV。",
+          "source_column": "voltage_level_supply_kv",
+          "derived": false
+        },
+        {
+          "name": "transformer_capacity_kv",
+          "label": "变压器容量(kVA)",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "规上企业信息表中的“变压器容量(kVA)”字段，来源表头路径：变压器容量(kVA)。单位或口径：kVA。",
+          "source_column": "transformer_capacity_kv",
+          "derived": false
+        },
+        {
+          "name": "annual_electricity_consumption_tenk_kwh",
+          "label": "年用电量（万kwh)",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "规上企业信息表中的“年用电量（万kwh)”字段，来源表头路径：年用电量（万kwh)。单位或口径：万kwh。",
+          "source_column": "annual_electricity_consumption_tenk_kwh",
+          "derived": false
+        },
+        {
+          "name": "annual_heat_consumption_gj",
+          "label": "年用热量(GJ)",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "规上企业信息表中的“年用热量(GJ)”字段，来源表头路径：年用热量(GJ)。单位或口径：GJ。",
+          "source_column": "annual_heat_consumption_gj",
+          "derived": false
+        },
+        {
+          "name": "annual_steam_consumption_ton",
+          "label": "年用蒸汽量（吨）",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "规上企业信息表中的“年用蒸汽量（吨）”字段，来源表头路径：年用蒸汽量（吨）。单位或口径：吨。",
+          "source_column": "annual_steam_consumption_ton",
+          "derived": false
+        },
+        {
+          "name": "heat_source",
+          "label": "热源方式",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "规上企业信息表中的“热源方式”字段，来源表头路径：热源方式。",
+          "source_column": "heat_source",
+          "derived": false
+        },
+        {
+          "name": "annual_gas_consumption_tenk_nm3",
+          "label": "年用气量（万Nm³）",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "规上企业信息表中的“年用气量（万Nm³）”字段，来源表头路径：年用气量（万Nm³）。单位或口径：万Nm³。",
+          "source_column": "annual_gas_consumption_tenk_nm3",
+          "derived": false
+        },
+        {
+          "name": "has_pv",
+          "label": "是否配套光伏",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "规上企业信息表中的“是否配套光伏”字段，来源表头路径：是否配套光伏。",
+          "source_column": "has_pv",
+          "derived": false
+        },
+        {
+          "name": "pv_capacity_mw",
+          "label": "光伏容量（MW)",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "规上企业信息表中的“光伏容量（MW)”字段，来源表头路径：光伏容量（MW)。单位或口径：MW。",
+          "source_column": "pv_capacity_mw",
+          "derived": false
+        },
+        {
+          "name": "has_storage",
+          "label": "是否配套储能",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "规上企业信息表中的“是否配套储能”字段，来源表头路径：是否配套储能。",
+          "source_column": "has_storage",
+          "derived": false
+        },
+        {
+          "name": "storage_capacity_mwh",
+          "label": "储能容量(MW/MWH)",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "规上企业信息表中的“储能容量(MW/MWH)”字段，来源表头路径：储能容量(MW/MWH)。单位或口径：MW/MWH。",
+          "source_column": "storage_capacity_mwh",
+          "derived": false
+        },
+        {
+          "name": "contact",
+          "label": "联系方式",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "规上企业信息表中的“联系方式”字段，来源表头路径：联系方式。",
+          "source_column": "contact",
+          "derived": false
+        },
+        {
+          "name": "district_name",
+          "label": "区县",
+          "sqlite_type": "TEXT",
+          "semantic_type": "administrative_district",
+          "unit": null,
+          "description": "从地址或乡镇文本按张家口完整区县名称确定性提取；未命中或歧义时为空。",
+          "source_column": "enterprise_location",
+          "derived": true
+        },
+        {
+          "name": "district_parse_status",
+          "label": "区县解析状态",
+          "sqlite_type": "TEXT",
+          "semantic_type": "parse_status",
+          "unit": null,
+          "description": "地址解析状态：valid、empty、unmatched 或 ambiguous。",
+          "source_column": "enterprise_location",
+          "derived": true
+        }
+      ]
+    },
+    {
+      "table": "t04_filing_project",
+      "dataset": "入库新能源及储能备案项目",
+      "description": "备案项目的项目类型、拟建规模、建设地点及计划开工、计划并网投运月份。",
+      "coverage": "仅覆盖备案项目计划信息，不含备案日期、实际开工时间或项目当前状态。",
+      "keywords": [
+        "备案",
+        "拟建",
+        "计划开工",
+        "计划并网投运",
+        "项目储备"
+      ],
+      "supported_queries": [
+        "备案项目清单",
+        "计划开工或计划并网投运月份",
+        "按项目类型和地点筛选备案项目"
+      ],
+      "limitations": [
+        "不能按新增备案时间统计。",
+        "拟建规模为非结构化文本，不能直接汇总为可靠容量。"
+      ],
+      "fields": [
+        {
+          "name": "id",
+          "label": "主键ID",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "自增主键。",
+          "source_column": "id",
+          "derived": false
+        },
+        {
+          "name": "source_file",
+          "label": "来源文件",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "原始 Excel 文件名。",
+          "source_column": "source_file",
+          "derived": false
+        },
+        {
+          "name": "source_sheet",
+          "label": "来源工作表",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "原始 Excel 工作表名称。",
+          "source_column": "source_sheet",
+          "derived": false
+        },
+        {
+          "name": "excel_row",
+          "label": "Excel行号",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "数据在原始 Excel 工作表中的行号。",
+          "source_column": "excel_row",
+          "derived": false
+        },
+        {
+          "name": "serial_no",
+          "label": "序号",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "入库新能源及储能备案项目表中的“序号”字段，来源表头路径：序号。",
+          "source_column": "serial_no",
+          "derived": false
+        },
+        {
+          "name": "project_name",
+          "label": "项目名称",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "入库新能源及储能备案项目表中的“项目名称”字段，来源表头路径：项目名称。",
+          "source_column": "project_name",
+          "derived": false
+        },
+        {
+          "name": "project_type",
+          "label": "项目类型",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "入库新能源及储能备案项目表中的“项目类型”字段，来源表头路径：项目类型。",
+          "source_column": "project_type",
+          "derived": false
+        },
+        {
+          "name": "planned_scale",
+          "label": "拟建规模",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "入库新能源及储能备案项目表中的“拟建规模”字段，来源表头路径：拟建规模。",
+          "source_column": "planned_scale",
+          "derived": false
+        },
+        {
+          "name": "construction_location",
+          "label": "建设地点（县-乡-村）",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "入库新能源及储能备案项目表中的“建设地点（县-乡-村）”字段，来源表头路径：建设地点（县-乡-村）。单位或口径：县-乡-村。",
+          "source_column": "construction_location",
+          "derived": false
+        },
+        {
+          "name": "booster_station_coordinate",
+          "label": "升压站坐标",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "入库新能源及储能备案项目表中的“升压站坐标”字段，来源表头路径：升压站坐标。",
+          "source_column": "booster_station_coordinate",
+          "derived": false
+        },
+        {
+          "name": "point_coordinate",
+          "label": "点位坐标 （风机提供点位作为，光伏区储能提供拐点坐标）",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "入库新能源及储能备案项目表中的“点位坐标 （风机提供点位作为，光伏区储能提供拐点坐标）”字段，来源表头路径：点位坐标 （风机提供点位作为，光伏区储能提供拐点坐标）。单位或口径：风机提供点位作为，光伏区储能提供拐点坐标。",
+          "source_column": "point_coordinate",
+          "derived": false
+        },
+        {
+          "name": "owner_unit",
+          "label": "业主单位（拟定）",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "入库新能源及储能备案项目表中的“业主单位（拟定）”字段，来源表头路径：业主单位（拟定）。单位或口径：拟定。",
+          "source_column": "owner_unit",
+          "derived": false
+        },
+        {
+          "name": "total_investment_hundred_million_yuan",
+          "label": "总投资（亿元）",
+          "sqlite_type": "REAL",
+          "semantic_type": "real",
+          "unit": null,
+          "description": "入库新能源及储能备案项目表中的“总投资（亿元）”字段，来源表头路径：总投资（亿元）。单位或口径：亿元。",
+          "source_column": "total_investment_hundred_million_yuan",
+          "derived": false
+        },
+        {
+          "name": "planned_start_date_raw",
+          "label": "计划开工时间（原文）",
+          "sqlite_type": "TEXT",
+          "semantic_type": "raw_text",
+          "unit": null,
+          "description": "入库新能源及储能备案项目表中的“计划开工时间”字段，来源表头路径：计划开工时间。 原始文本保留列，不直接用于数值或日期计算。",
+          "source_column": "planned_start_date",
+          "derived": false
+        },
+        {
+          "name": "planned_grid_operation_date_raw",
+          "label": "计划并网/投运时间（原文）",
+          "sqlite_type": "TEXT",
+          "semantic_type": "raw_text",
+          "unit": null,
+          "description": "入库新能源及储能备案项目表中的“计划并网/投运时间”字段，来源表头路径：计划并网/投运时间。 原始文本保留列，不直接用于数值或日期计算。",
+          "source_column": "planned_grid_operation_date",
+          "derived": false
+        },
+        {
+          "name": "contact",
+          "label": "联系方式",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "入库新能源及储能备案项目表中的“联系方式”字段，来源表头路径：联系方式。",
+          "source_column": "contact",
+          "derived": false
+        },
+        {
+          "name": "remarks",
+          "label": "备注",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "入库新能源及储能备案项目表中的“备注”字段，来源表头路径：备注。",
+          "source_column": "remarks",
+          "derived": false
+        },
+        {
+          "name": "planned_start_month",
+          "label": "计划开工月份",
+          "sqlite_type": "TEXT",
+          "semantic_type": "month_date",
+          "unit": null,
+          "description": "计划开工月份规范化为当月第一日，仅表示计划月份。",
+          "source_column": "planned_start_date",
+          "derived": true
+        },
+        {
+          "name": "planned_start_date_parse_status",
+          "label": "计划开工时间解析状态",
+          "sqlite_type": "TEXT",
+          "semantic_type": "parse_status",
+          "unit": null,
+          "description": "派生字段解析状态：valid、empty、unparseable 或 unexpected_unit。",
+          "source_column": "planned_start_date",
+          "derived": true
+        },
+        {
+          "name": "planned_grid_operation_month",
+          "label": "计划并网投运月份",
+          "sqlite_type": "TEXT",
+          "semantic_type": "month_date",
+          "unit": null,
+          "description": "计划并网投运月份规范化为当月第一日，仅表示计划月份。",
+          "source_column": "planned_grid_operation_date",
+          "derived": true
+        },
+        {
+          "name": "planned_grid_operation_date_parse_status",
+          "label": "计划并网/投运时间解析状态",
+          "sqlite_type": "TEXT",
+          "semantic_type": "parse_status",
+          "unit": null,
+          "description": "派生字段解析状态：valid、empty、unparseable 或 unexpected_unit。",
+          "source_column": "planned_grid_operation_date",
+          "derived": true
+        },
+        {
+          "name": "district_name",
+          "label": "区县",
+          "sqlite_type": "TEXT",
+          "semantic_type": "administrative_district",
+          "unit": null,
+          "description": "从地址或乡镇文本按张家口完整区县名称确定性提取；未命中或歧义时为空。",
+          "source_column": "construction_location",
+          "derived": true
+        },
+        {
+          "name": "district_parse_status",
+          "label": "区县解析状态",
+          "sqlite_type": "TEXT",
+          "semantic_type": "parse_status",
+          "unit": null,
+          "description": "地址解析状态：valid、empty、unmatched 或 ambiguous。",
+          "source_column": "construction_location",
+          "derived": true
+        }
+      ]
+    },
+    {
+      "table": "t05_land_planning_detail",
+      "dataset": "土地规划明细数据",
+      "description": "土地规划明细的分类、范围和图层信息。",
+      "coverage": "支持土地分类明细查询。",
+      "keywords": [
+        "土地规划",
+        "土地类型",
+        "图层",
+        "选址判定",
+        "土地明细"
+      ],
+      "supported_queries": [
+        "土地规划明细筛选",
+        "选址判定分类查询"
+      ],
+      "limitations": [
+        "不能自行推断法律红线或项目合规结论。"
+      ],
+      "fields": [
+        {
+          "name": "id",
+          "label": "主键ID",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "自增主键。",
+          "source_column": "id",
+          "derived": false
+        },
+        {
+          "name": "source_file",
+          "label": "来源文件",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "原始 Excel 文件名。",
+          "source_column": "source_file",
+          "derived": false
+        },
+        {
+          "name": "source_sheet",
+          "label": "来源工作表",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "原始 Excel 工作表名称。",
+          "source_column": "source_sheet",
+          "derived": false
+        },
+        {
+          "name": "excel_row",
+          "label": "Excel行号",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "数据在原始 Excel 工作表中的行号。",
+          "source_column": "excel_row",
+          "derived": false
+        },
+        {
+          "name": "serial_no",
+          "label": "序号",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "土地规划明细数据表中的“序号”字段，来源表头路径：序号。",
+          "source_column": "serial_no",
+          "derived": false
+        },
+        {
+          "name": "type_land",
+          "label": "土地类型",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "土地规划明细数据表中的“土地类型”字段，来源表头路径：土地类型。",
+          "source_column": "type_land",
+          "derived": false
+        },
+        {
+          "name": "three_zone",
+          "label": "三区",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "土地规划明细数据表中的“三区”字段，来源表头路径：三区。",
+          "source_column": "three_zone",
+          "derived": false
+        },
+        {
+          "name": "detail",
+          "label": "明细",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "土地规划明细数据表中的“明细”字段，来源表头路径：明细。",
+          "source_column": "detail",
+          "derived": false
+        },
+        {
+          "name": "three_line",
+          "label": "三线",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "土地规划明细数据表中的“三线”字段，来源表头路径：三线。",
+          "source_column": "three_line",
+          "derived": false
+        },
+        {
+          "name": "region_scope",
+          "label": "区域范围",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "土地规划明细数据表中的“区域范围”字段，来源表头路径：区域范围。",
+          "source_column": "region_scope",
+          "derived": false
+        },
+        {
+          "name": "remarks",
+          "label": "备注",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "土地规划明细数据表中的“备注”字段，来源表头路径：备注。",
+          "source_column": "remarks",
+          "derived": false
+        }
+      ]
+    },
+    {
+      "table": "t05_land_planning_merged_catalog",
+      "dataset": "土地规划合并单元格目录",
+      "description": "土地规划分类的合并单元格目录和分类层级。",
+      "coverage": "用于解释分类目录，不是图斑级统计表。",
+      "keywords": [
+        "土地规划",
+        "分类目录",
+        "图斑类别",
+        "选址"
+      ],
+      "supported_queries": [
+        "土地规划分类目录查询"
+      ],
+      "limitations": [
+        "不能单独用于图斑数量或面积汇总。"
+      ],
+      "fields": [
+        {
+          "name": "id",
+          "label": "主键ID",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "自增主键。",
+          "source_column": "id",
+          "derived": false
+        },
+        {
+          "name": "source_file",
+          "label": "来源文件",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "原始 Excel 文件名。",
+          "source_column": "source_file",
+          "derived": false
+        },
+        {
+          "name": "source_sheet",
+          "label": "来源工作表",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "原始 Excel 工作表名称。",
+          "source_column": "source_sheet",
+          "derived": false
+        },
+        {
+          "name": "excel_row",
+          "label": "Excel行号",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "数据在原始 Excel 工作表中的行号。",
+          "source_column": "excel_row",
+          "derived": false
+        },
+        {
+          "name": "serial_no",
+          "label": "序号",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "土地规划合并单元格目录表中的“序号”字段，来源表头路径：序号。",
+          "source_column": "serial_no",
+          "derived": false
+        },
+        {
+          "name": "type_land",
+          "label": "土地类型",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "土地规划合并单元格目录表中的“土地类型”字段，来源表头路径：土地类型。",
+          "source_column": "type_land",
+          "derived": false
+        },
+        {
+          "name": "three_zone",
+          "label": "三区",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "土地规划合并单元格目录表中的“三区”字段，来源表头路径：三区。",
+          "source_column": "three_zone",
+          "derived": false
+        },
+        {
+          "name": "detail",
+          "label": "明细",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "土地规划合并单元格目录表中的“明细”字段，来源表头路径：明细。",
+          "source_column": "detail",
+          "derived": false
+        },
+        {
+          "name": "three_line",
+          "label": "三线",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "土地规划合并单元格目录表中的“三线”字段，来源表头路径：三线。",
+          "source_column": "three_line",
+          "derived": false
+        },
+        {
+          "name": "region_scope",
+          "label": "区域范围",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "土地规划合并单元格目录表中的“区域范围”字段，来源表头路径：区域范围。",
+          "source_column": "region_scope",
+          "derived": false
+        },
+        {
+          "name": "remarks",
+          "label": "备注",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "土地规划合并单元格目录表中的“备注”字段，来源表头路径：备注。",
+          "source_column": "remarks",
+          "derived": false
+        }
+      ]
+    },
+    {
+      "table": "t05_land_polygon_point",
+      "dataset": "候选土地图斑",
+      "description": "候选土地图斑的分类、选址判定、面积和空间位置。",
+      "coverage": "支持按选址判定汇总图斑数量和估算面积。",
+      "keywords": [
+        "候选图斑",
+        "红线不可选",
+        "审慎可用",
+        "可利用",
+        "优先推荐",
+        "土地面积"
+      ],
+      "supported_queries": [
+        "图斑按选址判定分类统计",
+        "图斑面积汇总",
+        "图层和土地类型清单"
+      ],
+      "limitations": [
+        "只能使用已填选址判定，不能替代法定合规审查。"
+      ],
+      "fields": [
+        {
+          "name": "id",
+          "label": "主键ID",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "自增主键。",
+          "source_column": "id",
+          "derived": false
+        },
+        {
+          "name": "source_file",
+          "label": "来源文件",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "原始 Excel 文件名。",
+          "source_column": "source_file",
+          "derived": false
+        },
+        {
+          "name": "source_sheet",
+          "label": "来源工作表",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "原始 Excel 工作表名称。",
+          "source_column": "source_sheet",
+          "derived": false
+        },
+        {
+          "name": "excel_row",
+          "label": "Excel行号",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "数据在原始 Excel 工作表中的行号。",
+          "source_column": "excel_row",
+          "derived": false
+        },
+        {
+          "name": "serial_no",
+          "label": "序号",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "土地图斑坐标点表中的“序号”字段，来源表头路径：序号。",
+          "source_column": "serial_no",
+          "derived": false
+        },
+        {
+          "name": "land_patch_id",
+          "label": "图斑ID",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "土地图斑坐标点表中的“图斑ID”字段，来源表头路径：图斑ID。",
+          "source_column": "land_patch_id",
+          "derived": false
+        },
+        {
+          "name": "layer_name",
+          "label": "图层名称",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "土地图斑坐标点表中的“图层名称”字段，来源表头路径：图层名称。",
+          "source_column": "layer_name",
+          "derived": false
+        },
+        {
+          "name": "category_group",
+          "label": "大类分组",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "土地图斑坐标点表中的“大类分组”字段，来源表头路径：大类分组。",
+          "source_column": "category_group",
+          "derived": false
+        },
+        {
+          "name": "site_selection_judgement",
+          "label": "选址判定",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "土地图斑坐标点表中的“选址判定”字段，来源表头路径：选址判定。",
+          "source_column": "site_selection_judgement",
+          "derived": false
+        },
+        {
+          "name": "township",
+          "label": "所在乡镇",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "土地图斑坐标点表中的“所在乡镇”字段，来源表头路径：所在乡镇。",
+          "source_column": "township",
+          "derived": false
+        },
+        {
+          "name": "center_longitude",
+          "label": "中心经度",
+          "sqlite_type": "REAL",
+          "semantic_type": "real",
+          "unit": null,
+          "description": "土地图斑坐标点表中的“中心经度”字段，来源表头路径：中心经度。",
+          "source_column": "center_longitude",
+          "derived": false
+        },
+        {
+          "name": "center_latitude",
+          "label": "中心纬度",
+          "sqlite_type": "REAL",
+          "semantic_type": "real",
+          "unit": null,
+          "description": "土地图斑坐标点表中的“中心纬度”字段，来源表头路径：中心纬度。",
+          "source_column": "center_latitude",
+          "derived": false
+        },
+        {
+          "name": "outer_radius_km",
+          "label": "外接半径(km)",
+          "sqlite_type": "REAL",
+          "semantic_type": "real",
+          "unit": null,
+          "description": "土地图斑坐标点表中的“外接半径(km)”字段，来源表头路径：外接半径(km)。单位或口径：km。",
+          "source_column": "outer_radius_km",
+          "derived": false
+        },
+        {
+          "name": "estimated_area_mu",
+          "label": "估算面积(亩)",
+          "sqlite_type": "REAL",
+          "semantic_type": "real",
+          "unit": null,
+          "description": "土地图斑坐标点表中的“估算面积(亩)”字段，来源表头路径：估算面积(亩)。单位或口径：亩。",
+          "source_column": "estimated_area_mu",
+          "derived": false
+        },
+        {
+          "name": "polygon_wkt",
+          "label": "多边形轮廓(WKT)",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "土地图斑坐标点表中的“多边形轮廓(WKT)”字段，来源表头路径：多边形轮廓(WKT)。单位或口径：WKT。",
+          "source_column": "polygon_wkt",
+          "derived": false
+        },
+        {
+          "name": "remarks",
+          "label": "备注",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "土地图斑坐标点表中的“备注”字段，来源表头路径：备注。",
+          "source_column": "remarks",
+          "derived": false
+        }
+      ]
+    },
+    {
+      "table": "t06_grid_side_storage",
+      "dataset": "电网侧储能",
+      "description": "已投运电网侧储能项目的容量、接入站、投运日期和充放电量。",
+      "coverage": "仅覆盖电网侧储能，不与电源侧或工商业储能自动去重合并。",
+      "keywords": [
+        "电网侧储能",
+        "储能电站",
+        "MW",
+        "MWh",
+        "接入变电站",
+        "充电量",
+        "放电量"
+      ],
+      "supported_queries": [
+        "电网侧储能规模和清单",
+        "按接入站或投运日期筛选",
+        "年度充放电量查询"
+      ],
+      "limitations": [
+        "功率 MW 与能量 MWh 必须分列汇总。"
+      ],
+      "fields": [
+        {
+          "name": "id",
+          "label": "主键ID",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "自增主键。",
+          "source_column": "id",
+          "derived": false
+        },
+        {
+          "name": "source_file",
+          "label": "来源文件",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "原始 Excel 文件名。",
+          "source_column": "source_file",
+          "derived": false
+        },
+        {
+          "name": "source_sheet",
+          "label": "来源工作表",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "原始 Excel 工作表名称。",
+          "source_column": "source_sheet",
+          "derived": false
+        },
+        {
+          "name": "excel_row",
+          "label": "Excel行号",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "数据在原始 Excel 工作表中的行号。",
+          "source_column": "excel_row",
+          "derived": false
+        },
+        {
+          "name": "serial_no",
+          "label": "序号",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "电网侧储能表中的“序号”字段，来源表头路径：序号。",
+          "source_column": "serial_no",
+          "derived": false
+        },
+        {
+          "name": "station_name",
+          "label": "场站名称",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "电网侧储能表中的“场站名称”字段，来源表头路径：场站名称。",
+          "source_column": "station_name",
+          "derived": false
+        },
+        {
+          "name": "project_type",
+          "label": "项目类型",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "电网侧储能表中的“项目类型”字段，来源表头路径：项目类型。",
+          "source_column": "project_type",
+          "derived": false
+        },
+        {
+          "name": "grid_capacity_mwh_raw",
+          "label": "并网容量（MW/MWH)（原文）",
+          "sqlite_type": "TEXT",
+          "semantic_type": "raw_text",
+          "unit": null,
+          "description": "电网侧储能表中的“并网容量（MW/MWH)”字段，来源表头路径：并网容量（MW/MWH)。单位或口径：MW/MWH。 原始文本保留列，不直接用于数值或日期计算。",
+          "source_column": "grid_capacity_mwh",
+          "derived": false
+        },
+        {
+          "name": "voltage_level_kv",
+          "label": "电压等级（kV)",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "电网侧储能表中的“电压等级（kV)”字段，来源表头路径：电压等级（kV)。单位或口径：kV。",
+          "source_column": "voltage_level_kv",
+          "derived": false
+        },
+        {
+          "name": "parent_station_name",
+          "label": "接入上级站名称",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "电网侧储能表中的“接入上级站名称”字段，来源表头路径：接入上级站名称。",
+          "source_column": "parent_station_name",
+          "derived": false
+        },
+        {
+          "name": "operation_date",
+          "label": "投运日期",
+          "sqlite_type": "TEXT",
+          "semantic_type": "date",
+          "unit": null,
+          "description": "电网侧储能表中的“投运日期”字段，来源表头路径：投运日期。",
+          "source_column": "operation_date",
+          "derived": false
+        },
+        {
+          "name": "total_investment_tenk_yuan",
+          "label": "总投资额(万元）",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "电网侧储能表中的“总投资额(万元）”字段，来源表头路径：总投资额(万元）。单位或口径：万元。",
+          "source_column": "total_investment_tenk_yuan",
+          "derived": false
+        },
+        {
+          "name": "plant_boundary_coordinate",
+          "label": "厂区拐点坐标",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "电网侧储能表中的“厂区拐点坐标”字段，来源表头路径：厂区拐点坐标。",
+          "source_column": "plant_boundary_coordinate",
+          "derived": false
+        },
+        {
+          "name": "property_owner",
+          "label": "产权单位",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "电网侧储能表中的“产权单位”字段，来源表头路径：产权单位。",
+          "source_column": "property_owner",
+          "derived": false
+        },
+        {
+          "name": "parent_group",
+          "label": "所属集团公司",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "电网侧储能表中的“所属集团公司”字段，来源表头路径：所属集团公司。",
+          "source_column": "parent_group",
+          "derived": false
+        },
+        {
+          "name": "charge_power_y2025_mwh",
+          "label": "2025年充电量电量（MWH)",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "电网侧储能表中的“2025年充电量电量（MWH)”字段，来源表头路径：2025年充电量电量（MWH)。单位或口径：MWH。",
+          "source_column": "charge_power_y2025_mwh",
+          "derived": false
+        },
+        {
+          "name": "discharge_power_y2025_mwh",
+          "label": "2025年放电量(MWH)",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "电网侧储能表中的“2025年放电量(MWH)”字段，来源表头路径：2025年放电量(MWH)。单位或口径：MWH。",
+          "source_column": "discharge_power_y2025_mwh",
+          "derived": false
+        },
+        {
+          "name": "charge_power_y2026_mwh",
+          "label": "2026年充电量(MWH) 截至6月",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "电网侧储能表中的“2026年充电量(MWH) 截至6月”字段，来源表头路径：2026年充电量(MWH) 截至6月。单位或口径：MWH。",
+          "source_column": "charge_power_y2026_mwh",
+          "derived": false
+        },
+        {
+          "name": "discharge_power_y2026_mwh",
+          "label": "2026年放电量(MWH) 截至到6月",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "电网侧储能表中的“2026年放电量(MWH) 截至到6月”字段，来源表头路径：2026年放电量(MWH) 截至到6月。单位或口径：MWH。",
+          "source_column": "discharge_power_y2026_mwh",
+          "derived": false
+        },
+        {
+          "name": "contact",
+          "label": "联系方式",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "电网侧储能表中的“联系方式”字段，来源表头路径：联系方式。",
+          "source_column": "contact",
+          "derived": false
+        },
+        {
+          "name": "storage_power_mw",
+          "label": "储能功率",
+          "sqlite_type": "REAL",
+          "semantic_type": "power",
+          "unit": "MW",
+          "description": "电网侧储能规模，原文按 MW/MWh 对填写。",
+          "source_column": "grid_capacity_mwh",
+          "derived": true
+        },
+        {
+          "name": "storage_energy_mwh",
+          "label": "储能能量",
+          "sqlite_type": "REAL",
+          "semantic_type": "energy",
+          "unit": "MWh",
+          "description": "电网侧储能规模，原文按 MW/MWh 对填写。",
+          "source_column": "grid_capacity_mwh",
+          "derived": true
+        },
+        {
+          "name": "grid_capacity_mwh_parse_status",
+          "label": "并网容量（MW/MWH)解析状态",
+          "sqlite_type": "TEXT",
+          "semantic_type": "parse_status",
+          "unit": null,
+          "description": "派生字段解析状态：valid、empty、unparseable 或 unexpected_unit。",
+          "source_column": "grid_capacity_mwh",
+          "derived": true
+        }
+      ]
+    },
+    {
+      "table": "t07_distributed_pv_wind",
+      "dataset": "分布式光伏与风电",
+      "description": "已投运分布式光伏和分散式风电项目的装机、位置、投运日期及年度发电量。",
+      "coverage": "仅覆盖分布式/分散式项目，不包含集中式电站。",
+      "keywords": [
+        "分布式光伏",
+        "分散式风电",
+        "装机容量",
+        "投运日期",
+        "上网电量",
+        "自发自用"
+      ],
+      "supported_queries": [
+        "分布式风光装机规模",
+        "按县区或投运日期汇总",
+        "年度发电量和上网电量"
+      ],
+      "limitations": [
+        "2026年部分电量列单位未明，不得和2025年电量直接混算。"
+      ],
+      "fields": [
+        {
+          "name": "id",
+          "label": "主键ID",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "自增主键。",
+          "source_column": "id",
+          "derived": false
+        },
+        {
+          "name": "source_file",
+          "label": "来源文件",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "原始 Excel 文件名。",
+          "source_column": "source_file",
+          "derived": false
+        },
+        {
+          "name": "source_sheet",
+          "label": "来源工作表",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "原始 Excel 工作表名称。",
+          "source_column": "source_sheet",
+          "derived": false
+        },
+        {
+          "name": "excel_row",
+          "label": "Excel行号",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "数据在原始 Excel 工作表中的行号。",
+          "source_column": "excel_row",
+          "derived": false
+        },
+        {
+          "name": "serial_no",
+          "label": "序号",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "分布式光伏与风电表中的“序号”字段，来源表头路径：序号。",
+          "source_column": "serial_no",
+          "derived": false
+        },
+        {
+          "name": "station_name",
+          "label": "电站名称",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "分布式光伏与风电表中的“电站名称”字段，来源表头路径：电站名称。",
+          "source_column": "station_name",
+          "derived": false
+        },
+        {
+          "name": "station_type",
+          "label": "电站类型",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "分布式光伏与风电表中的“电站类型”字段，来源表头路径：电站类型。",
+          "source_column": "station_type",
+          "derived": false
+        },
+        {
+          "name": "station_type_2",
+          "label": "电站类型_2",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "分布式光伏与风电表中的“电站类型_2”字段，来源表头路径：电站类型_2。",
+          "source_column": "station_type_2",
+          "derived": false
+        },
+        {
+          "name": "station_location",
+          "label": "电站位置（具体到园区/村）",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "分布式光伏与风电表中的“电站位置（具体到园区/村）”字段，来源表头路径：电站位置（具体到园区/村）。单位或口径：具体到园区/村。",
+          "source_column": "station_location",
+          "derived": false
+        },
+        {
+          "name": "installed_capacity_mw_raw",
+          "label": "装机容量（MW)（原文）",
+          "sqlite_type": "TEXT",
+          "semantic_type": "raw_text",
+          "unit": null,
+          "description": "分布式光伏与风电表中的“装机容量（MW)”字段，来源表头路径：装机容量（MW)。单位或口径：MW。 原始文本保留列，不直接用于数值或日期计算。",
+          "source_column": "installed_capacity_mw",
+          "derived": false
+        },
+        {
+          "name": "grid_voltage_level_kv",
+          "label": "接入电网等级(kV)",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "分布式光伏与风电表中的“接入电网等级(kV)”字段，来源表头路径：接入电网等级(kV)。单位或口径：kV。",
+          "source_column": "grid_voltage_level_kv",
+          "derived": false
+        },
+        {
+          "name": "operation_date",
+          "label": "投运日期",
+          "sqlite_type": "TEXT",
+          "semantic_type": "date",
+          "unit": null,
+          "description": "分布式光伏与风电表中的“投运日期”字段，来源表头路径：投运日期。日期字段，Excel 序列值已尽量标准化为 YYYY-MM-DD。",
+          "source_column": "operation_date",
+          "derived": false
+        },
+        {
+          "name": "point_coordinate",
+          "label": "点位坐标 （风电项目提供风机点位坐标）",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "分布式光伏与风电表中的“点位坐标 （风电项目提供风机点位坐标）”字段，来源表头路径：点位坐标 （风电项目提供风机点位坐标）。单位或口径：风电项目提供风机点位坐标。",
+          "source_column": "point_coordinate",
+          "derived": false
+        },
+        {
+          "name": "investor",
+          "label": "投资方",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "分布式光伏与风电表中的“投资方”字段，来源表头路径：投资方。",
+          "source_column": "investor",
+          "derived": false
+        },
+        {
+          "name": "power_generation_total_y2025_tenk_kwh",
+          "label": "2025年总发电量（万kwh)",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "分布式光伏与风电表中的“2025年总发电量（万kwh)”字段，来源表头路径：2025年总发电量（万kwh)。单位或口径：万kwh。",
+          "source_column": "power_generation_total_y2025_tenk_kwh",
+          "derived": false
+        },
+        {
+          "name": "self_consumed_power_y2025_tenk_kwh",
+          "label": "2025年自发自用电量（万kwh)",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "分布式光伏与风电表中的“2025年自发自用电量（万kwh)”字段，来源表头路径：2025年自发自用电量（万kwh)。单位或口径：万kwh。",
+          "source_column": "self_consumed_power_y2025_tenk_kwh",
+          "derived": false
+        },
+        {
+          "name": "on_grid_power_y2025_tenk_kwh",
+          "label": "2025年上网电量（万kwh)",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "分布式光伏与风电表中的“2025年上网电量（万kwh)”字段，来源表头路径：2025年上网电量（万kwh)。单位或口径：万kwh。",
+          "source_column": "on_grid_power_y2025_tenk_kwh",
+          "derived": false
+        },
+        {
+          "name": "power_generation_total_y2026_tenk_kwh",
+          "label": "2026年总发电量（万kwh)",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "分布式光伏与风电表中的“2026年总发电量（万kwh)”字段，来源表头路径：2026年总发电量（万kwh)。单位或口径：万kwh。",
+          "source_column": "power_generation_total_y2026_tenk_kwh",
+          "derived": false
+        },
+        {
+          "name": "self_consumed_power_y2026",
+          "label": "2026年自发自用电量",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "分布式光伏与风电表中的“2026年自发自用电量”字段，来源表头路径：2026年自发自用电量。",
+          "source_column": "self_consumed_power_y2026",
+          "derived": false
+        },
+        {
+          "name": "on_grid_power_y2026",
+          "label": "2026年上网电量",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "分布式光伏与风电表中的“2026年上网电量”字段，来源表头路径：2026年上网电量。",
+          "source_column": "on_grid_power_y2026",
+          "derived": false
+        },
+        {
+          "name": "contact",
+          "label": "联系方式",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "分布式光伏与风电表中的“联系方式”字段，来源表头路径：联系方式。",
+          "source_column": "contact",
+          "derived": false
+        },
+        {
+          "name": "installed_capacity_mw",
+          "label": "装机容量",
+          "sqlite_type": "REAL",
+          "semantic_type": "quantity",
+          "unit": "MW",
+          "description": "分布式项目装机容量，单位 MW。",
+          "source_column": "installed_capacity_mw",
+          "derived": true
+        },
+        {
+          "name": "installed_capacity_mw_parse_status",
+          "label": "装机容量（MW)解析状态",
+          "sqlite_type": "TEXT",
+          "semantic_type": "parse_status",
+          "unit": null,
+          "description": "派生字段解析状态：valid、empty、unparseable 或 unexpected_unit。",
+          "source_column": "installed_capacity_mw",
+          "derived": true
+        },
+        {
+          "name": "district_name",
+          "label": "区县",
+          "sqlite_type": "TEXT",
+          "semantic_type": "administrative_district",
+          "unit": null,
+          "description": "从地址或乡镇文本按张家口完整区县名称确定性提取；未命中或歧义时为空。",
+          "source_column": "station_location",
+          "derived": true
+        },
+        {
+          "name": "district_parse_status",
+          "label": "区县解析状态",
+          "sqlite_type": "TEXT",
+          "semantic_type": "parse_status",
+          "unit": null,
+          "description": "地址解析状态：valid、empty、unmatched 或 ambiguous。",
+          "source_column": "station_location",
+          "derived": true
+        }
+      ]
+    },
+    {
+      "table": "t08_industrial_commercial_storage",
+      "dataset": "工商业储能",
+      "description": "已投运工商业储能项目的规模、位置、投运日期和年度充放电信息。",
+      "coverage": "仅覆盖工商业储能，不等同于电网侧或电源侧储能。",
+      "keywords": [
+        "工商业储能",
+        "用户侧储能",
+        "虚拟电厂",
+        "储能功率",
+        "储能能量",
+        "充放电"
+      ],
+      "supported_queries": [
+        "工商业储能项目和规模",
+        "按位置或投运日期筛选",
+        "虚拟电厂参与情况"
+      ],
+      "limitations": [
+        "两个2026年总电量字段原始语义未区分，不能混合统计。"
+      ],
+      "fields": [
+        {
+          "name": "id",
+          "label": "主键ID",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "自增主键。",
+          "source_column": "id",
+          "derived": false
+        },
+        {
+          "name": "source_file",
+          "label": "来源文件",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "原始 Excel 文件名。",
+          "source_column": "source_file",
+          "derived": false
+        },
+        {
+          "name": "source_sheet",
+          "label": "来源工作表",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "原始 Excel 工作表名称。",
+          "source_column": "source_sheet",
+          "derived": false
+        },
+        {
+          "name": "excel_row",
+          "label": "Excel行号",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "数据在原始 Excel 工作表中的行号。",
+          "source_column": "excel_row",
+          "derived": false
+        },
+        {
+          "name": "serial_no",
+          "label": "序号",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "工商业储能表中的“序号”字段，来源表头路径：序号。",
+          "source_column": "serial_no",
+          "derived": false
+        },
+        {
+          "name": "station_name",
+          "label": "电站名称",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "工商业储能表中的“电站名称”字段，来源表头路径：电站名称。",
+          "source_column": "station_name",
+          "derived": false
+        },
+        {
+          "name": "station_type",
+          "label": "电站类型",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "工商业储能表中的“电站类型”字段，来源表头路径：电站类型。",
+          "source_column": "station_type",
+          "derived": false
+        },
+        {
+          "name": "station_location",
+          "label": "电站位置（具体到园区）",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "工商业储能表中的“电站位置（具体到园区）”字段，来源表头路径：电站位置（具体到园区）。单位或口径：具体到园区。",
+          "source_column": "station_location",
+          "derived": false
+        },
+        {
+          "name": "installed_capacity_mwh_raw",
+          "label": "装机容量（MW/MWH)（原文）",
+          "sqlite_type": "TEXT",
+          "semantic_type": "raw_text",
+          "unit": null,
+          "description": "工商业储能表中的“装机容量（MW/MWH)”字段，来源表头路径：装机容量（MW/MWH)。单位或口径：MW/MWH。 原始文本保留列，不直接用于数值或日期计算。",
+          "source_column": "installed_capacity_mwh",
+          "derived": false
+        },
+        {
+          "name": "grid_voltage_level_kv",
+          "label": "接入电网等级(kV)",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "工商业储能表中的“接入电网等级(kV)”字段，来源表头路径：接入电网等级(kV)。单位或口径：kV。",
+          "source_column": "grid_voltage_level_kv",
+          "derived": false
+        },
+        {
+          "name": "is_virtual_power_plant",
+          "label": "是否参与虚拟电厂",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "工商业储能表中的“是否参与虚拟电厂”字段，来源表头路径：是否参与虚拟电厂。",
+          "source_column": "is_virtual_power_plant",
+          "derived": false
+        },
+        {
+          "name": "operation_date",
+          "label": "投运日期",
+          "sqlite_type": "TEXT",
+          "semantic_type": "date",
+          "unit": null,
+          "description": "工商业储能表中的“投运日期”字段，来源表头路径：投运日期。日期字段，Excel 序列值已尽量标准化为 YYYY-MM-DD。",
+          "source_column": "operation_date",
+          "derived": false
+        },
+        {
+          "name": "investor",
+          "label": "投资方",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "工商业储能表中的“投资方”字段，来源表头路径：投资方。",
+          "source_column": "investor",
+          "derived": false
+        },
+        {
+          "name": "total_charge_power_y2025_tenk_kwh",
+          "label": "2025年总充电量（万kwh)",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "工商业储能表中的“2025年总充电量（万kwh)”字段，来源表头路径：2025年总充电量（万kwh)。单位或口径：万kwh。",
+          "source_column": "total_charge_power_y2025_tenk_kwh",
+          "derived": false
+        },
+        {
+          "name": "total_discharge_power_y2025_tenk_kwh",
+          "label": "2025年总放电量（万kwh)",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "工商业储能表中的“2025年总放电量（万kwh)”字段，来源表头路径：2025年总放电量（万kwh)。单位或口径：万kwh。",
+          "source_column": "total_discharge_power_y2025_tenk_kwh",
+          "derived": false
+        },
+        {
+          "name": "total_energy_y2026_tenk_kwh",
+          "label": "2026年总电量（万kwh)",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "工商业储能表中的“2026年总电量（万kwh)”字段，来源表头路径：2026年总电量（万kwh)。单位或口径：万kwh。",
+          "source_column": "total_energy_y2026_tenk_kwh",
+          "derived": false
+        },
+        {
+          "name": "total_energy_y2026_tenk_kwh_2",
+          "label": "2026年总电量（万kwh)_2",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "工商业储能表中的“2026年总电量（万kwh)_2”字段，来源表头路径：2026年总电量（万kwh)_2。单位或口径：万kwh。",
+          "source_column": "total_energy_y2026_tenk_kwh_2",
+          "derived": false
+        },
+        {
+          "name": "contact",
+          "label": "联系方式",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "工商业储能表中的“联系方式”字段，来源表头路径：联系方式。",
+          "source_column": "contact",
+          "derived": false
+        },
+        {
+          "name": "storage_power_mw",
+          "label": "储能功率",
+          "sqlite_type": "REAL",
+          "semantic_type": "power",
+          "unit": "MW",
+          "description": "工商业储能规模，原文按 MW/MWh 对填写。",
+          "source_column": "installed_capacity_mwh",
+          "derived": true
+        },
+        {
+          "name": "storage_energy_mwh",
+          "label": "储能能量",
+          "sqlite_type": "REAL",
+          "semantic_type": "energy",
+          "unit": "MWh",
+          "description": "工商业储能规模，原文按 MW/MWh 对填写。",
+          "source_column": "installed_capacity_mwh",
+          "derived": true
+        },
+        {
+          "name": "installed_capacity_mwh_parse_status",
+          "label": "装机容量（MW/MWH)解析状态",
+          "sqlite_type": "TEXT",
+          "semantic_type": "parse_status",
+          "unit": null,
+          "description": "派生字段解析状态：valid、empty、unparseable 或 unexpected_unit。",
+          "source_column": "installed_capacity_mwh",
+          "derived": true
+        },
+        {
+          "name": "district_name",
+          "label": "区县",
+          "sqlite_type": "TEXT",
+          "semantic_type": "administrative_district",
+          "unit": null,
+          "description": "从地址或乡镇文本按张家口完整区县名称确定性提取；未命中或歧义时为空。",
+          "source_column": "station_location",
+          "derived": true
+        },
+        {
+          "name": "district_parse_status",
+          "label": "区县解析状态",
+          "sqlite_type": "TEXT",
+          "semantic_type": "parse_status",
+          "unit": null,
+          "description": "地址解析状态：valid、empty、unmatched 或 ambiguous。",
+          "source_column": "station_location",
+          "derived": true
+        }
+      ]
+    },
+    {
+      "table": "t09_charging_station",
+      "dataset": "充换电站",
+      "description": "充换电站的位置、运营方、桩数、充电功率和光储配置。",
+      "coverage": "支持站点和桩数统计；不含县乡行政区覆盖率的分母名录。",
+      "keywords": [
+        "充换电站",
+        "充电桩",
+        "直流桩",
+        "交流桩",
+        "充电功率",
+        "光储充"
+      ],
+      "supported_queries": [
+        "充换电站和充电桩数量",
+        "按县区或运营方筛选站点",
+        "总充电功率和光储配置"
+      ],
+      "limitations": [
+        "总充电功率单位为 kW。",
+        "不能在缺少行政区名录时计算覆盖率。"
+      ],
+      "fields": [
+        {
+          "name": "id",
+          "label": "主键ID",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "自增主键。",
+          "source_column": "id",
+          "derived": false
+        },
+        {
+          "name": "source_file",
+          "label": "来源文件",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "原始 Excel 文件名。",
+          "source_column": "source_file",
+          "derived": false
+        },
+        {
+          "name": "source_sheet",
+          "label": "来源工作表",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "原始 Excel 工作表名称。",
+          "source_column": "source_sheet",
+          "derived": false
+        },
+        {
+          "name": "excel_row",
+          "label": "Excel行号",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "数据在原始 Excel 工作表中的行号。",
+          "source_column": "excel_row",
+          "derived": false
+        },
+        {
+          "name": "serial_no",
+          "label": "序号",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "充换电站表中的“序号”字段，来源表头路径：序号。",
+          "source_column": "serial_no",
+          "derived": false
+        },
+        {
+          "name": "station_name",
+          "label": "站点名称",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "充换电站表中的“站点名称”字段，来源表头路径：站点名称。",
+          "source_column": "station_name",
+          "derived": false
+        },
+        {
+          "name": "station_location",
+          "label": "站点位置",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "充换电站表中的“站点位置”字段，来源表头路径：站点位置。",
+          "source_column": "station_location",
+          "derived": false
+        },
+        {
+          "name": "type",
+          "label": "类型",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "充换电站表中的“类型”字段，来源表头路径：类型。",
+          "source_column": "type",
+          "derived": false
+        },
+        {
+          "name": "investor_builder",
+          "label": "投资建设方",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "充换电站表中的“投资建设方”字段，来源表头路径：投资建设方。",
+          "source_column": "investor_builder",
+          "derived": false
+        },
+        {
+          "name": "operator",
+          "label": "运营方",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "充换电站表中的“运营方”字段，来源表头路径：运营方。",
+          "source_column": "operator",
+          "derived": false
+        },
+        {
+          "name": "voltage_level_kv",
+          "label": "接入电压等级(kV）",
+          "sqlite_type": "REAL",
+          "semantic_type": "real",
+          "unit": null,
+          "description": "充换电站表中的“接入电压等级(kV）”字段，来源表头路径：接入电压等级(kV）。单位或口径：kV。",
+          "source_column": "voltage_level_kv",
+          "derived": false
+        },
+        {
+          "name": "transformer_capacity_kv",
+          "label": "变压器容量(kVA)",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "充换电站表中的“变压器容量(kVA)”字段，来源表头路径：变压器容量(kVA)。单位或口径：kVA。",
+          "source_column": "transformer_capacity_kv",
+          "derived": false
+        },
+        {
+          "name": "charging_pile_count",
+          "label": "充电桩数量",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "充换电站表中的“充电桩数量”字段，来源表头路径：充电桩数量。",
+          "source_column": "charging_pile_count",
+          "derived": false
+        },
+        {
+          "name": "dc_charger_count",
+          "label": "直流装数量",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "充换电站表中的“直流装数量”字段，来源表头路径：直流装数量。",
+          "source_column": "dc_charger_count",
+          "derived": false
+        },
+        {
+          "name": "ac_charger_count",
+          "label": "交流状数量",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "充换电站表中的“交流状数量”字段，来源表头路径：交流状数量。",
+          "source_column": "ac_charger_count",
+          "derived": false
+        },
+        {
+          "name": "total_charging_power",
+          "label": "总充电功率(kW)",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "充换电站表中的“总充电功率(kW)”字段，来源表头路径：总充电功率(kW)。单位或口径：kW。",
+          "source_column": "total_charging_power",
+          "derived": false
+        },
+        {
+          "name": "charge_power_kwh",
+          "label": "日均充电量（kwh)",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "充换电站表中的“日均充电量（kwh)”字段，来源表头路径：日均充电量（kwh)。单位或口径：kwh。",
+          "source_column": "charge_power_kwh",
+          "derived": false
+        },
+        {
+          "name": "has_pv",
+          "label": "是否配置有光伏",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "充换电站表中的“是否配置有光伏”字段，来源表头路径：是否配置有光伏。",
+          "source_column": "has_pv",
+          "derived": false
+        },
+        {
+          "name": "pv_capacity_mw",
+          "label": "光伏容量(MW)",
+          "sqlite_type": "REAL",
+          "semantic_type": "real",
+          "unit": null,
+          "description": "充换电站表中的“光伏容量(MW)”字段，来源表头路径：光伏容量(MW)。单位或口径：MW。",
+          "source_column": "pv_capacity_mw",
+          "derived": false
+        },
+        {
+          "name": "has_storage",
+          "label": "是否配置有储能",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "充换电站表中的“是否配置有储能”字段，来源表头路径：是否配置有储能。",
+          "source_column": "has_storage",
+          "derived": false
+        },
+        {
+          "name": "storage_capacity_mwh_raw",
+          "label": "储能容量(MWH)（原文）",
+          "sqlite_type": "TEXT",
+          "semantic_type": "raw_text",
+          "unit": null,
+          "description": "充换电站表中的“储能容量(MWH)”字段，来源表头路径：储能容量(MWH)。单位或口径：MWH。 原始文本保留列，不直接用于数值或日期计算。",
+          "source_column": "storage_capacity_mwh",
+          "derived": false
+        },
+        {
+          "name": "contact",
+          "label": "联系方式",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "充换电站表中的“联系方式”字段，来源表头路径：联系方式。",
+          "source_column": "contact",
+          "derived": false
+        },
+        {
+          "name": "storage_power_mw",
+          "label": "储能功率",
+          "sqlite_type": "REAL",
+          "semantic_type": "power",
+          "unit": "MW",
+          "description": "站点储能规模，原文按 MW/MWh 对填写。",
+          "source_column": "storage_capacity_mwh",
+          "derived": true
+        },
+        {
+          "name": "storage_energy_mwh",
+          "label": "储能能量",
+          "sqlite_type": "REAL",
+          "semantic_type": "energy",
+          "unit": "MWh",
+          "description": "站点储能规模，原文按 MW/MWh 对填写。",
+          "source_column": "storage_capacity_mwh",
+          "derived": true
+        },
+        {
+          "name": "storage_capacity_mwh_parse_status",
+          "label": "储能容量(MWH)解析状态",
+          "sqlite_type": "TEXT",
+          "semantic_type": "parse_status",
+          "unit": null,
+          "description": "派生字段解析状态：valid、empty、unparseable 或 unexpected_unit。",
+          "source_column": "storage_capacity_mwh",
+          "derived": true
+        },
+        {
+          "name": "district_name",
+          "label": "区县",
+          "sqlite_type": "TEXT",
+          "semantic_type": "administrative_district",
+          "unit": null,
+          "description": "从地址或乡镇文本按张家口完整区县名称确定性提取；未命中或歧义时为空。",
+          "source_column": "station_location",
+          "derived": true
+        },
+        {
+          "name": "district_parse_status",
+          "label": "区县解析状态",
+          "sqlite_type": "TEXT",
+          "semantic_type": "parse_status",
+          "unit": null,
+          "description": "地址解析状态：valid、empty、unmatched 或 ambiguous。",
+          "source_column": "station_location",
+          "derived": true
+        }
+      ]
+    },
+    {
+      "table": "t10_power_grid_material",
+      "dataset": "变电站接入能力",
+      "description": "已收资变电站的电压等级、主变规模、间隔、剩余可接入容量、接入电源结构和扩容计划。",
+      "coverage": "支持接入能力与近饱和筛查；不含外送通道能力、实时潮流和调度数据。",
+      "keywords": [
+        "变电站",
+        "接入容量",
+        "剩余可接入容量",
+        "剩余间隔",
+        "接近饱和",
+        "扩容计划",
+        "主变容量"
+      ],
+      "supported_queries": [
+        "按电压等级汇总变电站",
+        "剩余可接入容量和剩余间隔查询",
+        "近饱和变电站及扩容计划筛查"
+      ],
+      "limitations": [
+        "主变容量单位为 MVA，剩余可接入容量单位为 MW，不能直接相除。",
+        "Q33近饱和规则为剩余间隔≤1或剩余可接入容量≤10MW。"
+      ],
+      "fields": [
+        {
+          "name": "id",
+          "label": "主键ID",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "自增主键。",
+          "source_column": "id",
+          "derived": false
+        },
+        {
+          "name": "source_file",
+          "label": "来源文件",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "原始 Excel 文件名。",
+          "source_column": "source_file",
+          "derived": false
+        },
+        {
+          "name": "source_sheet",
+          "label": "来源工作表",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "原始 Excel 工作表名称。",
+          "source_column": "source_sheet",
+          "derived": false
+        },
+        {
+          "name": "excel_row",
+          "label": "Excel行号",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "数据在原始 Excel 工作表中的行号。",
+          "source_column": "excel_row",
+          "derived": false
+        },
+        {
+          "name": "serial_no",
+          "label": "序号",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "电网材料表中的“序号”字段，来源表头路径：序号。",
+          "source_column": "serial_no",
+          "derived": false
+        },
+        {
+          "name": "station_name_substation",
+          "label": "变电站名称",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "电网材料表中的“变电站名称”字段，来源表头路径：变电站名称。",
+          "source_column": "station_name_substation",
+          "derived": false
+        },
+        {
+          "name": "voltage_level_kv",
+          "label": "电压等级（kV)",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "电网材料表中的“电压等级（kV)”字段，来源表头路径：电压等级（kV)。单位或口径：kV。",
+          "source_column": "voltage_level_kv",
+          "derived": false
+        },
+        {
+          "name": "location_coordinate",
+          "label": "位置坐标",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "电网材料表中的“位置坐标”字段，来源表头路径：位置坐标。",
+          "source_column": "location_coordinate",
+          "derived": false
+        },
+        {
+          "name": "main_transformer_capacity_count_raw",
+          "label": "主变容量及数量（原文）",
+          "sqlite_type": "TEXT",
+          "semantic_type": "raw_text",
+          "unit": null,
+          "description": "电网材料表中的“主变容量及数量”字段，来源表头路径：主变容量及数量。 原始文本保留列，不直接用于数值或日期计算。",
+          "source_column": "main_transformer_capacity_count",
+          "derived": false
+        },
+        {
+          "name": "bay_count",
+          "label": "总间隔数",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "电网材料表中的“总间隔数”字段，来源表头路径：总间隔数。",
+          "source_column": "bay_count",
+          "derived": false
+        },
+        {
+          "name": "remaining_bay_count",
+          "label": "剩余间隔数量",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "电网材料表中的“剩余间隔数量”字段，来源表头路径：剩余间隔数量。",
+          "source_column": "remaining_bay_count",
+          "derived": false
+        },
+        {
+          "name": "remaining_access_capacity_raw",
+          "label": "剩余可接入容量（原文）",
+          "sqlite_type": "TEXT",
+          "semantic_type": "raw_text",
+          "unit": null,
+          "description": "电网材料表中的“剩余可接入容量”字段，来源表头路径：剩余可接入容量。 原始文本保留列，不直接用于数值或日期计算。",
+          "source_column": "remaining_access_capacity",
+          "derived": false
+        },
+        {
+          "name": "type_power_source_mix",
+          "label": "接入电源类型及占比",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "电网材料表中的“接入电源类型及占比”字段，来源表头路径：接入电源类型及占比。",
+          "source_column": "type_power_source_mix",
+          "derived": false
+        },
+        {
+          "name": "load_consumption",
+          "label": "台区下负荷用量",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "电网材料表中的“台区下负荷用量”字段，来源表头路径：台区下负荷用量。",
+          "source_column": "load_consumption",
+          "derived": false
+        },
+        {
+          "name": "expansion_plan",
+          "label": "扩容计划",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "电网材料表中的“扩容计划”字段，来源表头路径：扩容计划。",
+          "source_column": "expansion_plan",
+          "derived": false
+        },
+        {
+          "name": "main_transformer_unit_count",
+          "label": "主变台数",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "count",
+          "unit": "台",
+          "description": "主变表达式（如2×180MVA）解析出的台数、单台和总容量。",
+          "source_column": "main_transformer_capacity_count",
+          "derived": true
+        },
+        {
+          "name": "main_transformer_unit_capacity_mva",
+          "label": "单台主变容量",
+          "sqlite_type": "REAL",
+          "semantic_type": "capacity",
+          "unit": "MVA",
+          "description": "主变表达式（如2×180MVA）解析出的台数、单台和总容量。",
+          "source_column": "main_transformer_capacity_count",
+          "derived": true
+        },
+        {
+          "name": "main_transformer_total_capacity_mva",
+          "label": "主变总容量",
+          "sqlite_type": "REAL",
+          "semantic_type": "capacity",
+          "unit": "MVA",
+          "description": "主变表达式（如2×180MVA）解析出的台数、单台和总容量。",
+          "source_column": "main_transformer_capacity_count",
+          "derived": true
+        },
+        {
+          "name": "main_transformer_capacity_count_parse_status",
+          "label": "主变容量及数量解析状态",
+          "sqlite_type": "TEXT",
+          "semantic_type": "parse_status",
+          "unit": null,
+          "description": "派生字段解析状态：valid、empty、unparseable 或 unexpected_unit。",
+          "source_column": "main_transformer_capacity_count",
+          "derived": true
+        },
+        {
+          "name": "remaining_access_capacity_mw",
+          "label": "剩余可接入容量",
+          "sqlite_type": "REAL",
+          "semantic_type": "quantity",
+          "unit": "MW",
+          "description": "剩余可接入容量，单位 MW；用于≤10MW的直接数值筛选。",
+          "source_column": "remaining_access_capacity",
+          "derived": true
+        },
+        {
+          "name": "remaining_access_capacity_parse_status",
+          "label": "剩余可接入容量解析状态",
+          "sqlite_type": "TEXT",
+          "semantic_type": "parse_status",
+          "unit": null,
+          "description": "派生字段解析状态：valid、empty、unparseable 或 unexpected_unit。",
+          "source_column": "remaining_access_capacity",
+          "derived": true
+        }
+      ]
+    },
+    {
+      "table": "t11_weather_data_element",
+      "dataset": "气象历史数据要素目录",
+      "description": "当前可用气象历史数据要素、时间粒度、空间粒度与历史时长目录。",
+      "coverage": "仅为要素目录，不含具体逐时观测值、极端天气事件或预测结果。",
+      "keywords": [
+        "气象要素",
+        "气象历史",
+        "时间粒度",
+        "空间粒度",
+        "历史时长"
+      ],
+      "supported_queries": [
+        "可用气象数据要素查询",
+        "时间和空间粒度查询"
+      ],
+      "limitations": [
+        "不能回答极端天气影响发电或未来气候预测。"
+      ],
+      "fields": [
+        {
+          "name": "id",
+          "label": "主键ID",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "自增主键。",
+          "source_column": "id",
+          "derived": false
+        },
+        {
+          "name": "source_file",
+          "label": "来源文件",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "原始 Excel 文件名。",
+          "source_column": "source_file",
+          "derived": false
+        },
+        {
+          "name": "source_sheet",
+          "label": "来源工作表",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "原始 Excel 工作表名称。",
+          "source_column": "source_sheet",
+          "derived": false
+        },
+        {
+          "name": "excel_row",
+          "label": "Excel行号",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "数据在原始 Excel 工作表中的行号。",
+          "source_column": "excel_row",
+          "derived": false
+        },
+        {
+          "name": "serial_no",
+          "label": "编号",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "气象历史数据要素表中的“编号”字段，来源表头路径：编号。",
+          "source_column": "serial_no",
+          "derived": false
+        },
+        {
+          "name": "data_element",
+          "label": "数据要素",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "气象历史数据要素表中的“数据要素”字段，来源表头路径：数据要素。",
+          "source_column": "data_element",
+          "derived": false
+        },
+        {
+          "name": "time_granularity",
+          "label": "时间颗粒度",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "气象历史数据要素表中的“时间颗粒度”字段，来源表头路径：时间颗粒度。",
+          "source_column": "time_granularity",
+          "derived": false
+        },
+        {
+          "name": "space_granularity",
+          "label": "空间颗粒度",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "气象历史数据要素表中的“空间颗粒度”字段，来源表头路径：空间颗粒度。",
+          "source_column": "space_granularity",
+          "derived": false
+        },
+        {
+          "name": "history_duration",
+          "label": "历史时长",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "气象历史数据要素表中的“历史时长”字段，来源表头路径：历史时长。",
+          "source_column": "history_duration",
+          "derived": false
+        }
+      ]
+    },
+    {
+      "table": "t11_weather_grid_sample",
+      "dataset": "气象资源格点样本",
+      "description": "2025年固定格点的辐照、风速、气温、湿度和等效满负荷小时样本。",
+      "coverage": "仅覆盖2025年年度格点样本，不含逐时观测或跨年度趋势。",
+      "keywords": [
+        "风速",
+        "辐照",
+        "日照",
+        "气象资源",
+        "等效满负荷小时",
+        "格点"
+      ],
+      "supported_queries": [
+        "格点风速和辐照查询",
+        "等效满负荷小时比较",
+        "2025年气象资源描述"
+      ],
+      "limitations": [
+        "不能直接认定国家资源等级，除非另有分级标准。"
+      ],
+      "fields": [
+        {
+          "name": "id",
+          "label": "主键ID",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "自增主键。",
+          "source_column": "id",
+          "derived": false
+        },
+        {
+          "name": "source_file",
+          "label": "来源文件",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "原始 Excel 文件名。",
+          "source_column": "source_file",
+          "derived": false
+        },
+        {
+          "name": "source_sheet",
+          "label": "来源工作表",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "原始 Excel 工作表名称。",
+          "source_column": "source_sheet",
+          "derived": false
+        },
+        {
+          "name": "excel_row",
+          "label": "Excel行号",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "数据在原始 Excel 工作表中的行号。",
+          "source_column": "excel_row",
+          "derived": false
+        },
+        {
+          "name": "grid_id",
+          "label": "格点ID",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "气象格点样本表中的“格点ID”字段，来源表头路径：格点ID。",
+          "source_column": "grid_id",
+          "derived": false
+        },
+        {
+          "name": "center_longitude_deg_e",
+          "label": "中心经度(°E)",
+          "sqlite_type": "REAL",
+          "semantic_type": "real",
+          "unit": null,
+          "description": "气象格点样本表中的“中心经度(°E)”字段，来源表头路径：中心经度(°E)。单位或口径：°E。",
+          "source_column": "center_longitude_deg_e",
+          "derived": false
+        },
+        {
+          "name": "center_latitude_deg_n",
+          "label": "中心纬度(°N)",
+          "sqlite_type": "REAL",
+          "semantic_type": "real",
+          "unit": null,
+          "description": "气象格点样本表中的“中心纬度(°N)”字段，来源表头路径：中心纬度(°N)。单位或口径：°N。",
+          "source_column": "center_latitude_deg_n",
+          "derived": false
+        },
+        {
+          "name": "township",
+          "label": "所属乡镇",
+          "sqlite_type": "TEXT",
+          "semantic_type": "text",
+          "unit": null,
+          "description": "气象格点样本表中的“所属乡镇”字段，来源表头路径：所属乡镇。",
+          "source_column": "township",
+          "derived": false
+        },
+        {
+          "name": "altitude_m",
+          "label": "海拔(m)",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "气象格点样本表中的“海拔(m)”字段，来源表头路径：海拔(m)。单位或口径：m。",
+          "source_column": "altitude_m",
+          "derived": false
+        },
+        {
+          "name": "total_radiation_y2025_kwh",
+          "label": "2025年总辐射(kWh/m²)",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "气象格点样本表中的“2025年总辐射(kWh/m²)”字段，来源表头路径：2025年总辐射(kWh/m²)。单位或口径：kWh/m²。",
+          "source_column": "total_radiation_y2025_kwh",
+          "derived": false
+        },
+        {
+          "name": "direct_radiation_y2025_kwh",
+          "label": "2025年直射辐射(kWh/m²)",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "气象格点样本表中的“2025年直射辐射(kWh/m²)”字段，来源表头路径：2025年直射辐射(kWh/m²)。单位或口径：kWh/m²。",
+          "source_column": "direct_radiation_y2025_kwh",
+          "derived": false
+        },
+        {
+          "name": "diffuse_radiation_y2025_kwh",
+          "label": "2025年散射辐射(kWh/m²)",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "气象格点样本表中的“2025年散射辐射(kWh/m²)”字段，来源表头路径：2025年散射辐射(kWh/m²)。单位或口径：kWh/m²。",
+          "source_column": "diffuse_radiation_y2025_kwh",
+          "derived": false
+        },
+        {
+          "name": "avg_temperature_celsius",
+          "label": "年平均气温(℃)",
+          "sqlite_type": "REAL",
+          "semantic_type": "real",
+          "unit": null,
+          "description": "气象格点样本表中的“年平均气温(℃)”字段，来源表头路径：年平均气温(℃)。单位或口径：℃。",
+          "source_column": "avg_temperature_celsius",
+          "derived": false
+        },
+        {
+          "name": "max_temperature_celsius",
+          "label": "年最高气温(℃)",
+          "sqlite_type": "REAL",
+          "semantic_type": "real",
+          "unit": null,
+          "description": "气象格点样本表中的“年最高气温(℃)”字段，来源表头路径：年最高气温(℃)。单位或口径：℃。",
+          "source_column": "max_temperature_celsius",
+          "derived": false
+        },
+        {
+          "name": "min_temperature_celsius",
+          "label": "年最低气温(℃)",
+          "sqlite_type": "REAL",
+          "semantic_type": "real",
+          "unit": null,
+          "description": "气象格点样本表中的“年最低气温(℃)”字段，来源表头路径：年最低气温(℃)。单位或口径：℃。",
+          "source_column": "min_temperature_celsius",
+          "derived": false
+        },
+        {
+          "name": "avg_relative_humidity_pct",
+          "label": "年平均相对湿度(%)",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "气象格点样本表中的“年平均相对湿度(%)”字段，来源表头路径：年平均相对湿度(%)。单位或口径：%。",
+          "source_column": "avg_relative_humidity_pct",
+          "derived": false
+        },
+        {
+          "name": "annual_avg_wind_speed_h10m_mps",
+          "label": "10m年均风速(m/s)",
+          "sqlite_type": "REAL",
+          "semantic_type": "real",
+          "unit": null,
+          "description": "气象格点样本表中的“10m年均风速(m/s)”字段，来源表头路径：10m年均风速(m/s)。单位或口径：m/s。",
+          "source_column": "annual_avg_wind_speed_h10m_mps",
+          "derived": false
+        },
+        {
+          "name": "annual_avg_wind_speed_h70m_mps",
+          "label": "70m年均风速(m/s)",
+          "sqlite_type": "REAL",
+          "semantic_type": "real",
+          "unit": null,
+          "description": "气象格点样本表中的“70m年均风速(m/s)”字段，来源表头路径：70m年均风速(m/s)。单位或口径：m/s。",
+          "source_column": "annual_avg_wind_speed_h70m_mps",
+          "derived": false
+        },
+        {
+          "name": "annual_avg_wind_speed_h100m_mps",
+          "label": "100m年均风速(m/s)",
+          "sqlite_type": "REAL",
+          "semantic_type": "real",
+          "unit": null,
+          "description": "气象格点样本表中的“100m年均风速(m/s)”字段，来源表头路径：100m年均风速(m/s)。单位或口径：m/s。",
+          "source_column": "annual_avg_wind_speed_h100m_mps",
+          "derived": false
+        },
+        {
+          "name": "dominant_wind_direction_degree",
+          "label": "主导风向(度)",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "气象格点样本表中的“主导风向(度)”字段，来源表头路径：主导风向(度)。单位或口径：度。",
+          "source_column": "dominant_wind_direction_degree",
+          "derived": false
+        },
+        {
+          "name": "annual_sunshine_hours",
+          "label": "年日照时数(h)",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "气象格点样本表中的“年日照时数(h)”字段，来源表头路径：年日照时数(h)。单位或口径：h。",
+          "source_column": "annual_sunshine_hours",
+          "derived": false
+        },
+        {
+          "name": "pv_equivalent_full_load_hours",
+          "label": "光伏等效满负荷小时(h)",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "气象格点样本表中的“光伏等效满负荷小时(h)”字段，来源表头路径：光伏等效满负荷小时(h)。单位或口径：h。",
+          "source_column": "pv_equivalent_full_load_hours",
+          "derived": false
+        },
+        {
+          "name": "wind_equivalent_full_load_hours",
+          "label": "风电等效满负荷小时(h)",
+          "sqlite_type": "INTEGER",
+          "semantic_type": "integer",
+          "unit": null,
+          "description": "气象格点样本表中的“风电等效满负荷小时(h)”字段，来源表头路径：风电等效满负荷小时(h)。单位或口径：h。",
+          "source_column": "wind_equivalent_full_load_hours",
+          "derived": false
+        }
+      ]
+    }
+  ]
+}

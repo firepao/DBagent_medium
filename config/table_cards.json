@@ -1,135 +1,1025 @@
 {
-  "version": "2026-07-20-source-truth-audit",
   "table_cards": [
     {
-      "table": "t01_operating_renewable_station_profile",
-      "dataset": "已运行集中式新能源电站项目画像",
-      "description": "已运行集中式风电、光伏电站的并网容量、能源类型、位置、并网时间和配储信息。",
-      "aliases": {"新能源装机": "grid_capacity_mw", "并网容量": "grid_capacity_mw", "电站": "station_name", "配储": "storage_capacity_mwh"},
-      "metrics": ["并网容量", "配储容量", "电站数量"],
-      "dimensions": ["能源类型", "电站类型", "项目位置", "并网时间", "归属上级集团"],
-      "important_fields": ["station_name", "energy_type", "station_type", "grid_capacity_mw", "storage_capacity_mwh", "grid_connection_date", "project_location", "parent_group"],
-      "data_limitations": ["grid_capacity_mw 和 storage_capacity_mwh 均为文本字段；仅已发布规则允许将并网容量作为一期集中式装机口径。", "不包含分布式项目。"]
+      "table": "t01_operating_curtailment_monthly",
+      "dataset": "已运行新能源集中式电站限电量月度数据",
+      "description": "集中式电站按场站和月份记录的限电量时间序列。",
+      "coverage": "仅覆盖表01对应场站的月度限电量。",
+      "supported_queries": [
+        "月度限电量汇总",
+        "场站限电量排名",
+        "限电率的限电量分子"
+      ],
+      "aliases": {
+        "源行号": "source_row_no",
+        "序号": "serial_no",
+        "场站名称": "station_name",
+        "电站类型": "station_type",
+        "接入上级站名称": "parent_station_name",
+        "项目位置": "project_location",
+        "时间周期": "time_period",
+        "时间粒度": "time_granularity",
+        "指标名称": "metric_name",
+        "指标单位": "metric_unit",
+        "指标值": "metric_value",
+        "来源列号": "source_column_no",
+        "来源列名": "source_column_name",
+        "区县": "district_name"
+      },
+      "metrics": [],
+      "dimensions": [
+        "场站名称",
+        "电站类型",
+        "接入上级站名称",
+        "项目位置",
+        "时间周期",
+        "时间粒度",
+        "指标名称",
+        "指标单位",
+        "来源列名",
+        "区县"
+      ],
+      "important_fields": [
+        "source_row_no",
+        "serial_no",
+        "station_name",
+        "station_type",
+        "parent_station_name",
+        "project_location",
+        "time_period",
+        "time_granularity",
+        "metric_name",
+        "metric_unit",
+        "metric_value",
+        "source_column_no",
+        "source_column_name",
+        "district_name"
+      ],
+      "data_limitations": [
+        "指标单位为万kWh；限电率需与同月发电量按场站关联后计算。"
+      ]
     },
     {
       "table": "t01_operating_generation_monthly",
-      "dataset": "已运行集中式新能源发电量月度数据",
-      "description": "场站、时间周期和指标名称粒度的发电量时间序列。",
-      "aliases": {"发电量": "metric_value", "月份": "time_period", "场站": "station_name", "指标": "metric_name"},
-      "metrics": ["发电量", "等效利用小时"],
-      "dimensions": ["场站", "电站类型", "时间周期", "时间粒度", "指标名称"],
-      "important_fields": ["station_name", "station_type", "project_location", "time_period", "time_granularity", "metric_name", "metric_unit", "metric_value"],
-      "data_limitations": ["具体指标含义、单位和时间粒度必须以 metric_name、metric_unit、time_granularity 过滤后确认。"]
+      "dataset": "已运行新能源集中式电站发电量月度数据",
+      "description": "集中式电站按场站和月份记录的发电量时间序列。",
+      "coverage": "仅覆盖表01对应场站的月度发电量，不是装机容量表。",
+      "supported_queries": [
+        "月度或年度发电量汇总",
+        "场站发电量排名",
+        "等效利用小时的发电量分子"
+      ],
+      "aliases": {
+        "源行号": "source_row_no",
+        "序号": "serial_no",
+        "场站名称": "station_name",
+        "电站类型": "station_type",
+        "接入上级站名称": "parent_station_name",
+        "项目位置": "project_location",
+        "时间周期": "time_period",
+        "时间粒度": "time_granularity",
+        "指标名称": "metric_name",
+        "指标单位": "metric_unit",
+        "指标值": "metric_value",
+        "来源列号": "source_column_no",
+        "来源列名": "source_column_name",
+        "区县": "district_name"
+      },
+      "metrics": [],
+      "dimensions": [
+        "场站名称",
+        "电站类型",
+        "接入上级站名称",
+        "项目位置",
+        "时间周期",
+        "时间粒度",
+        "指标名称",
+        "指标单位",
+        "来源列名",
+        "区县"
+      ],
+      "important_fields": [
+        "source_row_no",
+        "serial_no",
+        "station_name",
+        "station_type",
+        "parent_station_name",
+        "project_location",
+        "time_period",
+        "time_granularity",
+        "metric_name",
+        "metric_unit",
+        "metric_value",
+        "source_column_no",
+        "source_column_name",
+        "district_name"
+      ],
+      "data_limitations": [
+        "指标单位为万kWh；计算利用小时还需关联同口径的并网容量。"
+      ]
     },
     {
-      "table": "t01_operating_curtailment_monthly",
-      "dataset": "已运行集中式新能源限电量月度数据",
-      "description": "场站、时间周期和指标名称粒度的限电量时间序列。",
-      "aliases": {"限电量": "metric_value", "弃风": "metric_value", "弃光": "metric_value", "月份": "time_period", "场站": "station_name"},
-      "metrics": ["限电量"],
-      "dimensions": ["场站", "电站类型", "时间周期", "时间粒度", "指标名称"],
-      "important_fields": ["station_name", "station_type", "project_location", "time_period", "time_granularity", "metric_name", "metric_unit", "metric_value"],
-      "data_limitations": ["限电率不是原始字段；需待关联键、单位和聚合口径经客户确认后才能计算。"]
+      "table": "t01_operating_renewable_station_profile",
+      "dataset": "已运行新能源集中式电站项目画像",
+      "description": "已运行集中式风电、光伏和风光储一体化电站的项目画像、并网容量、配储、并网时间、地址和集团信息。",
+      "coverage": "仅覆盖已运行集中式新能源电站；并网容量按客户题集口径等同于装机容量。",
+      "object_scope": {
+        "object_terms": ["已运行项目", "已投运项目", "集中式新能源电站"],
+        "row_scope": "all_rows",
+        "description": "本表每一行均属于已运行集中式新能源电站；对象词用于选择本表，不得臆造运行状态字段筛选。"
+      },
+      "supported_queries": [
+        "集中式新能源装机及类型结构",
+        "集中式项目、集团和配储清单",
+        "按并网月份的历史装机切片"
+      ],
+      "aliases": {
+        "序号": "serial_no",
+        "场站名称": "station_name",
+        "能源类型": "energy_type",
+        "电站类型": "station_type",
+        "是否配储": "has_storage",
+        "电压等级(kV)": "voltage_level_kv",
+        "接入上级站名称": "parent_station_name",
+        "总投资额（万元）": "total_investment_tenk_yuan",
+        "机制电量容量（百分比）": "mechanism_energy_capacity_pct",
+        "机制价格（元/MW)": "mechanism_price_mw",
+        "项目位置": "project_location",
+        "升压站坐标(经纬度）": "booster_station_coordinate_degree",
+        "光伏区及风机坐标 （光伏区/储能提供拐点坐标，风场提供风机机位点坐标）": "pv_wind_coordinate_turbine",
+        "项目建设方": "project_builder",
+        "归属上级集团": "parent_group",
+        "并网容量/装机容量": "grid_capacity_mw",
+        "储能功率": "storage_power_mw",
+        "储能能量": "storage_energy_mwh",
+        "开工月份": "start_month",
+        "并网月份": "grid_connection_month",
+        "区县": "district_name"
+      },
+      "metrics": [
+        "并网容量/装机容量",
+        "储能功率",
+        "储能能量"
+      ],
+      "dimensions": [
+        "场站名称",
+        "能源类型",
+        "电站类型",
+        "是否配储",
+        "接入上级站名称",
+        "项目位置",
+        "升压站坐标(经纬度）",
+        "光伏区及风机坐标 （光伏区/储能提供拐点坐标，风场提供风机机位点坐标）",
+        "项目建设方",
+        "归属上级集团",
+        "开工月份",
+        "并网月份",
+        "区县"
+      ],
+      "important_fields": [
+        "serial_no",
+        "station_name",
+        "energy_type",
+        "station_type",
+        "has_storage",
+        "voltage_level_kv",
+        "parent_station_name",
+        "total_investment_tenk_yuan",
+        "mechanism_energy_capacity_pct",
+        "mechanism_price_mw",
+        "project_location",
+        "booster_station_coordinate_degree",
+        "pv_wind_coordinate_turbine",
+        "project_builder",
+        "parent_group",
+        "grid_capacity_mw",
+        "storage_power_mw",
+        "storage_energy_mwh"
+      ],
+      "data_limitations": [
+        "风光储一体化容量不能拆分到风电或光伏。",
+        "开工和并网时间仅到月粒度。"
+      ]
     },
     {
       "table": "t02_construction_project_station",
-      "dataset": "在建新能源与储能项目",
-      "description": "在建项目的容量、地点、建设进度、接入批复和预计并网时间。",
-      "aliases": {"在建项目": "project_name", "项目进度": "current_progress", "项目容量": "project_capacity_mw", "接入批复": "grid_access_approval"},
-      "metrics": ["项目容量", "项目数量", "总投资额"],
-      "dimensions": ["项目类型", "建设地点", "当前阶段进展", "预计并网时间", "建设单位"],
-      "important_fields": ["project_name", "project_type", "project_capacity_mw", "construction_location", "current_progress", "grid_access_approval", "grid_connection_date", "construction_unit"],
-      "data_limitations": ["project_capacity_mw 为文本字段，且源表标题同时包含新能源 MW 与储能 MWh，跨项目类型汇总前须确认口径。", "项目滞后判定规则尚未发布。"]
+      "dataset": "在建新能源及储能项目",
+      "description": "在建项目的规模、建设地点、当前进展、前置手续和计划并网时间。",
+      "coverage": "仅覆盖在建项目，不代表已运行或备案项目。",
+      "object_scope": {
+        "object_terms": [
+          "在建项目",
+          "在建新能源项目",
+          "在建储能项目"
+        ],
+        "row_scope": "all_rows",
+        "description": "本表每一行均属于在建新能源及储能项目；“在建”用于识别本表的业务对象，不是 current_progress 的枚举值。",
+        "status_filters": [
+          {
+            "field": "current_progress",
+            "semantic_label": "当前阶段进展",
+            "requires_explicit_user_value": true,
+            "allowed_values": [
+              "前期",
+              "土建",
+              "已开工",
+              "设备安装",
+              "设备调试"
+            ]
+          }
+        ]
+      },
+      "supported_queries": [
+        "在建项目数量和规模",
+        "项目进度与预计并网时间",
+        "前置手续未办结项目",
+        "按已发布规则筛查计划逾期项目"
+      ],
+      "aliases": {
+        "序号": "serial_no",
+        "项目名称": "project_name",
+        "项目类型": "project_type",
+        "备案编号": "serial_no_2",
+        "总投资额（万元）": "total_investment_tenk_yuan",
+        "建设地点（具体到村级）": "construction_location",
+        "升压站位置区域坐标（经纬坐标）": "booster_station_coordinate",
+        "光伏区及风机坐标 （光伏区/储能提供拐点坐标，风场提供风机机位点坐标）": "pv_wind_coordinate_turbine",
+        "项目并网电压等级（kV）": "grid_voltage_level_kv",
+        "项目并网上级站": "grid_parent_station",
+        "建设单位": "construction_unit",
+        "当前阶段进展": "current_progress",
+        "建设用地批复": "land_approval",
+        "电力接入批复": "grid_access_approval",
+        "光伏/风电/储能场区工程进度": "site_project_progress",
+        "升压站工程进度": "booster_station_progress",
+        "外送线路进度": "outgoing_line_progress",
+        "并网手续进度": "grid_connection_procedure_progress",
+        "项目开工时间": "start_date",
+        "预计并网时间": "grid_connection_date",
+        "备注 (表中未提及的可自行备注）": "remarks",
+        "项目容量（功率）": "project_capacity_mw",
+        "项目容量（能量）": "project_capacity_mwh",
+        "区县": "district_name"
+      },
+      "metrics": [
+        "项目容量（功率）",
+        "项目容量（能量）"
+      ],
+      "dimensions": [
+        "项目名称",
+        "项目类型",
+        "备案编号",
+        "建设地点（具体到村级）",
+        "升压站位置区域坐标（经纬坐标）",
+        "光伏区及风机坐标 （光伏区/储能提供拐点坐标，风场提供风机机位点坐标）",
+        "项目并网电压等级（kV）",
+        "项目并网上级站",
+        "建设单位",
+        "当前阶段进展",
+        "建设用地批复",
+        "电力接入批复",
+        "光伏/风电/储能场区工程进度",
+        "升压站工程进度",
+        "外送线路进度",
+        "并网手续进度",
+        "项目开工时间",
+        "预计并网时间",
+        "备注 (表中未提及的可自行备注）",
+        "区县"
+      ],
+      "important_fields": [
+        "serial_no",
+        "project_name",
+        "project_type",
+        "serial_no_2",
+        "total_investment_tenk_yuan",
+        "construction_location",
+        "booster_station_coordinate",
+        "pv_wind_coordinate_turbine",
+        "grid_voltage_level_kv",
+        "grid_parent_station",
+        "construction_unit",
+        "current_progress",
+        "land_approval",
+        "grid_access_approval",
+        "site_project_progress",
+        "booster_station_progress",
+        "outgoing_line_progress",
+        "grid_connection_procedure_progress"
+      ],
+      "data_limitations": [
+        "项目容量可能同时含 MW/MWh，必须分开统计。",
+        "计划逾期不是停工或违规认定。"
+      ]
     },
     {
       "table": "t03_large_scale_enterprise",
       "dataset": "规上企业信息",
-      "description": "规上企业的基础信息、年度用能数据及配套光伏、储能情况。",
-      "aliases": {"规上企业": "enterprise_name", "企业": "enterprise_name", "企业位置": "enterprise_location", "企业类型": "enterprise_type", "年用电量": "annual_electricity_consumption_tenk_kwh"},
-      "metrics": ["企业数量", "年用电量", "年用热量", "年用气量", "光伏容量", "储能容量"],
-      "dimensions": ["企业名称", "企业位置", "企业类型", "供电电压等级"],
-      "important_fields": ["enterprise_name", "enterprise_location", "enterprise_type", "annual_electricity_consumption_tenk_kwh", "pv_capacity_mw", "storage_capacity_mwh"],
-      "data_limitations": ["不包含行业、税收、就业人数或实时负荷字段。", "storage_capacity_mwh 为文本字段。"]
+      "description": "规上企业的基础信息、年度用能及配套光伏、储能情况。",
+      "coverage": "不含税收、就业人数、营收或实时负荷。",
+      "supported_queries": [
+        "规上企业数量和类型",
+        "年度用能汇总",
+        "企业配套光伏和储能情况"
+      ],
+      "aliases": {
+        "序号": "serial_no",
+        "企业名称": "enterprise_name",
+        "企业位置": "enterprise_location",
+        "企业类型": "enterprise_type",
+        "供电电压等级(kV)": "voltage_level_supply_kv",
+        "变压器容量(kVA)": "transformer_capacity_kv",
+        "年用电量（万kwh)": "annual_electricity_consumption_tenk_kwh",
+        "年用热量(GJ)": "annual_heat_consumption_gj",
+        "年用蒸汽量（吨）": "annual_steam_consumption_ton",
+        "热源方式": "heat_source",
+        "年用气量（万Nm³）": "annual_gas_consumption_tenk_nm3",
+        "是否配套光伏": "has_pv",
+        "光伏容量（MW)": "pv_capacity_mw",
+        "是否配套储能": "has_storage",
+        "储能容量(MW/MWH)": "storage_capacity_mwh",
+        "区县": "district_name"
+      },
+      "metrics": [],
+      "dimensions": [
+        "企业名称",
+        "企业位置",
+        "企业类型",
+        "热源方式",
+        "是否配套光伏",
+        "是否配套储能",
+        "储能容量(MW/MWH)",
+        "区县"
+      ],
+      "important_fields": [
+        "serial_no",
+        "enterprise_name",
+        "enterprise_location",
+        "enterprise_type",
+        "voltage_level_supply_kv",
+        "transformer_capacity_kv",
+        "annual_electricity_consumption_tenk_kwh",
+        "annual_heat_consumption_gj",
+        "annual_steam_consumption_ton",
+        "heat_source",
+        "annual_gas_consumption_tenk_nm3",
+        "has_pv",
+        "pv_capacity_mw",
+        "has_storage",
+        "storage_capacity_mwh",
+        "district_name"
+      ],
+      "data_limitations": [
+        "不能回答税收贡献、就业人数或行业营收。"
+      ]
     },
     {
       "table": "t04_filing_project",
-      "dataset": "入库备案新能源及储能项目",
-      "description": "拟建备案项目的项目类型、拟建规模、建设地点、计划开工和计划并网投运信息。",
-      "aliases": {"备案项目": "project_name", "拟建规模": "planned_scale", "计划开工": "planned_start_date", "计划并网投运": "planned_grid_operation_date", "建设地点": "construction_location"},
-      "metrics": ["项目数量", "拟建规模（文本）", "总投资额"],
-      "dimensions": ["项目类型", "建设地点", "计划开工时间", "计划并网投运时间", "业主单位"],
-      "important_fields": ["project_name", "project_type", "planned_scale", "construction_location", "owner_unit", "planned_start_date", "planned_grid_operation_date", "total_investment_hundred_million_yuan"],
-      "data_limitations": ["无 filing_date（备案日期）字段，不能回答新增备案或按备案日期统计。", "planned_start_date 和 planned_grid_operation_date 为计划时间，不能替代备案日期。", "planned_scale 是非结构化文本，不能直接作为可靠数值容量汇总。"]
+      "dataset": "入库新能源及储能备案项目",
+      "description": "备案项目的项目类型、拟建规模、建设地点及计划开工、计划并网投运月份。",
+      "coverage": "仅覆盖备案项目计划信息，不含备案日期、实际开工时间或项目当前状态。",
+      "object_scope": {
+        "object_terms": ["备案项目", "拟建项目", "储备项目"],
+        "row_scope": "all_rows",
+        "description": "本表每一行均属于备案项目；对象词用于选择本表，不能推断实际开工、投运或新增备案状态。"
+      },
+      "supported_queries": [
+        "备案项目清单",
+        "计划开工或计划并网投运月份",
+        "按项目类型和地点筛选备案项目"
+      ],
+      "aliases": {
+        "序号": "serial_no",
+        "项目名称": "project_name",
+        "项目类型": "project_type",
+        "拟建规模": "planned_scale",
+        "建设地点（县-乡-村）": "construction_location",
+        "升压站坐标": "booster_station_coordinate",
+        "点位坐标 （风机提供点位作为，光伏区储能提供拐点坐标）": "point_coordinate",
+        "业主单位（拟定）": "owner_unit",
+        "总投资（亿元）": "total_investment_hundred_million_yuan",
+        "备注": "remarks",
+        "计划开工月份": "planned_start_month",
+        "计划并网投运月份": "planned_grid_operation_month",
+        "区县": "district_name"
+      },
+      "metrics": [],
+      "dimensions": [
+        "项目名称",
+        "项目类型",
+        "拟建规模",
+        "建设地点（县-乡-村）",
+        "升压站坐标",
+        "点位坐标 （风机提供点位作为，光伏区储能提供拐点坐标）",
+        "业主单位（拟定）",
+        "备注",
+        "计划开工月份",
+        "计划并网投运月份",
+        "区县"
+      ],
+      "important_fields": [
+        "serial_no",
+        "project_name",
+        "project_type",
+        "planned_scale",
+        "construction_location",
+        "booster_station_coordinate",
+        "point_coordinate",
+        "owner_unit",
+        "total_investment_hundred_million_yuan",
+        "remarks",
+        "planned_start_month",
+        "planned_grid_operation_month",
+        "district_name"
+      ],
+      "data_limitations": [
+        "不能按新增备案时间统计。",
+        "拟建规模为非结构化文本，不能直接汇总为可靠容量。"
+      ]
+    },
+    {
+      "table": "t05_land_planning_detail",
+      "dataset": "土地规划明细数据",
+      "description": "土地规划明细的分类、范围和图层信息。",
+      "coverage": "支持土地分类明细查询。",
+      "supported_queries": [
+        "土地规划明细筛选",
+        "选址判定分类查询"
+      ],
+      "aliases": {
+        "序号": "serial_no",
+        "土地类型": "type_land",
+        "三区": "three_zone",
+        "明细": "detail",
+        "三线": "three_line",
+        "区域范围": "region_scope",
+        "备注": "remarks"
+      },
+      "metrics": [],
+      "dimensions": [
+        "土地类型",
+        "三区",
+        "明细",
+        "三线",
+        "区域范围",
+        "备注"
+      ],
+      "important_fields": [
+        "serial_no",
+        "type_land",
+        "three_zone",
+        "detail",
+        "three_line",
+        "region_scope",
+        "remarks"
+      ],
+      "data_limitations": [
+        "不能自行推断法律红线或项目合规结论。"
+      ]
+    },
+    {
+      "table": "t05_land_planning_merged_catalog",
+      "dataset": "土地规划合并单元格目录",
+      "description": "土地规划分类的合并单元格目录和分类层级。",
+      "coverage": "用于解释分类目录，不是图斑级统计表。",
+      "supported_queries": [
+        "土地规划分类目录查询"
+      ],
+      "aliases": {
+        "序号": "serial_no",
+        "土地类型": "type_land",
+        "三区": "three_zone",
+        "明细": "detail",
+        "三线": "three_line",
+        "区域范围": "region_scope",
+        "备注": "remarks"
+      },
+      "metrics": [],
+      "dimensions": [
+        "土地类型",
+        "三区",
+        "明细",
+        "三线",
+        "区域范围",
+        "备注"
+      ],
+      "important_fields": [
+        "serial_no",
+        "type_land",
+        "three_zone",
+        "detail",
+        "three_line",
+        "region_scope",
+        "remarks"
+      ],
+      "data_limitations": [
+        "不能单独用于图斑数量或面积汇总。"
+      ]
+    },
+    {
+      "table": "t05_land_polygon_point",
+      "dataset": "候选土地图斑",
+      "description": "候选土地图斑的分类、选址判定、面积和空间位置。",
+      "coverage": "支持按选址判定汇总图斑数量和估算面积。",
+      "supported_queries": [
+        "图斑按选址判定分类统计",
+        "图斑面积汇总",
+        "图层和土地类型清单"
+      ],
+      "aliases": {
+        "序号": "serial_no",
+        "图斑ID": "land_patch_id",
+        "图层名称": "layer_name",
+        "大类分组": "category_group",
+        "选址判定": "site_selection_judgement",
+        "所在乡镇": "township",
+        "中心经度": "center_longitude",
+        "中心纬度": "center_latitude",
+        "外接半径(km)": "outer_radius_km",
+        "估算面积(亩)": "estimated_area_mu",
+        "多边形轮廓(WKT)": "polygon_wkt",
+        "备注": "remarks"
+      },
+      "metrics": [],
+      "dimensions": [
+        "图斑ID",
+        "图层名称",
+        "大类分组",
+        "选址判定",
+        "所在乡镇",
+        "多边形轮廓(WKT)",
+        "备注"
+      ],
+      "important_fields": [
+        "serial_no",
+        "land_patch_id",
+        "layer_name",
+        "category_group",
+        "site_selection_judgement",
+        "township",
+        "center_longitude",
+        "center_latitude",
+        "outer_radius_km",
+        "estimated_area_mu",
+        "polygon_wkt",
+        "remarks"
+      ],
+      "data_limitations": [
+        "只能使用已填选址判定，不能替代法定合规审查。"
+      ]
     },
     {
       "table": "t06_grid_side_storage",
       "dataset": "电网侧储能",
-      "description": "在运电网侧储能项目的容量、接入站、投运时间及年度充放电量。",
-      "aliases": {"电网侧储能": "station_name", "储能容量": "grid_capacity_mwh", "接入站": "parent_station_name", "投运日期": "operation_date"},
-      "metrics": ["储能容量", "2025年充电量", "2025年放电量", "2026年充电量", "2026年放电量"],
-      "dimensions": ["项目名称", "项目类型", "接入变电站", "投运日期", "归属集团"],
-      "important_fields": ["station_name", "project_type", "grid_capacity_mwh", "parent_station_name", "operation_date", "charge_power_y2025_mwh", "discharge_power_y2025_mwh", "charge_power_y2026_mwh", "discharge_power_y2026_mwh"],
-      "data_limitations": ["grid_capacity_mwh 为文本字段；汇总前须确认其中 MW/MWh 的实际填报格式。"]
+      "description": "已投运电网侧储能项目的容量、接入站、投运日期和充放电量。",
+      "coverage": "仅覆盖电网侧储能，不与电源侧或工商业储能自动去重合并。",
+      "object_scope": {
+        "object_terms": ["电网侧储能", "已投运电网侧储能"],
+        "row_scope": "all_rows",
+        "description": "本表每一行均属于电网侧储能项目；对象词用于选择本表，不自动与其他储能对象合并。"
+      },
+      "supported_queries": [
+        "电网侧储能规模和清单",
+        "电网侧储能项目按区县分布统计",
+        "按接入站或投运日期筛选",
+        "年度充放电量查询"
+      ],
+      "aliases": {
+        "序号": "serial_no",
+        "场站名称": "station_name",
+        "项目类型": "project_type",
+        "电压等级（kV)": "voltage_level_kv",
+        "接入上级站名称": "parent_station_name",
+        "投运日期": "operation_date",
+        "总投资额(万元）": "total_investment_tenk_yuan",
+        "厂区拐点坐标": "plant_boundary_coordinate",
+        "产权单位": "property_owner",
+        "所属集团公司": "parent_group",
+        "2025年充电量电量（MWH)": "charge_power_y2025_mwh",
+        "2025年放电量(MWH)": "discharge_power_y2025_mwh",
+        "2026年充电量(MWH) 截至6月": "charge_power_y2026_mwh",
+        "2026年放电量(MWH) 截至到6月": "discharge_power_y2026_mwh",
+        "储能功率": "storage_power_mw",
+        "储能能量": "storage_energy_mwh"
+      },
+      "metrics": [
+        "储能功率",
+        "储能能量"
+      ],
+      "dimensions": [
+        "场站名称",
+        "项目类型",
+        "接入上级站名称",
+        "投运日期",
+        "厂区拐点坐标",
+        "产权单位",
+        "所属集团公司"
+      ],
+      "important_fields": [
+        "serial_no",
+        "station_name",
+        "project_type",
+        "voltage_level_kv",
+        "parent_station_name",
+        "operation_date",
+        "total_investment_tenk_yuan",
+        "plant_boundary_coordinate",
+        "property_owner",
+        "parent_group",
+        "charge_power_y2025_mwh",
+        "discharge_power_y2025_mwh",
+        "charge_power_y2026_mwh",
+        "discharge_power_y2026_mwh",
+        "storage_power_mw",
+        "storage_energy_mwh"
+      ],
+      "data_limitations": [
+        "功率 MW 与能量 MWh 必须分列汇总。"
+      ]
     },
     {
       "table": "t07_distributed_pv_wind",
       "dataset": "分布式光伏与风电",
-      "description": "分布式光伏与风电项目的装机容量、位置、投运日期及年度发电量。",
-      "aliases": {"分布式光伏": "station_type", "分布式风电": "station_type", "装机容量": "installed_capacity_mw", "投运日期": "operation_date"},
-      "metrics": ["装机容量", "2025年总发电量", "2025年上网电量", "2026年总发电量", "2026年上网电量"],
-      "dimensions": ["电站名称", "电站类型", "电站位置", "投运日期", "投资方"],
-      "important_fields": ["station_name", "station_type", "station_type_2", "station_location", "installed_capacity_mw", "operation_date", "power_generation_total_y2025_tenk_kwh", "power_generation_total_y2026_tenk_kwh"],
-      "data_limitations": ["installed_capacity_mw 为文本字段。", "2025 年发电量字段明确为万 kWh；2026 年部分字段未在源表字段名中标明单位，不能自动混合汇总。"]
+      "description": "已投运分布式光伏和分散式风电项目的装机、位置、投运日期及年度发电量。",
+      "coverage": "仅覆盖分布式/分散式项目，不包含集中式电站。",
+      "object_scope": {
+        "object_terms": ["分布式项目", "分布式光伏", "分散式风电"],
+        "row_scope": "all_rows",
+        "description": "本表每一行均属于分布式光伏或分散式风电项目；对象词用于选择本表，不得误当成集中式项目条件。"
+      },
+      "categorical_fields": [
+        {
+          "field": "station_type",
+          "business_label": "项目类型",
+          "allowed_values": [
+            "分布式光伏",
+            "分散式风电"
+          ],
+          "value_aliases": {
+            "光伏": "分布式光伏",
+            "分布式光伏项目": "分布式光伏",
+            "风电": "分散式风电",
+            "分散式风电项目": "分散式风电"
+          }
+        },
+        {
+          "field": "station_type_2",
+          "business_label": "上网方式",
+          "allowed_values": [
+            "全额上网",
+            "自发自用",
+            "自发自用余电上网"
+          ],
+          "value_aliases": {}
+        }
+      ],
+      "supported_queries": [
+        "分布式风光装机规模",
+        "按县区或投运日期汇总",
+        "年度发电量和上网电量"
+      ],
+      "aliases": {
+        "序号": "serial_no",
+        "电站名称": "station_name",
+        "电站类型": "station_type",
+        "电站类型_2": "station_type_2",
+        "电站位置（具体到园区/村）": "station_location",
+        "接入电网等级(kV)": "grid_voltage_level_kv",
+        "投运日期": "operation_date",
+        "点位坐标 （风电项目提供风机点位坐标）": "point_coordinate",
+        "投资方": "investor",
+        "2025年总发电量（万kwh)": "power_generation_total_y2025_tenk_kwh",
+        "2025年自发自用电量（万kwh)": "self_consumed_power_y2025_tenk_kwh",
+        "2025年上网电量（万kwh)": "on_grid_power_y2025_tenk_kwh",
+        "2026年总发电量（万kwh)": "power_generation_total_y2026_tenk_kwh",
+        "2026年自发自用电量": "self_consumed_power_y2026",
+        "2026年上网电量": "on_grid_power_y2026",
+        "装机容量": "installed_capacity_mw",
+        "区县": "district_name"
+      },
+      "metrics": [
+        "装机容量"
+      ],
+      "dimensions": [
+        "电站名称",
+        "电站类型",
+        "电站类型_2",
+        "电站位置（具体到园区/村）",
+        "投运日期",
+        "点位坐标 （风电项目提供风机点位坐标）",
+        "投资方",
+        "区县"
+      ],
+      "important_fields": [
+        "serial_no",
+        "station_name",
+        "station_type",
+        "station_type_2",
+        "station_location",
+        "grid_voltage_level_kv",
+        "operation_date",
+        "point_coordinate",
+        "investor",
+        "power_generation_total_y2025_tenk_kwh",
+        "self_consumed_power_y2025_tenk_kwh",
+        "on_grid_power_y2025_tenk_kwh",
+        "power_generation_total_y2026_tenk_kwh",
+        "self_consumed_power_y2026",
+        "on_grid_power_y2026",
+        "installed_capacity_mw",
+        "district_name"
+      ],
+      "data_limitations": [
+        "2026年部分电量列单位未明，不得和2025年电量直接混算。"
+      ]
     },
     {
       "table": "t08_industrial_commercial_storage",
       "dataset": "工商业储能",
-      "description": "工商业储能项目的容量、位置、投运日期及年度充放电数据。",
-      "aliases": {"工商业储能": "station_name", "用户侧储能": "station_name", "储能容量": "installed_capacity_mwh", "投运日期": "operation_date"},
-      "metrics": ["储能容量", "2025年总充电量", "2025年总放电量", "2026年总电量"],
-      "dimensions": ["项目名称", "电站类型", "项目位置", "投运日期", "投资方", "是否参与虚拟电厂"],
-      "important_fields": ["station_name", "station_type", "station_location", "installed_capacity_mwh", "operation_date", "is_virtual_power_plant", "total_charge_power_y2025_tenk_kwh", "total_discharge_power_y2025_tenk_kwh"],
-      "data_limitations": ["installed_capacity_mwh 为文本字段，源字段标题同时包含 MW/MWh。", "两个 2026 年总电量字段语义尚未区分，不能同时计入同一指标。"]
+      "description": "已投运工商业储能项目的规模、位置、投运日期和年度充放电信息。",
+      "coverage": "仅覆盖工商业储能，不等同于电网侧或电源侧储能。",
+      "object_scope": {
+        "object_terms": ["工商业储能", "用户侧储能"],
+        "row_scope": "all_rows",
+        "description": "本表每一行均属于工商业储能项目；对象词用于选择本表，不自动与电网侧或电源侧储能合并。"
+      },
+      "supported_queries": [
+        "工商业储能项目和规模",
+        "按位置或投运日期筛选",
+        "虚拟电厂参与情况"
+      ],
+      "aliases": {
+        "序号": "serial_no",
+        "电站名称": "station_name",
+        "电站类型": "station_type",
+        "电站位置（具体到园区）": "station_location",
+        "接入电网等级(kV)": "grid_voltage_level_kv",
+        "是否参与虚拟电厂": "is_virtual_power_plant",
+        "投运日期": "operation_date",
+        "投资方": "investor",
+        "2025年总充电量（万kwh)": "total_charge_power_y2025_tenk_kwh",
+        "2025年总放电量（万kwh)": "total_discharge_power_y2025_tenk_kwh",
+        "2026年总电量（万kwh)": "total_energy_y2026_tenk_kwh",
+        "2026年总电量（万kwh)_2": "total_energy_y2026_tenk_kwh_2",
+        "储能功率": "storage_power_mw",
+        "储能能量": "storage_energy_mwh",
+        "区县": "district_name"
+      },
+      "metrics": [
+        "储能功率",
+        "储能能量"
+      ],
+      "dimensions": [
+        "电站名称",
+        "电站类型",
+        "电站位置（具体到园区）",
+        "是否参与虚拟电厂",
+        "投运日期",
+        "投资方",
+        "区县"
+      ],
+      "important_fields": [
+        "serial_no",
+        "station_name",
+        "station_type",
+        "station_location",
+        "grid_voltage_level_kv",
+        "is_virtual_power_plant",
+        "operation_date",
+        "investor",
+        "total_charge_power_y2025_tenk_kwh",
+        "total_discharge_power_y2025_tenk_kwh",
+        "total_energy_y2026_tenk_kwh",
+        "total_energy_y2026_tenk_kwh_2",
+        "storage_power_mw",
+        "storage_energy_mwh",
+        "district_name"
+      ],
+      "data_limitations": [
+        "两个2026年总电量字段原始语义未区分，不能混合统计。"
+      ]
     },
     {
       "table": "t09_charging_station",
       "dataset": "充换电站",
-      "description": "充换电站的位置、运营方、充电桩数量、充电功率及光储配置。",
-      "aliases": {"充电站": "station_name", "充电桩": "charging_pile_count", "充电功率": "total_charging_power", "日均充电量": "charge_power_kwh"},
-      "metrics": ["充电桩数量", "直流桩数量", "交流桩数量", "总充电功率", "日均充电量", "光伏容量", "储能容量"],
-      "dimensions": ["站点名称", "站点位置", "类型", "运营方", "投资建设方", "接入电压等级"],
-      "important_fields": ["station_name", "station_location", "type", "operator", "charging_pile_count", "dc_charger_count", "ac_charger_count", "total_charging_power", "charge_power_kwh"],
-      "data_limitations": ["total_charging_power 的源单位为 kW，不能按 MW 解释。", "storage_capacity_mwh 为文本字段。"]
+      "description": "充换电站的位置、运营方、桩数、充电功率和光储配置。",
+      "coverage": "支持站点和桩数统计；不含县乡行政区覆盖率的分母名录。",
+      "supported_queries": [
+        "充换电站和充电桩数量",
+        "按县区或运营方筛选站点",
+        "总充电功率和光储配置"
+      ],
+      "aliases": {
+        "序号": "serial_no",
+        "站点名称": "station_name",
+        "站点位置": "station_location",
+        "类型": "type",
+        "投资建设方": "investor_builder",
+        "运营方": "operator",
+        "接入电压等级(kV）": "voltage_level_kv",
+        "变压器容量(kVA)": "transformer_capacity_kv",
+        "充电桩数量": "charging_pile_count",
+        "直流装数量": "dc_charger_count",
+        "交流状数量": "ac_charger_count",
+        "总充电功率(kW)": "total_charging_power",
+        "日均充电量（kwh)": "charge_power_kwh",
+        "是否配置有光伏": "has_pv",
+        "光伏容量(MW)": "pv_capacity_mw",
+        "是否配置有储能": "has_storage",
+        "储能功率": "storage_power_mw",
+        "储能能量": "storage_energy_mwh",
+        "区县": "district_name"
+      },
+      "metrics": [
+        "储能功率",
+        "储能能量"
+      ],
+      "dimensions": [
+        "站点名称",
+        "站点位置",
+        "类型",
+        "投资建设方",
+        "运营方",
+        "是否配置有光伏",
+        "是否配置有储能",
+        "区县"
+      ],
+      "important_fields": [
+        "serial_no",
+        "station_name",
+        "station_location",
+        "type",
+        "investor_builder",
+        "operator",
+        "voltage_level_kv",
+        "transformer_capacity_kv",
+        "charging_pile_count",
+        "dc_charger_count",
+        "ac_charger_count",
+        "total_charging_power",
+        "charge_power_kwh",
+        "has_pv",
+        "pv_capacity_mw",
+        "has_storage",
+        "storage_power_mw",
+        "storage_energy_mwh"
+      ],
+      "data_limitations": [
+        "总充电功率单位为 kW。",
+        "不能在缺少行政区名录时计算覆盖率。"
+      ]
     },
     {
       "table": "t10_power_grid_material",
-      "dataset": "电网材料",
-      "description": "变电站电压等级、主变容量及数量、剩余间隔、剩余可接入容量和扩容计划。",
-      "aliases": {"变电站": "station_name_substation", "主变容量": "main_transformer_capacity_count", "剩余接入容量": "remaining_access_capacity", "剩余间隔": "remaining_bay_count", "扩容计划": "expansion_plan"},
-      "metrics": ["主变容量及数量", "总间隔数", "剩余间隔数", "剩余可接入容量"],
-      "dimensions": ["变电站名称", "电压等级", "接入电源类型及占比", "扩容计划"],
-      "important_fields": ["station_name_substation", "voltage_level_kv", "main_transformer_capacity_count", "bay_count", "remaining_bay_count", "remaining_access_capacity", "type_power_source_mix", "expansion_plan"],
-      "data_limitations": ["main_transformer_capacity_count 与 remaining_access_capacity 为文本字段；数值汇总或饱和判定须先定义解析与阈值规则。", "不包含外送通道能力或外送电量字段。"]
+      "dataset": "变电站接入能力",
+      "description": "已收资变电站的电压等级、主变规模、间隔、剩余可接入容量、接入电源结构和扩容计划。",
+      "coverage": "支持接入能力与近饱和筛查；不含外送通道能力、实时潮流和调度数据。",
+      "supported_queries": [
+        "按电压等级汇总变电站",
+        "剩余可接入容量和剩余间隔查询",
+        "近饱和变电站及扩容计划筛查"
+      ],
+      "aliases": {
+        "序号": "serial_no",
+        "变电站名称": "station_name_substation",
+        "电压等级（kV)": "voltage_level_kv",
+        "位置坐标": "location_coordinate",
+        "总间隔数": "bay_count",
+        "剩余间隔数量": "remaining_bay_count",
+        "接入电源类型及占比": "type_power_source_mix",
+        "台区下负荷用量": "load_consumption",
+        "扩容计划": "expansion_plan",
+        "主变台数": "main_transformer_unit_count",
+        "单台主变容量": "main_transformer_unit_capacity_mva",
+        "主变总容量": "main_transformer_total_capacity_mva",
+        "剩余可接入容量": "remaining_access_capacity_mw"
+      },
+      "metrics": [
+        "主变台数",
+        "单台主变容量",
+        "主变总容量",
+        "剩余可接入容量"
+      ],
+      "dimensions": [
+        "变电站名称",
+        "位置坐标",
+        "接入电源类型及占比",
+        "台区下负荷用量",
+        "扩容计划"
+      ],
+      "important_fields": [
+        "serial_no",
+        "station_name_substation",
+        "voltage_level_kv",
+        "location_coordinate",
+        "bay_count",
+        "remaining_bay_count",
+        "type_power_source_mix",
+        "load_consumption",
+        "expansion_plan",
+        "main_transformer_unit_count",
+        "main_transformer_unit_capacity_mva",
+        "main_transformer_total_capacity_mva",
+        "remaining_access_capacity_mw"
+      ],
+      "data_limitations": [
+        "主变容量单位为 MVA，剩余可接入容量单位为 MW，不能直接相除。",
+        "Q33近饱和规则为剩余间隔≤1或剩余可接入容量≤10MW。"
+      ]
     },
     {
       "table": "t11_weather_data_element",
       "dataset": "气象历史数据要素目录",
-      "description": "可用气象历史数据的数据要素、时间粒度、空间粒度和历史时长目录。",
-      "aliases": {"气象要素": "data_element", "时间粒度": "time_granularity", "空间粒度": "space_granularity", "历史时长": "history_duration"},
-      "metrics": ["要素数量"],
-      "dimensions": ["气象要素", "时间粒度", "空间粒度", "历史时长"],
-      "important_fields": ["data_element", "time_granularity", "space_granularity", "history_duration"],
-      "data_limitations": ["该表仅是数据要素目录，不包含逐时、逐日或逐月气象观测值。"]
+      "description": "当前可用气象历史数据要素、时间粒度、空间粒度与历史时长目录。",
+      "coverage": "仅为要素目录，不含具体逐时观测值、极端天气事件或预测结果。",
+      "supported_queries": [
+        "可用气象数据要素查询",
+        "时间和空间粒度查询"
+      ],
+      "aliases": {
+        "编号": "serial_no",
+        "数据要素": "data_element",
+        "时间颗粒度": "time_granularity",
+        "空间颗粒度": "space_granularity",
+        "历史时长": "history_duration"
+      },
+      "metrics": [],
+      "dimensions": [
+        "数据要素",
+        "时间颗粒度",
+        "空间颗粒度",
+        "历史时长"
+      ],
+      "important_fields": [
+        "serial_no",
+        "data_element",
+        "time_granularity",
+        "space_granularity",
+        "history_duration"
+      ],
+      "data_limitations": [
+        "不能回答极端天气影响发电或未来气候预测。"
+      ]
     },
     {
       "table": "t11_weather_grid_sample",
-      "dataset": "气象格点样本",
-      "description": "固定格点的 2025 年辐照、年平均风速、气温、湿度、日照和等效满负荷小时样本。",
-      "aliases": {"10m年平均风速": "annual_avg_wind_speed_h10m_mps", "70m年平均风速": "annual_avg_wind_speed_h70m_mps", "100m年平均风速": "annual_avg_wind_speed_h100m_mps", "2025年总辐照": "total_radiation_y2025_kwh", "光伏等效满负荷小时": "pv_equivalent_full_load_hours", "风电等效满负荷小时": "wind_equivalent_full_load_hours"},
-      "metrics": ["2025年总辐照", "年平均风速（10m、70m、100m）", "光伏等效满负荷小时", "风电等效满负荷小时", "年日照时数"],
-      "dimensions": ["格点ID", "所属乡镇", "海拔"],
-      "important_fields": ["grid_id", "township", "total_radiation_y2025_kwh", "annual_avg_wind_speed_h10m_mps", "annual_avg_wind_speed_h70m_mps", "annual_avg_wind_speed_h100m_mps", "pv_equivalent_full_load_hours", "wind_equivalent_full_load_hours"],
-      "data_limitations": ["该表为固定格点的年度样本，不包含 time_period 或逐时风速、辐照字段。", "仅覆盖 2025 年样本，不能用于天气预测或跨年度趋势推断。"]
+      "dataset": "气象资源格点样本",
+      "description": "2025年固定格点的辐照、风速、气温、湿度和等效满负荷小时样本。",
+      "coverage": "仅覆盖2025年年度格点样本，不含逐时观测或跨年度趋势。",
+      "supported_queries": [
+        "格点风速和辐照查询",
+        "等效满负荷小时比较",
+        "2025年气象资源描述"
+      ],
+      "aliases": {
+        "格点ID": "grid_id",
+        "中心经度(°E)": "center_longitude_deg_e",
+        "中心纬度(°N)": "center_latitude_deg_n",
+        "所属乡镇": "township",
+        "海拔(m)": "altitude_m",
+        "2025年总辐射(kWh/m²)": "total_radiation_y2025_kwh",
+        "2025年直射辐射(kWh/m²)": "direct_radiation_y2025_kwh",
+        "2025年散射辐射(kWh/m²)": "diffuse_radiation_y2025_kwh",
+        "年平均气温(℃)": "avg_temperature_celsius",
+        "年最高气温(℃)": "max_temperature_celsius",
+        "年最低气温(℃)": "min_temperature_celsius",
+        "年平均相对湿度(%)": "avg_relative_humidity_pct",
+        "10m年均风速(m/s)": "annual_avg_wind_speed_h10m_mps",
+        "70m年均风速(m/s)": "annual_avg_wind_speed_h70m_mps",
+        "100m年均风速(m/s)": "annual_avg_wind_speed_h100m_mps",
+        "主导风向(度)": "dominant_wind_direction_degree",
+        "年日照时数(h)": "annual_sunshine_hours",
+        "光伏等效满负荷小时(h)": "pv_equivalent_full_load_hours",
+        "风电等效满负荷小时(h)": "wind_equivalent_full_load_hours"
+      },
+      "metrics": [],
+      "dimensions": [
+        "格点ID",
+        "所属乡镇"
+      ],
+      "important_fields": [
+        "grid_id",
+        "center_longitude_deg_e",
+        "center_latitude_deg_n",
+        "township",
+        "altitude_m",
+        "total_radiation_y2025_kwh",
+        "direct_radiation_y2025_kwh",
+        "diffuse_radiation_y2025_kwh",
+        "avg_temperature_celsius",
+        "max_temperature_celsius",
+        "min_temperature_celsius",
+        "avg_relative_humidity_pct",
+        "annual_avg_wind_speed_h10m_mps",
+        "annual_avg_wind_speed_h70m_mps",
+        "annual_avg_wind_speed_h100m_mps",
+        "dominant_wind_direction_degree",
+        "annual_sunshine_hours",
+        "pv_equivalent_full_load_hours"
+      ],
+      "data_limitations": [
+        "不能直接认定国家资源等级，除非另有分级标准。"
+      ]
     }
   ]
 }

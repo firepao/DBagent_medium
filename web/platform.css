@@ -1,0 +1,22 @@
+.run-metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+  margin-top: 12px;
+}
+
+.run-metrics span {
+  border: 1px solid #e1e6e3;
+  border-radius: 4px;
+  background: #f7f9f8;
+  padding: 8px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.run-metrics strong {
+  display: block;
+  margin-bottom: 2px;
+  color: #26342d;
+  font-size: 13px;
+}

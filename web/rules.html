@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>业务规则管理</title>
+  <link rel="stylesheet" href="/assets/rules.css">
+  <link rel="stylesheet" href="/assets/rule-governance.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/app"><span>能</span><strong>能源数据 Agent</strong></a>
+    <nav><a href="/app">查数工作台</a><a class="active" href="/rules">规则管理</a><a href="/evaluations">评测中心</a></nav>
+  </header>
+  <main>
+    <section class="heading">
+      <div><p>规则治理</p><h1>业务口径与版本</h1><span>规则发布后进入 Agent 的受控上下文。草稿不会影响线上查询。</span></div>
+      <button id="newRule" type="button">新建规则</button>
+    </section>
+    <section class="runtime-section">
+      <div class="runtime-head"><div><h2>当前生效规则</h2><p>来自受版本控制的系统配置，只读展示；用户新增规则仍须经过下方版本治理流程。</p></div><span id="runtimeCount">正在加载…</span></div>
+      <div id="runtimeRules" class="runtime-rules"><p class="empty-inline">正在加载生效规则…</p></div>
+    </section>
+    <section class="toolbar"><div class="tabs"><button class="active" data-filter="all">全部</button><button data-filter="published">已发布</button><button data-filter="draft">草稿</button><button data-filter="archived">已归档</button></div><span id="count">0 个版本</span></section>
+    <section id="ruleList" class="rule-list"><p class="empty">正在加载规则…</p></section>
+  </main>
+  <dialog id="ruleDialog">
+    <form id="ruleForm" method="dialog">
+      <div class="dialog-head"><div><h2>新建业务规则</h2><p>先保存草稿，再校验数据字段与口径冲突。</p></div><button type="button" id="closeDialog" aria-label="关闭">×</button></div>
+      <div class="form-grid">
+        <label>规则标识<input name="rule_key" required pattern="[a-z][a-z0-9_]{2,79}" placeholder="station_capacity"></label>
+        <label>规则名称<input name="name" required placeholder="已运行电站装机容量口径"></label>
+        <label class="wide">业务说明<textarea name="description" required rows="3" placeholder="说明适用对象、统计含义和数据边界"></textarea></label>
+        <label>业务对象<input name="business_objects" required placeholder="已运行电站，集中式新能源"></label>
+        <label>指标<input name="metric" required placeholder="装机容量"></label>
+        <label>维度<input name="dimensions" placeholder="区县，能源类型"></label>
+        <label>单位<input name="unit" required placeholder="MW"></label>
+        <label class="wide">适用数据表<select id="scopeTables" name="scope_tables" multiple required></select><small>按 Ctrl 可多选</small></label>
+        <fieldset id="requiredFields" class="wide field-picker"><legend>依赖字段</legend><p>选择数据表后，在这里勾选规则计算和校验所依赖的字段。</p><div id="requiredFieldOptions"></div></fieldset>
+        <label class="wide">计算口径<textarea name="calculation" required rows="2" placeholder="装机容量合计 = 并网容量求和"></textarea></label>
+        <label class="wide">约束<input name="constraints" placeholder="空值不参与统计；不同单位不得相加"></label>
+        <label class="wide">正例<input name="examples" placeholder="各区县已运行风电装机容量是多少"></label>
+        <label class="wide">反例<input name="counter_examples" placeholder="备案项目拟建容量"></label>
+      </div>
+      <p id="formError" class="form-error"></p>
+      <div class="dialog-actions"><button type="button" id="cancelDialog">取消</button><button type="submit" class="primary">保存草稿</button></div>
+    </form>
+  </dialog>
+  <dialog id="detailDialog">
+    <div class="dialog-head"><div><h2 id="detailTitle">规则版本详情</h2><p id="detailSubtitle"></p></div><button type="button" id="closeDetail" aria-label="关闭">×</button></div>
+    <div id="detailContent" class="rule-detail"><p>正在加载…</p></div>
+  </dialog>
+  <script src="/assets/rules.js" defer></script>
+  <script src="/assets/rule-governance.js" defer></script>
+  <script src="/assets/rule-fields.js" defer></script>
+</body>
+</html>
